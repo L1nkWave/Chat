@@ -14,3 +14,19 @@ spring:
     hibernate:
       naming:
         physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+
+jwt:
+  subject: 'link-wave-security'
+  issuer: 'link-wave-issuer'
+  secret-key:
+    refresh: 'dGzVEWkq1FoqTMCQnCMrHvnZJYl1x4QG'
+    access: '1RY76H1VEP37eMCyYI24wvgmMkhtOgUH'
+  exp:
+    refresh: 30
+    access: 60
+
+
+files:
+  avatar:
+    path: 'C:\Users\Igor\Desktop\images'
+    default: '1.jpg'
