@@ -8,14 +8,15 @@ drop table if exists users;
 
 create table users
 (
-    id          bigserial primary key,
-    username    varchar(32) not null unique,
-    password    text        not null,
-    name        varchar(64) not null,
-    avatar_path text        not null,
-    created_at  timestamptz not null default now(),
-    last_seen   timestamptz not null,
-    theme       boolean     not null default false,
+    id            bigserial primary key,
+    username      varchar(32) not null unique,
+    password      text        not null,
+    refresh_token text,
+    name          varchar(64) not null,
+    avatar_path   text        not null,
+    created_at    timestamptz not null default now(),
+    last_seen     timestamptz not null,
+    theme         boolean     not null default false,
 
     check (char_length(username) >= 3),
     check (char_length(name) >= 3)
