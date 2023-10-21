@@ -67,7 +67,7 @@ public class DefaultUserService implements UserService {
                 .roles(List.of(defaultRole))
                 .build();
 
-        userRepository.save(newUser);
+        newUser = userRepository.save(newUser);
 
         AuthDto authDto = generateTokens(newUser);
         newUser.setRefreshToken(authDto.getJwtRefresh());
