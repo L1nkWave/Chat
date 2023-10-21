@@ -1,0 +1,34 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:lw-chat-test
+
+  sql:
+    init:
+      mode: never
+
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        highlight_sql: true
+
+    hibernate:
+      ddl-auto: create
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+
+jwt:
+  subject: 'link-wave'
+  issuer: 'link-wave-issuer'
+  secret-key:
+    refresh: 'refresh-secret-key'
+    access: 'access-secret-key'
+  exp:
+    refresh: 30
+    access: 60
+
+files:
+  avatar:
+    path: 'C:\Users\Igor\Desktop\test\images'
+    default: '1.jpg'
