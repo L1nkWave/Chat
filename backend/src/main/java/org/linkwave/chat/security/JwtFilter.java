@@ -9,6 +9,7 @@ import lombok.Cleanup;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -37,10 +38,14 @@ public class JwtFilter extends OncePerRequestFilter {
 
         log.info("-> doFilterInternal()");
 
-        String jwt = request.getHeader("Authorization");
+        String jwt = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (jwt != null) {
+
+            log.info("-> doFilterInternal(): jwt is present");
+
             Optional<DecodedJWT> optDecodedJWT = jwtProvider.decode(jwt, Token.ACCESS);
             if (optDecodedJWT.isPresent()) {
+                log.info("-> doFilterInternal(): jwt is valid");
                 DecodedJWT decodedJWT = optDecodedJWT.get();
 
                 UserDetails userDetails = userDetailsService.loadUserByUsername(
@@ -54,8 +59,10 @@ public class JwtFilter extends OncePerRequestFilter {
                 );
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             } else {
+                log.error("-> doFilterInternal(): invalid jwt");
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 fillResponseBody(response, "invalid jwt");
+                return;
             }
         }
         filterChain.doFilter(request, response);

@@ -2,6 +2,7 @@ package org.linkwave.chat.security;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Getter;
 import org.linkwave.chat.entity.RoleEntity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -11,6 +12,7 @@ import java.util.Collection;
 import java.util.List;
 
 @AllArgsConstructor
+@Getter
 @Builder
 public class DefaultUserDetails implements UserDetails {
 
