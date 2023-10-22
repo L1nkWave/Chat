@@ -24,6 +24,7 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
+import static org.linkwave.chat.entity.RoleEntity.Roles.USER;
 import static org.linkwave.chat.security.Token.ACCESS;
 import static org.linkwave.chat.security.Token.REFRESH;
 
@@ -55,8 +56,8 @@ public class DefaultUserService implements UserService {
             throw new BadCredentialsException("username is already taken");
         }
 
-        RoleEntity defaultRole = roleRepository.findByName("USER_ROLE")
-                .orElseThrow(() -> new IllegalStateException("user-role is not found"));
+        RoleEntity defaultRole = roleRepository.findByName(USER.getName())
+                .orElseThrow(() -> new IllegalStateException("role_user is not found"));
 
         UserEntity newUser = UserEntity.builder()
                 .name(registerRequest.getName())

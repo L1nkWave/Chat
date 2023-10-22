@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -25,6 +26,18 @@ public class RoleEntity {
 
     @JsonIgnore
     @ManyToMany(mappedBy = "roles")
-    private List<UserEntity> users;
+    @Builder.Default
+    private List<UserEntity> users = new ArrayList<>();
+
+    @Getter
+    @RequiredArgsConstructor
+    public enum Roles {
+
+        USER("ROLE_USER"),
+        ADMIN("ROLE_ADMIN");
+
+        private final String name;
+
+    }
 
 }

@@ -36,8 +36,8 @@ create table user_roles
 );
 
 insert into roles (name)
-values ('USER_ROLE'),
-       ('ADMIN_ROLE');
+values ('ROLE_USER'),
+       ('ROLE_ADMIN');
 
 insert into users (username, password, name, avatar_path, created_at, last_seen, theme)
 values ('maTTheW',
