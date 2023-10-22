@@ -2,10 +2,7 @@ package org.linkwave.chat.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.linkwave.chat.dto.AuthDto;
-import org.linkwave.chat.dto.UserLoginRequest;
-import org.linkwave.chat.dto.UserRefreshRequest;
-import org.linkwave.chat.dto.UserRegisterRequest;
+import org.linkwave.chat.dto.*;
 import org.linkwave.chat.entity.RoleEntity;
 import org.linkwave.chat.entity.UserEntity;
 import org.linkwave.chat.repository.RoleRepository;
@@ -103,6 +100,23 @@ public class DefaultUserService implements UserService {
         AuthDto authDto = generateTokens(user);
         user.setRefreshToken(authDto.getJwtRefresh());
         return authDto;
+    }
+
+    @Override
+    public UserDto getPersonalInfo(Long userId) {
+        log.info("-> getPersonalInfo()");
+
+        UserEntity user = userRepository.findUserWithRoles(userId)
+                .orElseThrow(() -> new IllegalStateException("user not found"));
+
+        List<String> roles = user.getRoles().stream()
+                .map(RoleEntity::getName)
+                .toList();
+
+        return new UserDto(
+                user.getId(), user.getName(), user.getUsername(),
+                user.getCreatedAt(), user.isTheme(), roles
+        );
     }
 
     private AuthDto generateTokens(UserEntity user) {
