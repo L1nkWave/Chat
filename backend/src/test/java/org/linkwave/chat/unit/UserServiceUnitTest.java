@@ -33,7 +33,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.util.ReflectionTestUtils.setField;
 
 @ExtendWith(MockitoExtension.class)
-class UserServiceTests {
+class UserServiceUnitTest {
 
 	@Mock
 	private UserRepository userRepository;
@@ -70,7 +70,7 @@ class UserServiceTests {
 		username = "zookeeper";
 		password = "zookeeper123";
 		name = "Zookeeper";
-		userRole = "USER_ROLE";
+		userRole = "ROLE_USER";
 	}
 
 	@Test
