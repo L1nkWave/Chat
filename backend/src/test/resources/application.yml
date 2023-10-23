@@ -1,8 +1,10 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/lw-chat
-    username: root
-    password: 123
+    url: jdbc:h2:mem:lw-chat-test
+
+  sql:
+    init:
+      mode: never
 
   jpa:
     show-sql: true
@@ -12,21 +14,21 @@ spring:
         highlight_sql: true
 
     hibernate:
+      ddl-auto: create
       naming:
         physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
 
 jwt:
-  subject: 'link-wave-security'
+  subject: 'link-wave'
   issuer: 'link-wave-issuer'
   secret-key:
-    refresh: 'dGzVEWkq1FoqTMCQnCMrHvnZJYl1x4QG'
-    access: '1RY76H1VEP37eMCyYI24wvgmMkhtOgUH'
+    refresh: 'refresh-secret-key'
+    access: 'access-secret-key'
   exp:
     refresh: 30
     access: 60
 
-
 files:
   avatar:
-    path: 'C:\Users\Igor\Desktop\images'
+    path: 'C:\Users\Igor\Desktop\test\images'
     default: '1.jpg'
