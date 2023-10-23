@@ -16,6 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import static java.lang.String.format;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpMethod.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -230,8 +231,9 @@ public class AuthControllerTests {
     @Test
     void shouldReturnPersonalInfoForLoggedInUser() throws Exception {
         AuthDto authDto = userService.register(new UserRegisterRequest(username, password, name));
+        final String authHeader = format("Bearer %s", authDto.getJwtAccess());
 
-        mockMvc.perform(request(GET, "/user").header(AUTHORIZATION, authDto.getJwtAccess())
+        mockMvc.perform(request(GET, "/user").header(AUTHORIZATION, authHeader)
         ).andExpectAll(
                 status().isOk(),
                 content().contentType(APPLICATION_JSON),
@@ -254,8 +256,6 @@ public class AuthControllerTests {
 
     @Test
     void shouldRespondWithForbiddenIfAccessTokenIsNotValid() throws Exception {
-        userService.register(new UserRegisterRequest(username, password, name));
-
         final String notValidAccessToken = "not_valid_access_token";
 
         mockMvc.perform(request(GET, "/user").header(AUTHORIZATION, notValidAccessToken))

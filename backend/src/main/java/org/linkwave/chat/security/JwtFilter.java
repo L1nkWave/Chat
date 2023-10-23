@@ -28,6 +28,8 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
 
+    private static final int TOKEN_START_POSITION = 7;
+
     private final UserDetailsService userDetailsService;
     private final JwtProvider jwtProvider;
 
@@ -37,9 +39,14 @@ public class JwtFilter extends OncePerRequestFilter {
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         log.info("-> doFilterInternal()");
+        String header = request.getHeader(HttpHeaders.AUTHORIZATION);
+        String jwt = null;
 
-        String jwt = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (jwt != null) {
+        if (header != null) {
+            jwt = header.substring(TOKEN_START_POSITION);
+        }
+
+        if (jwt != null && !jwt.isBlank()) {
 
             log.info("-> doFilterInternal(): jwt is present");
 
