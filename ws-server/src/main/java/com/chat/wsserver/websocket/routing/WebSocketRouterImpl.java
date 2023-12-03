@@ -1,5 +1,6 @@
 package com.chat.wsserver.websocket.routing;
 
+import com.chat.wsserver.websocket.routing.broadcast.BroadcastManager;
 import com.chat.wsserver.websocket.routing.exception.InvalidMessageFormatException;
 import com.chat.wsserver.websocket.routing.exception.InvalidPathException;
 import com.chat.wsserver.websocket.routing.exception.RoutingException;
@@ -32,6 +33,7 @@ public class WebSocketRouterImpl implements WebSocketRouter {
     private Map<String, RouteComponent> routes;
     private final MessageParser messageParser;
     private final ObjectMapper mapper;
+    private final BroadcastManager broadcastManager;
 
     @Override
     public void route(String message, WebSocketSession session) throws InvalidMessageFormatException, InvalidPathException {
@@ -69,6 +71,8 @@ public class WebSocketRouterImpl implements WebSocketRouter {
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
+
+        broadcastManager.process(routeHandler, pathVariables, jsonMessage);
     }
 
     private List<Object> resolveRouteHandlerParams(
