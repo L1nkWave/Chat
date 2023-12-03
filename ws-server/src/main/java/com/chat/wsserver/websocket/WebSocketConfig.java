@@ -15,10 +15,14 @@ import org.springframework.web.socket.server.HandshakeInterceptor;
 public class WebSocketConfig implements WebSocketConfigurer {
 
     private final RootWebSocketHandler rootHandler;
+    private final HandshakeHandler handshakeHandler;
+    private final HandshakeInterceptor handshakeInterceptor;
 
     @Override
     public void registerWebSocketHandlers(@NonNull WebSocketHandlerRegistry registry) {
         registry.addHandler(rootHandler, "/ws-gate")
+                .addInterceptors(handshakeInterceptor)
+                .setHandshakeHandler(handshakeHandler)
                 .setAllowedOrigins("*");
     }
 
