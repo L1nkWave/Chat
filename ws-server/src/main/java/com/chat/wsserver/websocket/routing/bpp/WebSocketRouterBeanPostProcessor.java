@@ -1,5 +1,6 @@
 package com.chat.wsserver.websocket.routing.bpp;
 
+import com.chat.wsserver.websocket.routing.broadcast.BroadcastManager;
 import com.chat.wsserver.websocket.routing.RouteComponent;
 import com.chat.wsserver.websocket.routing.WebSocketRouter;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +16,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.Map.Entry;
+
+import static java.lang.String.format;
 
 @Slf4j
 @Component
@@ -71,12 +74,17 @@ public class WebSocketRouterBeanPostProcessor implements BeanPostProcessor, Appl
                         throw new RuntimeException("found duplicate routes");
                     }
 
+                    // check broadcast options
+                    verifyBroadcast(method);
+
                     method.setAccessible(true);
                     routes.put(combinedPath, new RouteComponent(entry.getValue(), method));
 
                     // restore sb
                     sb.setLength(0);
                     sb.append(rootPath);
+
+                    log.debug("Route [{}], broadcast: {}", combinedPath, method.isAnnotationPresent(Broadcast.class));
                 }
             }
             sb.setLength(0);
@@ -84,6 +92,31 @@ public class WebSocketRouterBeanPostProcessor implements BeanPostProcessor, Appl
 
         ReflectionUtils.setField(routesField, bean, routes);
         return bean;
+    }
+
+    private void verifyBroadcast(Method routeHandler) {
+        if (!routeHandler.isAnnotationPresent(Broadcast.class)) {
+            return;
+        }
+
+        if (routeHandler.getReturnType().equals(void.class)) {
+            throw new RuntimeException(
+                    format("Route handler \"%s\" with broadcast has return type void", routeHandler.getName())
+            );
+        }
+
+        String[] keyComponents = routeHandler.getAnnotation(Broadcast.class)
+                .value()
+                .trim()
+                .split(BroadcastManager.KEY_SEPARATOR);
+
+        if (keyComponents.length < 2) {
+            String errMsg = format(
+                    "Broadcast annotation value incorrect format at route handler \"%s\"",
+                    routeHandler.getName()
+            );
+            throw new RuntimeException(errMsg);
+        }
     }
 
     @Override
