@@ -32,7 +32,7 @@ public class UserRoutes {
     private final ChatRepository chatRepository;
     private final ObjectMapper objectMapper;
 
-    @SubRoute(value = "/connected", disabled = true)
+    @SubRoute("/connected")
     void handleUserConnected(@NonNull WebSocketSession session) {
         String sessionId = session.getId();
         log.debug("-> handleUserConnected(): ss={}", sessionId);
@@ -49,7 +49,7 @@ public class UserRoutes {
 
     }
 
-    @SubRoute(value = "/disconnected", disabled = true)
+    @SubRoute("/disconnected")
     public void handleUserDisconnected(@NonNull WebSocketSession session) {
         String sessionId = session.getId();
         log.debug("-> handleUserDisconnected(): ss={}", sessionId);
