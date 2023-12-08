@@ -5,10 +5,8 @@ import lombok.experimental.SuperBuilder;
 
 @Getter
 @SuperBuilder
-public class OutcomeMessage extends BaseMessage {
+public class StatusMessage extends BaseMessage {
 
-    private Long chatId;
-    private String sender;
-    private String text;
+    private String user;
 
 }

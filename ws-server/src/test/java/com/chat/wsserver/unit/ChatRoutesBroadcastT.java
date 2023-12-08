@@ -8,8 +8,6 @@ import com.chat.wsserver.websocket.routing.bpp.WebSocketRoute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.socket.WebSocketSession;
 
-import java.time.ZonedDateTime;
-
 @WebSocketRoute("/group")
 public class ChatRoutesBroadcastT {
 
@@ -22,7 +20,6 @@ public class ChatRoutesBroadcastT {
                 .chatId(id)
                 .sender(session.getId())
                 .text(message)
-                .timestamp(ZonedDateTime.now())
                 .build();
     }
 

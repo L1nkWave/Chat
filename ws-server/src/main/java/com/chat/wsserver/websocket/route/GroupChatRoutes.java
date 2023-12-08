@@ -15,7 +15,6 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
-import java.time.ZonedDateTime;
 import java.util.Map;
 
 import static com.chat.wsserver.websocket.dto.Action.*;
@@ -30,8 +29,8 @@ public class GroupChatRoutes {
 
     @SubRoute("/{id}/send")
     @Broadcast("chat:{id}")
-    Object sendMessage(@PathVariable("id") long id, WebSocketSession session,
-                       @Payload String message) throws IOException {
+    OutcomeMessage sendMessage(@PathVariable("id") long id, WebSocketSession session,
+                               @Payload String message) throws IOException {
 
         String sessionId = session.getId();
         log.info("-> sendMessage(): chatId={}, msg={}, ss={}", id, message, sessionId);
@@ -54,7 +53,6 @@ public class GroupChatRoutes {
                 .chatId(id)
                 .sender(sessionId)
                 .text(message)
-                .timestamp(ZonedDateTime.now())
                 .build();
     }
 
@@ -70,8 +68,6 @@ public class GroupChatRoutes {
                 .action(JOIN)
                 .chatId(id)
                 .sender(sessionId)
-                .text("Joined to chat")
-                .timestamp(ZonedDateTime.now())
                 .build();
     }
 
@@ -89,8 +85,6 @@ public class GroupChatRoutes {
                 .action(LEAVE)
                 .chatId(id)
                 .sender(sessionId)
-                .text("Left the chat")
-                .timestamp(ZonedDateTime.now())
                 .build();
     }
 
