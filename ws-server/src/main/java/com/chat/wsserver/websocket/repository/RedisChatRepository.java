@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.chat.wsserver.utils.RedisTemplateUtils.executeInTxn;
 import static java.lang.Boolean.TRUE;
 import static java.lang.String.format;
 import static java.lang.String.valueOf;
@@ -23,8 +24,10 @@ public class RedisChatRepository implements ChatRepository {
         String chat = "chat:%d".formatted(chatId);
         String userChats = "user:%s:chats".formatted(sessionId);
 
-        redisTemplate.opsForSet().add(userChats, valueOf(chatId));
-        redisTemplate.opsForSet().add(chat, userId);
+        executeInTxn(redisTemplate, ops -> {
+            redisTemplate.opsForSet().add(userChats, valueOf(chatId));
+            redisTemplate.opsForSet().add(chat, sessionId);
+        });
     }
 
     @Override
@@ -32,8 +35,10 @@ public class RedisChatRepository implements ChatRepository {
         String chat = "chat:%d".formatted(chatId);
         String userChats = "user:%s:chats".formatted(sessionId);
 
-        redisTemplate.opsForSet().remove(userChats, valueOf(chatId));
-        redisTemplate.opsForSet().remove(chat, userId);
+        executeInTxn(redisTemplate, ops -> {
+            redisTemplate.opsForSet().remove(userChats, valueOf(chatId));
+            redisTemplate.opsForSet().remove(chat, sessionId);
+        });
     }
 
     @Override
