@@ -91,11 +91,19 @@ public class WebSocketRouterImpl implements WebSocketRouter {
                 requiredArgument = session;
             } else if (param.isAnnotationPresent(Payload.class)) {
 
+                if (payload == null) {
+                    throw new InvalidMessageFormatException(
+                            format("payload must not be empty for route [%s]", matchedRoute.getKey())
+                    );
+                }
+
                 try {
                     requiredArgument = paramType.equals(String.class) ?
                             payload : mapper.readValue(payload, paramType);
                 } catch (JsonProcessingException e) {
-                    throw new InvalidMessageFormatException("incorrect json payload");
+                    throw new InvalidMessageFormatException(
+                            format("invalid json payload for route [%s]", matchedRoute.getKey())
+                    );
                 }
 
             } else if (param.isAnnotationPresent(PathVariable.class)) {
@@ -137,7 +145,7 @@ public class WebSocketRouterImpl implements WebSocketRouter {
 
         String[] targetPath = requiredPath.trim().split(PATH_DELIMITER);
 
-        // iterate through all existing routes until one will be found
+        // iterate through registered routes until one will be found
         for (Entry<String, RouteComponent> entry : routes.entrySet()) {
 
             String[] path = entry.getKey().split(PATH_DELIMITER);
