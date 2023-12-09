@@ -26,7 +26,7 @@ public class ChatRoutesT {
 
     }
 
-    @SubRoute("/{id}/message/{messageId}")
+    @SubRoute("/{id}/update_message/{messageId}")
     void updateMessage(WebSocketSession session,
                        @PathVariable("id") long id,
                        @PathVariable("messageId") long messageId,
