@@ -5,6 +5,7 @@ import com.chat.wsserver.websocket.routing.RouteComponent;
 import com.chat.wsserver.websocket.routing.WebSocketRouter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.BeanInitializationException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -14,6 +15,8 @@ import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -33,18 +36,8 @@ public class WebSocketRouterBeanPostProcessor implements BeanPostProcessor, Appl
             return bean;
         }
 
-        Field routesField;
-        try {
-            routesField = cls.getDeclaredField("routes");
-            ReflectionUtils.makeAccessible(routesField);
-
-        } catch (NoSuchFieldException e) {
-            throw new RuntimeException(e);
-        }
-
-        if (!routesField.getType().equals(Map.class)) {
-            throw new RuntimeException("routes field must be Map");
-        }
+        Field routesField = getRoutesMapField(cls);
+        ReflectionUtils.makeAccessible(routesField);
 
         var sb = new StringBuilder();
         Map<String, Object> routeBeans = applicationContext.getBeansWithAnnotation(WebSocketRoute.class);
@@ -94,7 +87,7 @@ public class WebSocketRouterBeanPostProcessor implements BeanPostProcessor, Appl
         return bean;
     }
 
-    private void verifyBroadcast(Method routeHandler) {
+    private void verifyBroadcast(@NonNull Method routeHandler) {
         if (!routeHandler.isAnnotationPresent(Broadcast.class)) {
             return;
         }
@@ -117,6 +110,32 @@ public class WebSocketRouterBeanPostProcessor implements BeanPostProcessor, Appl
             );
             throw new RuntimeException(errMsg);
         }
+    }
+
+    private Field getRoutesMapField(@NonNull Class<?> cls) {
+
+        // find Map<String, RouteComponent> fields for every WebSocketRouter bean
+        List<Field> mapFields = Arrays.stream(cls.getDeclaredFields())
+                .filter(field -> field.getType().equals(Map.class))
+                .filter(field -> {
+                    var genericType = (ParameterizedType) field.getGenericType();
+                    Type[] types = genericType.getActualTypeArguments();
+                    return types[0].equals(String.class) && types[1].equals(RouteComponent.class);
+                })
+                .toList();
+
+        // validate map fields
+        if (mapFields.isEmpty()) {
+            throw new BeanInitializationException(
+                    format("No routes map field declared in [%s]", cls.getName())
+            );
+        } else if (mapFields.size() > 1) {
+            throw new BeanInitializationException(
+                    format("Bean [%s] must contain only one routes map field", cls.getName())
+            );
+        }
+
+        return mapFields.get(0);
     }
 
     @Override
