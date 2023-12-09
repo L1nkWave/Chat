@@ -48,6 +48,8 @@ public class WebSocketRouterTest {
 
         routes.put("/group/{id}/send", new RouteComponent(chatRoutes, routeHandler1));
         routes.put("/group/{id}/update_message/{messageId}", new RouteComponent(chatRoutes, routeHandler2));
+        routes.put("/chat/{id}/send", new RouteComponent(chatRoutes, routeHandler1));
+        routes.put("/chat/{id}/update_message/{messageId}", new RouteComponent(chatRoutes, routeHandler2));
 
         Field routesField = wsRouter.getClass().getDeclaredField("routes");
         makeAccessible(routesField);

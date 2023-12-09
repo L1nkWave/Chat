@@ -89,7 +89,7 @@ public class WebSocketRouterBroadcastTest {
         makeAccessible(sendMessage);
 
         Map<String, RouteComponent> routes = Map.of(
-                "/group/{id}/send", new RouteComponent(chatRoutes, sendMessage)
+                "/group-chat/{id}/send", new RouteComponent(chatRoutes, sendMessage)
         );
 
         Field routesField = wsRouter.getClass().getDeclaredField("routes");
@@ -105,7 +105,7 @@ public class WebSocketRouterBroadcastTest {
     @Test
     void everyoneInChatShouldReceiveTextMessage() {
         final String message = """
-                path=/group/1/send
+                path=/group-chat/1/send
                                 
                 hello all!!!
                 """;

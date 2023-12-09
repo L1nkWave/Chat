@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.socket.WebSocketSession;
 
 @Slf4j
-@WebSocketRoute("/group")
+@WebSocketRoute("/chat")
 public class ChatRoutesT {
 
     @SubRoute("/{id}/send")

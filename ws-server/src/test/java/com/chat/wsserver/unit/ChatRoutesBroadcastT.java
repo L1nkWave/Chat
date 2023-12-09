@@ -8,7 +8,7 @@ import com.chat.wsserver.websocket.routing.bpp.WebSocketRoute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.socket.WebSocketSession;
 
-@WebSocketRoute("/group")
+@WebSocketRoute("/group-chat")
 public class ChatRoutesBroadcastT {
 
     @SubRoute("/{id}/send")
