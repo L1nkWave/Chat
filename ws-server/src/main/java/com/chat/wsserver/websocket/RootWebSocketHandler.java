@@ -3,6 +3,7 @@ package com.chat.wsserver.websocket;
 import com.chat.wsserver.websocket.routing.exception.InvalidMessageFormatException;
 import com.chat.wsserver.websocket.routing.exception.InvalidPathException;
 import com.chat.wsserver.websocket.routing.WebSocketRouter;
+import com.chat.wsserver.websocket.session.SessionManager;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -14,28 +15,20 @@ import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 
 import java.io.IOException;
-import java.util.Map;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class RootWebSocketHandler extends AbstractWebSocketHandler {
 
-    private final Map<String, WebSocketSession> sessionMap;
     private final WebSocketRouter router;
+    private final SessionManager sessionManager;
 
     @SneakyThrows
     @Override
     public void afterConnectionEstablished(@NonNull WebSocketSession session) {
         log.info("user[{}] connected", session.getId());
-        sessionMap.put(session.getId(), session);
-
-        // create message and route it
-        router.route("""
-                path=/user/connected
-
-                _
-                """, session);
+        sessionManager.persist(session);
     }
 
     @Override
@@ -51,18 +44,9 @@ public class RootWebSocketHandler extends AbstractWebSocketHandler {
 
     @SneakyThrows
     @Override
-    public void afterConnectionClosed(@NonNull WebSocketSession session,
-                                      @NonNull CloseStatus status) {
+    public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
         log.info("user[{}] disconnected", session.getId());
-        sessionMap.remove(session.getId());
-
-        // create message and route it
-        router.route("""
-                path=/user/disconnected
-
-                _
-                """, session);
+        sessionManager.remove(session);
     }
-
 
 }

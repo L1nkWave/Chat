@@ -83,7 +83,7 @@ public class WebSocketRouterBeanPostProcessor implements BeanPostProcessor, Appl
             sb.setLength(0);
         }
 
-        ReflectionUtils.setField(routesField, bean, routes);
+        ReflectionUtils.setField(routesField, bean, Collections.unmodifiableMap(routes));
         return bean;
     }
 

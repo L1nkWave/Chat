@@ -6,8 +6,9 @@ import com.chat.wsserver.websocket.routing.WebSocketRouterImpl;
 import com.chat.wsserver.websocket.routing.broadcast.BroadcastManager;
 import com.chat.wsserver.websocket.routing.broadcast.SimpleBroadcastManager;
 import com.chat.wsserver.websocket.routing.broadcast.SimpleMessageBroadcast;
-import com.chat.wsserver.websocket.routing.broadcast.WebSocketMessageBroadcast;
 import com.chat.wsserver.websocket.routing.parser.TextMessageParser;
+import com.chat.wsserver.websocket.session.callback.DefaultSessionManager;
+import com.chat.wsserver.websocket.session.SessionManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,12 +20,12 @@ import org.springframework.web.socket.WebSocketSession;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.*;
 
 import static java.lang.String.format;
+import static java.util.Collections.emptyList;
 import static org.mockito.Mockito.*;
 import static org.springframework.util.ReflectionUtils.makeAccessible;
 import static org.springframework.util.ReflectionUtils.setField;
@@ -73,7 +74,8 @@ public class WebSocketRouterBroadcastTest {
         );
 
         // build broadcast components
-        WebSocketMessageBroadcast messageBroadcast = new SimpleMessageBroadcast(sessionMap);
+        var messageBroadcast = new SimpleMessageBroadcast();
+        messageBroadcast.setSessionManager(buildSessionManager());
         BroadcastManager broadcastManager = new SimpleBroadcastManager(messageBroadcast, redisTemplate);
 
         ObjectMapper mapper = new ObjectMapper();
@@ -99,6 +101,30 @@ public class WebSocketRouterBroadcastTest {
         setField(routesField, wsRouter, routes);
 
         router = wsRouter;
+    }
+
+    SessionManager buildSessionManager() {
+
+        var sessionManager = new DefaultSessionManager(emptyList(), emptyList());
+
+        Class<?> superCls = sessionManager.getClass().getSuperclass();
+        List<Field> fields = Arrays.stream(superCls.getDeclaredFields())
+                .filter(field -> field.getType().equals(Map.class))
+                .filter(field -> {
+                    ParameterizedType genericType = (ParameterizedType) field.getGenericType();
+                    Type[] types = genericType.getActualTypeArguments();
+                    return types[0].equals(String.class) && types[1].equals(WebSocketSession.class);
+                }).toList();
+
+        if (fields.size() != 1) {
+            throw new RuntimeException(format("[%s] must contain only one session map", superCls.getName()));
+        }
+
+        Field sessionsField = fields.get(0);
+        makeAccessible(sessionsField);
+        setField(sessionsField, sessionManager, sessionMap);
+
+        return sessionManager;
     }
 
     @SneakyThrows

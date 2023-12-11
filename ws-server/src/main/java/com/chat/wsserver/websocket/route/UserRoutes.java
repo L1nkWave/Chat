@@ -3,9 +3,10 @@ package com.chat.wsserver.websocket.route;
 import com.chat.wsserver.websocket.dto.Action;
 import com.chat.wsserver.websocket.dto.StatusMessage;
 import com.chat.wsserver.websocket.repository.ChatRepository;
-import com.chat.wsserver.websocket.routing.bpp.SubRoute;
 import com.chat.wsserver.websocket.routing.bpp.WebSocketRoute;
 import com.chat.wsserver.websocket.routing.broadcast.WebSocketMessageBroadcast;
+import com.chat.wsserver.websocket.session.callback.AfterConnectionClosed;
+import com.chat.wsserver.websocket.session.callback.AfterConnectionEstablished;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -26,14 +27,14 @@ import static java.util.stream.Collectors.toSet;
 @Slf4j
 @WebSocketRoute("/user")
 @RequiredArgsConstructor
-public class UserRoutes {
+public class UserRoutes implements AfterConnectionEstablished, AfterConnectionClosed {
 
     private final WebSocketMessageBroadcast messageBroadcast;
     private final ChatRepository chatRepository;
     private final ObjectMapper objectMapper;
 
-    @SubRoute("/connected")
-    void handleUserConnected(@NonNull WebSocketSession session) {
+    @Override
+    public void afterConnected(@NonNull WebSocketSession session) {
         String sessionId = session.getId();
         log.debug("-> handleUserConnected(): ss={}", sessionId);
 
@@ -49,8 +50,8 @@ public class UserRoutes {
 
     }
 
-    @SubRoute("/disconnected")
-    public void handleUserDisconnected(@NonNull WebSocketSession session) {
+    @Override
+    public void afterDisconnected(@NonNull WebSocketSession session) {
         String sessionId = session.getId();
         log.debug("-> handleUserDisconnected(): ss={}", sessionId);
 
