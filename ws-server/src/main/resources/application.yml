@@ -1,6 +1,9 @@
 server:
-  id: 'E1'
   port: 9090
+  id: 'E1'
+  instances:
+    value: 'E2'
+    separator: ','
 
 spring:
   application:

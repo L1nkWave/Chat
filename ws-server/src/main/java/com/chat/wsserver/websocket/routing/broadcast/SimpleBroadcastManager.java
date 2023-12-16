@@ -3,6 +3,7 @@ package com.chat.wsserver.websocket.routing.broadcast;
 import com.chat.wsserver.websocket.routing.bpp.Broadcast;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -15,6 +16,12 @@ import java.util.Set;
 @Component
 @RequiredArgsConstructor
 public class SimpleBroadcastManager implements BroadcastManager {
+
+    @Value("${server.instances.value}")
+    private String instances;
+
+    @Value("${server.instances.separator}")
+    private String separator;
 
     private final WebSocketMessageBroadcast messageBroadcast;
     private final RedisTemplate<String, String> redisTemplate;
@@ -34,9 +41,14 @@ public class SimpleBroadcastManager implements BroadcastManager {
             return;
         }
 
-        boolean isSharedCompletely = messageBroadcast.share(members, jsonMessage);
-        if (!isSharedCompletely) {
-            log.warn("-> process(): message is not shared completely");
+        // if message is not shared completely
+        if (!messageBroadcast.share(members, jsonMessage)) {
+            log.debug("-> process(): multi-instance broadcast is required");
+
+            for (String instanceId : instances.split(separator)) {
+                // here we should pass message with session id too
+                redisTemplate.convertAndSend(instanceId, jsonMessage);
+            }
         }
     }
 
