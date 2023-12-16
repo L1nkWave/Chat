@@ -11,11 +11,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.lang.NonNull;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
@@ -29,7 +32,14 @@ import static java.util.stream.Collectors.toSet;
 @RequiredArgsConstructor
 public class UserRoutes implements AfterConnectionEstablished, AfterConnectionClosed {
 
+    @Value("${server.instances.value}")
+    private String instances;
+
+    @Value("${server.instances.separator}")
+    private String separator;
+
     private final WebSocketMessageBroadcast messageBroadcast;
+    private final RedisTemplate<String, String> redisTemplate;
     private final ChatRepository chatRepository;
     private final ObjectMapper objectMapper;
 
@@ -67,6 +77,7 @@ public class UserRoutes implements AfterConnectionEstablished, AfterConnectionCl
         chatRepository.clearUserChats(sessionId);
     }
 
+    @SuppressWarnings("unchecked")
     @SneakyThrows
     private void notifyChatMembersWith(@NonNull Collection<Long> chats,
                                        Action action,
@@ -86,14 +97,34 @@ public class UserRoutes implements AfterConnectionEstablished, AfterConnectionCl
                 .flatMap(Stream::distinct)
                 .collect(toSet());
 
-        // share user status between chat participants
-        messageBroadcast.share(allMembers, jsonMessage);
-
         // iterate through user's chats
         for (Long chatId : chats) {
 
             // perform operation between user and his chats
             biConsumer.accept(chatId, sessionId);
+
+        }
+
+        /*
+            Share user status between chat participants.
+            If some sessions are inaccessible from current instance, then
+            send message to other instances to continue broadcasting
+        */
+        if (!messageBroadcast.share(allMembers, jsonMessage)) {
+
+            log.debug("-> notifyChatMembersWith(): multi-instance broadcast is required");
+
+            // add field that contains chats ids in order to broadcast message
+            // for chat members that are located in other instances
+            if (action.equals(OFFLINE)) {
+                var content = objectMapper.readValue(jsonMessage, Map.class);
+                content.put("chats", chats);
+                jsonMessage = objectMapper.writeValueAsString(content);
+            }
+
+            for (String instanceId : instances.split(separator)) {
+                redisTemplate.convertAndSend(instanceId, jsonMessage);
+            }
 
         }
 
