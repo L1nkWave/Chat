@@ -2,13 +2,13 @@ import React from "react";
 
 import { Header } from "@/components/Header/Header";
 import { HomeContainer } from "@/components/HomeDiv/HomeContainer";
-import { Parallax } from "@/components/Parallax/Parallax";
+import { HomePageParallax } from "@/components/HomePageParallax/HomePageParallax";
 
 export default function Home() {
   return (
     <>
       <Header />
-      <Parallax />
+      <HomePageParallax />
       <HomeContainer>
         <h2 className="text-6xl font-bold">Lorem ipsum</h2>
         <p className="mt-10 w-1/2 text-2xl">
