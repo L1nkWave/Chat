@@ -1,44 +1,58 @@
 package org.linkwave.userservice.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.lang.NonNull;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
-import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.AuthenticationConverter;
+
+import java.security.interfaces.RSAPublicKey;
+
+import static org.springframework.http.HttpMethod.POST;
 
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfiguration {
 
-    private final UserDetailsService userDetailsService;
-    private final JwtFilter jwtFilter;
+    @Value("classpath:keys/access_public_key.pem")
+    private RSAPublicKey publicKey;
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
-        return httpSecurity
+    public SecurityFilterChain filterChain(@NonNull HttpSecurity httpSecurity,
+                                           JwtAuthConfigurer jwtAuthConfigurer,
+                                           AuthenticationConverter authenticationConverter,
+                                           ObjectMapper objectMapper) throws Exception {
+        httpSecurity
                 .csrf(AbstractHttpConfigurer::disable)
+                .logout(AbstractHttpConfigurer::disable)
+                .requestCache(AbstractHttpConfigurer::disable)
+                .securityContext(AbstractHttpConfigurer::disable)
+                .sessionManagement(AbstractHttpConfigurer::disable)
+
                 .authorizeHttpRequests(matcherRegistry -> matcherRegistry
-                        .requestMatchers("/user/**").hasRole("USER")
-                        .anyRequest().permitAll())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .userDetailsService(userDetailsService)
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                .build();
+                        .requestMatchers("/api/v1/users/register", POST.name()).permitAll()
+                        .requestMatchers("/api/v1/users/**").hasRole("USER")
+                        .anyRequest().authenticated())
+
+                .apply(jwtAuthConfigurer)
+                .setAuthenticationConverter(authenticationConverter)
+                .setObjectMapper(objectMapper);
+
+        return httpSecurity.build();
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
+    public AuthenticationConverter authenticationConverter() {
+        return new BearerAuthenticationConverter(publicKey);
     }
 
     @Bean
