@@ -14,7 +14,6 @@ import org.linkwave.auth.security.utils.Cookies;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.lang.NonNull;
-import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -53,7 +52,7 @@ public class JwtLogoutFilter extends OncePerRequestFilter {
         try {
 
             if (header == null || !header.startsWith("Bearer ")) {
-                throw new AuthenticationCredentialsNotFoundException("Bearer is not present");
+                throw new BadCredentialsException("Bearer is not present");
             }
 
             final Token accessToken = jwtAccessParser.parse(header.substring(7));

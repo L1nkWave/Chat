@@ -30,7 +30,7 @@ public class AuthController {
     public ResponseEntity<ApiError> validateToken(@NonNull HttpServletRequest request) {
 
         final var authHeader = request.getHeader(AUTHORIZATION);
-        final var error = ApiError.builder()
+        final var apiError = ApiError.builder()
                 .path(request.getRequestURI())
                 .statusCode(BAD_REQUEST.value())
                 .timestamp(Instant.now());
@@ -39,13 +39,13 @@ public class AuthController {
 
             final var token = accessParser.parse(authHeader.substring(7));
             if (token == null || tokenRepository.existsById(token.id())) {
-                return badRequest().body(error.message("Invalid access token").build());
+                return badRequest().body(apiError.error("Invalid access token").build());
             }
 
             return noContent().build();
         }
 
-        return badRequest().body(error.message("Bearer is not present").build());
+        return badRequest().body(apiError.error("Bearer is not present").build());
     }
 
 }

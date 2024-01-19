@@ -8,12 +8,14 @@ import lombok.RequiredArgsConstructor;
 import org.linkwave.auth.dto.ApiError;
 import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
 import java.io.IOException;
 import java.time.Instant;
 
+import static jakarta.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
 import static jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED;
 
 @RequiredArgsConstructor
@@ -26,15 +28,23 @@ public class UnAuthorizedAuthenticationEntryPoint implements AuthenticationEntry
                          @NonNull HttpServletResponse response,
                          @NonNull AuthenticationException authException) throws IOException {
 
+        int status;
+
+        if (authException instanceof BadCredentialsException) {
+            status = SC_BAD_REQUEST;
+        } else {
+            status = SC_UNAUTHORIZED;
+        }
+
         final var apiError = ApiError.builder()
                 .path(request.getRequestURI())
-                .statusCode(SC_UNAUTHORIZED)
-                .message(authException.getMessage())
+                .statusCode(status)
+                .error(authException.getMessage())
                 .timestamp(Instant.now())
                 .build();
 
         @Cleanup final var outputStream = response.getOutputStream();
-        response.setStatus(SC_UNAUTHORIZED);
+        response.setStatus(status);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(outputStream, apiError);
         outputStream.flush();

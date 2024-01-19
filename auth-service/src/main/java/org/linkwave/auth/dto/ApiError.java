@@ -8,6 +8,6 @@ import java.time.Instant;
 public record ApiError(
         String path,
         int statusCode,
-        String message,
+        String error,
         Instant timestamp) {
 }
