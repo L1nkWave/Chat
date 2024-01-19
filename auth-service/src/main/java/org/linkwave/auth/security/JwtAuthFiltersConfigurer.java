@@ -28,6 +28,7 @@ public class JwtAuthFiltersConfigurer extends AbstractHttpConfigurer<JwtAuthFilt
     private final DeactivatedTokenRepository tokenRepository;
     private final UserDetailsService userDetailsService;
 
+    private AuthenticationManager authenticationManager;
     private JwtRefreshSerializer jwtRefreshSerializer;
     private JwtAccessSerializer jwtAccessSerializer;
     private JwtRefreshParser jwtRefreshParser;
@@ -40,8 +41,7 @@ public class JwtAuthFiltersConfigurer extends AbstractHttpConfigurer<JwtAuthFilt
 
         // setup filters
         final var jwtTokensInitializerFilter = new JwtTokensInitializerFilter(
-                objectMapper,
-                builder.getSharedObject(AuthenticationManager.class),
+                objectMapper, authenticationManager,
                 jwtRefreshSerializer, jwtAccessSerializer
         );
 
@@ -56,6 +56,17 @@ public class JwtAuthFiltersConfigurer extends AbstractHttpConfigurer<JwtAuthFilt
         builder.addFilterAfter(jwtTokensInitializerFilter, ExceptionTranslationFilter.class);
         builder.addFilterAfter(jwtTokensRefreshFilter, ExceptionTranslationFilter.class);
         builder.addFilterAfter(jwtLogoutFilter, ExceptionTranslationFilter.class);
+    }
+
+    /*
+        Injection AuthenticationProvider in this way because when we get it
+        as shared object from HttpSecurity it creates a child AuthenticationProvider object attached to parent one.
+        As a result the request will be authenticated twice (when credentials are invalid),
+        first by child object then by parent.
+     */
+    public JwtAuthFiltersConfigurer setAuthenticationManager(AuthenticationManager authenticationManager) {
+        this.authenticationManager = authenticationManager;
+        return this;
     }
 
     public JwtAuthFiltersConfigurer setJwtRefreshSerializer(JwtRefreshSerializer jwtRefreshSerializer) {

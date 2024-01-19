@@ -11,6 +11,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.lang.NonNull;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -46,6 +48,7 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(@NonNull HttpSecurity httpSecurity,
+                                           AuthenticationManager authenticationManager,
                                            JwtRefreshSerializer refreshSerializer,
                                            JwtAccessSerializer accessSerializer,
                                            JwtRefreshParser refreshParser,
@@ -64,6 +67,7 @@ public class SecurityConfig {
                         .anyRequest().denyAll())
 
                 .apply(jwtAuthFiltersConfigurer)
+                .setAuthenticationManager(authenticationManager)
                 .setJwtRefreshSerializer(refreshSerializer)
                 .setJwtAccessSerializer(accessSerializer)
                 .setJwtRefreshParser(refreshParser)
@@ -76,6 +80,11 @@ public class SecurityConfig {
                 .forEach(name -> log.info("[*] {}", name));
 
         return filterChain;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(@NonNull AuthenticationConfiguration configuration) throws Exception {
+        return configuration.getAuthenticationManager();
     }
 
     @Bean
