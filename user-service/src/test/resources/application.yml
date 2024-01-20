@@ -1,3 +1,8 @@
+eureka:
+  client:
+    fetch-registry: false
+    register-with-eureka: false
+
 spring:
   datasource:
     url: jdbc:h2:mem:lw-chat-test
@@ -17,16 +22,6 @@ spring:
       ddl-auto: create
       naming:
         physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
-
-jwt:
-  subject: 'link-wave'
-  issuer: 'link-wave-issuer'
-  secret-key:
-    refresh: 'refresh-secret-key'
-    access: 'access-secret-key'
-  exp:
-    refresh: 30
-    access: 60
 
 files:
   avatar:

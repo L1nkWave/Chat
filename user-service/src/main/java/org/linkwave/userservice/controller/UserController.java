@@ -1,27 +1,33 @@
 package org.linkwave.userservice.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.linkwave.userservice.dto.UserDto;
+import org.linkwave.userservice.dto.UserRegisterRequest;
 import org.linkwave.userservice.security.DefaultUserDetails;
 import org.linkwave.userservice.service.UserService;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.lang.NonNull;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+import static org.springframework.http.HttpStatus.CREATED;
 
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
 
+    @PostMapping("/register")
+    @ResponseStatus(CREATED)
+    public void register(@Valid @RequestBody UserRegisterRequest request) {
+        userService.register(request);
+    }
+
     @GetMapping
-    public UserDto getPersonalInfo() {
-        var userDetails = (DefaultUserDetails) SecurityContextHolder.getContext()
-                .getAuthentication()
-                .getPrincipal();
-        return userService.getPersonalInfo(userDetails.getId());
+    public UserDto getPersonalInfo(@NonNull @AuthenticationPrincipal DefaultUserDetails details) {
+        return userService.getPersonalInfo(details.id());
     }
 
 }
