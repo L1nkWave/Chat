@@ -15,6 +15,7 @@ import java.time.Instant;
 
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 import static org.springframework.http.ResponseEntity.badRequest;
 import static org.springframework.http.ResponseEntity.noContent;
 
@@ -39,7 +40,8 @@ public class AuthController {
 
             final var token = accessParser.parse(authHeader.substring(7));
             if (token == null || tokenRepository.existsById(token.id())) {
-                return badRequest().body(apiError.error("Invalid access token").build());
+                return ResponseEntity.status(UNAUTHORIZED)
+                        .body(apiError.error("Invalid access token").build());
             }
 
             return noContent().build();

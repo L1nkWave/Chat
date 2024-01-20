@@ -86,7 +86,10 @@ public class JwtTokensInitializerFilter extends OncePerRequestFilter {
             authentication = authenticationManager.authenticate(authentication);
         } catch (AuthenticationException e) {
             log.debug("-> doFilterInternal(): authentication failed");
-            authenticationEntryPoint.commence(request, response, e);
+            authenticationEntryPoint.commence(
+                    request, response,
+                    new BadCredentialsException("Incorrect username or password")
+            );
             return;
         }
 

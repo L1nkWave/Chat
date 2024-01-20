@@ -170,7 +170,7 @@ class AuthApplicationTests {
 
         mockMvc.perform(POST("/logout").header(AUTHORIZATION, accessToken))
                 .andExpectAll(
-                        status().isBadRequest(),
+                        status().isUnauthorized(),
                         openApi().isValid(OPENAPI_PATH)
                 );
     }
@@ -269,7 +269,7 @@ class AuthApplicationTests {
 
         mockMvc.perform(GET("/validate-token").header(AUTHORIZATION, invalidAccessToken))
                 .andExpectAll(
-                        status().isBadRequest(),
+                        status().isUnauthorized(),
                         content().contentType(APPLICATION_JSON),
                         openApi().isValid(OPENAPI_PATH)
                 );

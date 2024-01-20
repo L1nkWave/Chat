@@ -15,6 +15,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.CredentialsExpiredException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
@@ -57,7 +58,7 @@ public class JwtLogoutFilter extends OncePerRequestFilter {
 
             final Token accessToken = jwtAccessParser.parse(header.substring(7));
             if (accessToken == null || tokenRepository.existsById(accessToken.id())) {
-                throw new BadCredentialsException("Access token is unavailable");
+                throw new CredentialsExpiredException("Access token is unavailable");
             }
 
             // mark tokens as deactivated by their id
