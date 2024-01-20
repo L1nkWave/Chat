@@ -7,9 +7,9 @@ import org.linkwave.userservice.entity.RoleEntity;
 import org.linkwave.userservice.entity.UserEntity;
 import org.linkwave.userservice.repository.RoleRepository;
 import org.linkwave.userservice.repository.UserRepository;
-import org.linkwave.userservice.security.JwtProvider;
 import org.linkwave.userservice.service.UserService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,8 +22,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.linkwave.userservice.entity.RoleEntity.Roles.USER;
-import static org.linkwave.userservice.security.Token.ACCESS;
-import static org.linkwave.userservice.security.Token.REFRESH;
 
 @Slf4j
 @Service
@@ -40,13 +38,11 @@ public class DefaultUserService implements UserService {
     private final RoleRepository roleRepository;
 
     private final PasswordEncoder passwordEncoder;
-    private final JwtProvider jwtProvider;
-
 
     @Transactional
     @Override
-    public AuthDto register(UserRegisterRequest registerRequest) {
-        log.info("-> register()");
+    public void register(@NonNull UserRegisterRequest registerRequest) {
+        log.debug("-> register()");
 
         Optional<UserEntity> user = userRepository.findByUsername(registerRequest.getUsername());
         if (user.isPresent()) {
@@ -56,7 +52,7 @@ public class DefaultUserService implements UserService {
         RoleEntity defaultRole = roleRepository.findByName(USER.getName())
                 .orElseThrow(() -> new IllegalStateException("role_user is not found"));
 
-        UserEntity newUser = UserEntity.builder()
+        var newUser = UserEntity.builder()
                 .name(registerRequest.getName())
                 .username(registerRequest.getUsername())
                 .password(passwordEncoder.encode(registerRequest.getPassword()))
@@ -65,41 +61,7 @@ public class DefaultUserService implements UserService {
                 .roles(List.of(defaultRole))
                 .build();
 
-        newUser = userRepository.save(newUser);
-
-        AuthDto authDto = generateTokens(newUser);
-        newUser.setRefreshToken(authDto.getJwtRefresh());
-        return authDto;
-    }
-
-    @Transactional
-    @Override
-    public AuthDto login(UserLoginRequest loginRequest) {
-        log.info("-> login()");
-
-        UserEntity user = userRepository.findByUsername(loginRequest.getUsername())
-                .orElseThrow(() -> new BadCredentialsException("bad credentials"));
-
-        boolean arePasswordsSame = passwordEncoder.matches(loginRequest.getPassword(), user.getPassword());
-        if (!arePasswordsSame) {
-            throw new BadCredentialsException("bad credentials");
-        }
-
-        AuthDto authDto = generateTokens(user);
-        user.setRefreshToken(authDto.getJwtRefresh());
-        return authDto;
-    }
-
-    @Override
-    public AuthDto refresh(UserRefreshRequest refreshRequest) {
-        log.info("-> refresh()");
-
-        UserEntity user = userRepository.findByRefreshToken(refreshRequest.getJwtRefresh())
-                .orElseThrow(() -> new BadCredentialsException("bad credentials"));
-
-        AuthDto authDto = generateTokens(user);
-        user.setRefreshToken(authDto.getJwtRefresh());
-        return authDto;
+        userRepository.save(newUser);
     }
 
     @Override
@@ -117,12 +79,6 @@ public class DefaultUserService implements UserService {
                 user.getId(), user.getName(), user.getUsername(),
                 user.getCreatedAt(), user.isTheme(), roles
         );
-    }
-
-    private AuthDto generateTokens(UserEntity user) {
-        String jwtAccess = jwtProvider.generateToken(user, ACCESS);
-        String jwtRefresh = jwtProvider.generateToken(user, REFRESH);
-        return new AuthDto(jwtAccess, jwtRefresh);
     }
 
 }

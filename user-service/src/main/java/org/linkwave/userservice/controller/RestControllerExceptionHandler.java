@@ -16,10 +16,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import java.time.Instant;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static java.time.ZonedDateTime.now;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @Slf4j
@@ -49,7 +49,7 @@ public class RestControllerExceptionHandler extends ResponseEntityExceptionHandl
     @ResponseStatus(BAD_REQUEST)
     public ApiError handleRuntimeExceptions(RuntimeException ex, HttpServletRequest request) {
         log.info("-> handleRuntimeExceptions(...): path={}, msg={}", request.getRequestURI(), ex.getMessage());
-        return new ApiError(request.getRequestURI(), ex.getMessage(), BAD_REQUEST.value(), now());
+        return new ApiError(request.getRequestURI(), ex.getMessage(), BAD_REQUEST.value(), Instant.now());
     }
 
 }

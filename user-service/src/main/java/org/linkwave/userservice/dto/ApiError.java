@@ -1,10 +1,13 @@
 package org.linkwave.userservice.dto;
 
-import java.time.ZonedDateTime;
+import lombok.Builder;
 
+import java.time.Instant;
+
+@Builder
 public record ApiError(
         String path,
-        String error,
+        String message,
         int status,
-        ZonedDateTime timestamp) {
+        Instant timestamp) {
 }

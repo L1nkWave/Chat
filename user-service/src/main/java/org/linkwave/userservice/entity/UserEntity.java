@@ -26,8 +26,6 @@ public class UserEntity {
     @Column(nullable = false)
     private String password;
 
-    private String refreshToken;
-
     @Column(nullable = false, length = 64)
     private String name;
 
