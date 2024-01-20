@@ -97,8 +97,10 @@ export function HomePageParallax() {
           alt="link"
         />
 
-        <div ref={elements.centerText} className="parallax-text">
-          <h1 className="font-semibold">Link Wave Chat</h1>
+        <div ref={elements.centerText} className="parallax-text gap-4">
+          <h1 className="font-bold dark:text-gray-200 text-8xl">
+            Link Wave Chat
+          </h1>
           <CustomButton className="opacity-0" ref={elements.joinButton}>
             Join
           </CustomButton>

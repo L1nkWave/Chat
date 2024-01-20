@@ -6,6 +6,7 @@ import Image from "next/image";
 import React, { useLayoutEffect, useRef } from "react";
 
 import { CustomButton } from "@/components/CustomButton/CustomButton";
+import { ThemeToggle } from "@/components/ThemeToggle/ThemeToggle";
 
 export function Header() {
   const parallaxRef = useRef(null);
@@ -54,7 +55,8 @@ export function Header() {
             </div>
           </div>
 
-          <nav className="flex items-center space-x-1 text-sm font-medium text-gray-800">
+          <nav className="flex gap-6 items-center text-sm font-medium text-gray-800">
+            <ThemeToggle />
             <CustomButton>Sign In</CustomButton>
           </nav>
         </div>
