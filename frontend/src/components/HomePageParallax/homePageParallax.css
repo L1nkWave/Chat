@@ -53,7 +53,7 @@
 
 .parallax-text {
     position: absolute;
-    bottom: 15%;
+    bottom: 25%;
     left: 50%;
     transform: translate(-50%, -50%);
     z-index: 0;
@@ -63,8 +63,4 @@
     align-items: center;
     flex-direction: column;
     opacity: 0;
-}
-
-.parallax-text h1 {
-    font-size: 6rem;
 }

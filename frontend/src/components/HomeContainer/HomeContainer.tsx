@@ -4,12 +4,12 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/dist/ScrollTrigger";
 import React, { useEffect, useRef, useState } from "react";
 
-import { HomeContainerProps } from "@/components/HomeDiv/homeContainer.types";
+import { HomeContainerProps } from "@/components/HomeContainer/homeContainer.types";
 import { colors } from "@/utils/colors";
 
 export function HomeContainer({ children }: Readonly<HomeContainerProps>) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [background, setBackground] = useState(colors["link-wave"].underwater);
+  const [background, setBackground] = useState(`${colors.blue["100"]}70`);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -22,8 +22,8 @@ export function HomeContainer({ children }: Readonly<HomeContainerProps>) {
           scrub: true,
           onUpdate: self => {
             const newColor = gsap.utils.interpolate(
-              colors["link-wave"].underwater,
-              colors["link-wave"].deepwater,
+              `${colors.blue["100"]}65`,
+              colors.blue["700"],
               self.progress
             );
             setBackground(newColor);
@@ -31,19 +31,22 @@ export function HomeContainer({ children }: Readonly<HomeContainerProps>) {
         },
       });
     });
-
     return () => ctx.revert();
   }, []);
 
   return (
-    <div
-      ref={containerRef}
-      className="px-40 bg-link-wave-underwater text-white"
-      style={{
-        background: `${background}`,
-      }}
-    >
-      {children}
+    <div className="bg-blue-500/80">
+      <div className="bg-blue-600/60">
+        <div
+          ref={containerRef}
+          className="px-32 text-white"
+          style={{
+            background: `${background}`,
+          }}
+        >
+          {children}
+        </div>
+      </div>
     </div>
   );
 }
