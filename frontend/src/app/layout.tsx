@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import React from "react";
 
+import StoreProvider from "@/context/StoreProvider/StoreProvider";
 import { ThemeProvider } from "@/context/ThemeProvider/ThemeProvider";
 
 const ggSans = localFont({
@@ -43,7 +44,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="no-scrollbar" suppressHydrationWarning>
       <body className={ggSans.className}>
-        <ThemeProvider>{children}</ThemeProvider>
+        <StoreProvider>
+          <ThemeProvider>{children}</ThemeProvider>
+        </StoreProvider>
       </body>
     </html>
   );
