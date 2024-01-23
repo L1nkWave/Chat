@@ -1,14 +1,14 @@
 package com.chat.wsserver.websocket.jwt;
 
+import org.springframework.lang.NonNull;
+
 import java.security.Principal;
 
-public record UserPrincipal(String jwt) implements Principal {
-
-    public static final String JWT_HEADER_KEY = "Access-JWT";
+public record UserPrincipal(String rawAccessToken, @NonNull Token token) implements Principal {
 
     @Override
     public String getName() {
-        return String.format("user[%s]", jwt.substring(0, 5));
+        return token.username();
     }
 
 }
