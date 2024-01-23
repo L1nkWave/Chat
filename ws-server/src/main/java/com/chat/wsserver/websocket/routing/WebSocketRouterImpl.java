@@ -3,23 +3,24 @@ package com.chat.wsserver.websocket.routing;
 import com.chat.wsserver.websocket.routing.broadcast.BroadcastManager;
 import com.chat.wsserver.websocket.routing.exception.InvalidMessageFormatException;
 import com.chat.wsserver.websocket.routing.exception.InvalidPathException;
-import com.chat.wsserver.websocket.routing.exception.RoutingException;
 import com.chat.wsserver.websocket.routing.parser.MessageParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Parameter;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
-import static java.lang.String.format;
-import static org.springframework.util.ReflectionUtils.*;
+import static org.springframework.util.ReflectionUtils.invokeMethod;
 
 @Slf4j
 @Component
@@ -32,12 +33,13 @@ public class WebSocketRouterImpl implements WebSocketRouter {
 
     private Map<String, RouteComponent> routes;
     private final MessageParser messageParser;
+    private final RouteHandlerArgumentResolver argumentResolver;
     private final ObjectMapper mapper;
     private final BroadcastManager broadcastManager;
 
     @Override
     public void route(String message, WebSocketSession session) throws InvalidMessageFormatException, InvalidPathException {
-        log.info("-> route()");
+        log.debug("-> route()");
 
         RoutingMessage routingMessage = messageParser.parse(message);
         Map<String, String> pathVariables = new HashMap<>();
@@ -51,97 +53,39 @@ public class WebSocketRouterImpl implements WebSocketRouter {
         Method routeHandler = route.routeHandler();
 
         // prepare arguments for route handler invocation
-        List<Object> arguments = resolveRouteHandlerParams(
-                session,
-                routeHandler,
-                routingMessage.payload(),
-                pathVariables,
-                matchedRoute
+        final List<Object> arguments = argumentResolver.resolveParams(
+                matchedRoute, pathVariables, routingMessage, session
         );
 
+        // invoke route handler
         Object invocationResult = invokeMethod(routeHandler, route.beanRoute(), arguments.toArray());
 
         if (invocationResult == null) {
             return;
         }
 
-        String jsonMessage;
+        final String jsonMessage;
         try {
+            boolean isErrorResult = false;
+            if (invocationResult instanceof Box<?> box) {
+                isErrorResult = box.hasError();
+                invocationResult = box.hasError() ? box.getErrorValue() : box.getValue();
+            }
             jsonMessage = mapper.writeValueAsString(invocationResult);
-        } catch (JsonProcessingException e) {
+            if (isErrorResult) {
+                session.sendMessage(new TextMessage(jsonMessage));
+                return;
+            }
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
         broadcastManager.process(routeHandler, pathVariables, jsonMessage);
     }
 
-    private List<Object> resolveRouteHandlerParams(
-            WebSocketSession session, Method routeHandler, String payload,
-            Map<String, String> pathVariables,
-            Entry<String, RouteComponent> matchedRoute) throws InvalidMessageFormatException, InvalidPathException {
-
-        List<Object> arguments = new ArrayList<>();
-
-        for (Parameter param : routeHandler.getParameters()) {
-
-            Class<?> paramType = param.getType();
-            Object requiredArgument = null;
-
-            if (paramType.equals(WebSocketSession.class)) {
-                requiredArgument = session;
-            } else if (param.isAnnotationPresent(Payload.class)) {
-
-                if (payload == null) {
-                    throw new InvalidMessageFormatException(
-                            format("payload must not be empty for route [%s]", matchedRoute.getKey())
-                    );
-                }
-
-                try {
-                    requiredArgument = paramType.equals(String.class) ?
-                            payload : mapper.readValue(payload, paramType);
-                } catch (JsonProcessingException e) {
-                    throw new InvalidMessageFormatException(
-                            format("invalid json payload for route [%s]", matchedRoute.getKey())
-                    );
-                }
-
-            } else if (param.isAnnotationPresent(PathVariable.class)) {
-
-                String varName = param.getAnnotation(PathVariable.class).value();
-                String varValue = pathVariables.get(varName);
-
-                if (varValue == null) {
-                    throw new RoutingException(
-                            format("\n\tNot found path variable with name \"%s\" in route:\t%s\n",
-                                    varName, matchedRoute.getKey()
-                            )
-                    );
-                }
-
-                // try parse path variable
-                try {
-                    if (paramType.equals(int.class)) {
-                        requiredArgument = Integer.parseInt(varValue);
-                    } else if (paramType.equals(long.class)) {
-                        requiredArgument = Long.parseLong(varValue);
-                    } else {
-                        requiredArgument = varValue;
-                    }
-                } catch (NumberFormatException e) {
-                    throw new InvalidPathException(format("Path variable \"%s\" incorrect type", varName));
-                }
-
-            } else if (paramType.isPrimitive()) {
-                // for any primitive parameter set default value
-                requiredArgument = paramType.equals(boolean.class) ? false : 0;
-            }
-            arguments.add(requiredArgument);
-        }
-        return arguments;
-    }
-
-    private Entry<String, RouteComponent> findRouteByPath(String requiredPath, Map<String, String> pathVariables) {
+    @Nullable
+    private Entry<String, RouteComponent> findRouteByPath(@NonNull String requiredPath,
+                                                          @NonNull Map<String, String> pathVariables) {
 
         String[] targetPath = requiredPath.trim().split(PATH_DELIMITER);
 
@@ -183,7 +127,7 @@ public class WebSocketRouterImpl implements WebSocketRouter {
         return null;
     }
 
-    private boolean isPathVariable(String s) {
+    private boolean isPathVariable(@NonNull String s) {
         return s.startsWith(PATH_VAR_PREFIX) && s.endsWith(PATH_VAR_POSTFIX);
     }
 
