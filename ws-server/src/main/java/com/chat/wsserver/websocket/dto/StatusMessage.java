@@ -11,6 +11,6 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 public class StatusMessage extends BaseMessage {
 
-    private String user;
+    private Long senderId;
 
 }

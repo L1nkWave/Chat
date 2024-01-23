@@ -1,97 +1,99 @@
 package com.chat.wsserver.websocket.route;
 
 import com.chat.wsserver.websocket.dto.OutcomeMessage;
-import com.chat.wsserver.websocket.routing.Payload;
+import com.chat.wsserver.websocket.jwt.UserPrincipal;
 import com.chat.wsserver.websocket.repository.ChatRepository;
+import com.chat.wsserver.websocket.routing.Box;
+import com.chat.wsserver.websocket.routing.Payload;
 import com.chat.wsserver.websocket.routing.bpp.Broadcast;
 import com.chat.wsserver.websocket.routing.bpp.SubRoute;
 import com.chat.wsserver.websocket.routing.bpp.WebSocketRoute;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
-import java.io.IOException;
-import java.util.Map;
-
 import static com.chat.wsserver.websocket.dto.Action.*;
+import static com.chat.wsserver.websocket.dto.ErrorMessage.create;
+import static com.chat.wsserver.websocket.routing.Box.error;
+import static com.chat.wsserver.websocket.routing.Box.ok;
 
 @Slf4j
 @WebSocketRoute("/group")
 @RequiredArgsConstructor
 public class GroupChatRoutes {
 
-    private final ChatRepository chatRepository;
-    private final ObjectMapper objectMapper;
+    private final ChatRepository<Long> chatRepository;
 
     @SubRoute("/{id}/send")
     @Broadcast("chat:{id}")
-    OutcomeMessage sendMessage(@PathVariable("id") long id, WebSocketSession session,
-                               @Payload String message) throws IOException {
+    Box<OutcomeMessage> sendMessage(@PathVariable long id,
+                                    @NonNull WebSocketSession session,
+                                    @Payload String message) {
 
-        String sessionId = session.getId();
-        log.info("-> sendMessage(): chatId={}, msg={}, ss={}", id, message, sessionId);
+        final Long userId = ((UserPrincipal) session.getPrincipal()).token().userId();
+        log.debug("-> sendMessage(): chatId={}, userId={}, msg={}", id, userId, message);
 
-        if (!chatRepository.isMember(id, sessionId)) {
-            log.error("-> sendMessage(): chatId={}, ss={}", id, sessionId);
-
-            String errorPayload = objectMapper.writeValueAsString(Map.of(
-                    "action", ERROR,
-                    "text", "you are not member of chat"
-            ));
-
-            session.sendMessage(new TextMessage(errorPayload));
-            return null;
+        if (!chatRepository.isMember(id, userId)) {
+            return error(create("You are not member of chat"));
         }
 
         // build outcome message
-        return OutcomeMessage.builder()
+        return ok(OutcomeMessage.builder()
                 .action(MESSAGE)
                 .chatId(id)
-                .sender(sessionId)
+                .senderId(userId)
                 .text(message)
-                .build();
+                .build());
     }
 
     @SubRoute("/{id}/join")
     @Broadcast("chat:{id}")
-    OutcomeMessage join(@PathVariable("id") long id, WebSocketSession session) {
-        log.info("-> join(): id={}", id);
+    Box<OutcomeMessage> join(@PathVariable long id, @NonNull WebSocketSession session) {
 
-        String sessionId = session.getId();
-        chatRepository.addMember(id, sessionId);
+        final Long userId = ((UserPrincipal) session.getPrincipal()).token().userId();
+        log.info("-> join(): chatId={}, userId={}", id, userId);
 
-        return OutcomeMessage.builder()
+        if (chatRepository.isMember(id, userId)) {
+            return error(create("You are already a member of chat"));
+        }
+
+        chatRepository.addMember(userId, id);
+
+        return ok(OutcomeMessage.builder()
                 .action(JOIN)
                 .chatId(id)
-                .sender(sessionId)
-                .build();
+                .senderId(userId)
+                .build());
     }
 
     @SneakyThrows
     @SubRoute("/{id}/leave")
-    @Broadcast(value = "chat:{id}")
-    OutcomeMessage leaveChat(@PathVariable("id") long id, WebSocketSession session) {
+    @Broadcast("chat:{id}")
+    Box<OutcomeMessage> leaveChat(@PathVariable long id, @NonNull WebSocketSession session) {
 
-        String sessionId = session.getId();
-        log.info("-> leaveChat(): id={}, ss={}", id, sessionId);
+        final Long userId = ((UserPrincipal) session.getPrincipal()).token().userId();
+        log.info("-> leaveChat(): chatId={}, userId={}", id, userId);
 
-        chatRepository.removeMember(id, sessionId);
+        if (!chatRepository.isMember(id, userId)) {
+            return error(create("You are not member of chat"));
+        }
 
-        return OutcomeMessage.builder()
+        chatRepository.removeMember(userId, id);
+
+        return ok(OutcomeMessage.builder()
                 .action(LEAVE)
                 .chatId(id)
-                .sender(sessionId)
-                .build();
+                .senderId(userId)
+                .build());
     }
 
     @SubRoute("/{id}/message/{messageId}")
-    void updateMessage(WebSocketSession session,
-                       @PathVariable("id") long id,
-                       @PathVariable("messageId") long messageId) {
+    void updateMessage(@PathVariable long id,
+                       @PathVariable long messageId,
+                       @NonNull WebSocketSession session) {
 
         log.info("-> updateMessage(): id={}, messageId={}", id, messageId);
         // example route handler
