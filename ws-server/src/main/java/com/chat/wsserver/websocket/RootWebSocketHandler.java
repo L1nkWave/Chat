@@ -27,13 +27,13 @@ public class RootWebSocketHandler extends AbstractWebSocketHandler {
     @SneakyThrows
     @Override
     public void afterConnectionEstablished(@NonNull WebSocketSession session) {
-        log.info("user[{}] connected", session.getId());
         sessionManager.persist(session);
     }
 
     @Override
-    protected void handleTextMessage(@NonNull WebSocketSession session, @NonNull TextMessage message) throws IOException {
-        log.info("-> handleTextMessage(): ss={}", session.getId());
+    protected void handleTextMessage(@NonNull WebSocketSession session,
+                                     @NonNull TextMessage message) throws IOException {
+        log.debug("-> handleTextMessage()");
         try {
             router.route(message.getPayload(), session);
         } catch (InvalidMessageFormatException | InvalidPathException e) {
@@ -45,7 +45,6 @@ public class RootWebSocketHandler extends AbstractWebSocketHandler {
     @SneakyThrows
     @Override
     public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
-        log.info("user[{}] disconnected", session.getId());
         sessionManager.remove(session);
     }
 

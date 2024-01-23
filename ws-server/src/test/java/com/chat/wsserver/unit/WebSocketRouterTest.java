@@ -1,6 +1,7 @@
 package com.chat.wsserver.unit;
 
 import com.chat.wsserver.websocket.dto.IncomeMessage;
+import com.chat.wsserver.websocket.routing.DefaultRouteHandlerArgumentResolver;
 import com.chat.wsserver.websocket.routing.exception.InvalidMessageFormatException;
 import com.chat.wsserver.websocket.routing.exception.InvalidPathException;
 import com.chat.wsserver.websocket.routing.parser.TextMessageParser;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.lang.NonNull;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.lang.reflect.Field;
@@ -39,26 +41,31 @@ public class WebSocketRouterTest {
     @BeforeAll
     static void buildRouter() {
         objectMapper = new ObjectMapper();
-        var wsRouter = new WebSocketRouterImpl(new TextMessageParser(), objectMapper, null);
+        final var argumentResolver = new DefaultRouteHandlerArgumentResolver(objectMapper);
+        final var wsRouter = new WebSocketRouterImpl(
+                new TextMessageParser(), argumentResolver,
+                objectMapper, null
+        );
 
-        Map<String, RouteComponent> routes = new HashMap<>();
+        final Map<String, RouteComponent> routes = new HashMap<>();
 
-        ChatRoutesT chatRoutes = new ChatRoutesT();
-        Class<?> cls = chatRoutes.getClass();
-        Method routeHandler1 = cls.getDeclaredMethod("sendMessage", String.class, WebSocketSession.class, long.class);
-        Method routeHandler2 = cls.getDeclaredMethod("updateMessage", WebSocketSession.class, long.class, long.class, IncomeMessage.class);
-        Method routeHandler3 = cls.getDeclaredMethod("ping", WebSocketSession.class);
+        final var chatRoutes = new ChatRoutesT();
+        final Class<?> cls = chatRoutes.getClass();
+        final Method routeHandler1 = cls.getDeclaredMethod("sendMessage", long.class, WebSocketSession.class, String.class);
+        final Method routeHandler2 = cls.getDeclaredMethod("updateMessage", long.class, long.class, WebSocketSession.class, IncomeMessage.class);
+        final Method routeHandler3 = cls.getDeclaredMethod("ping", WebSocketSession.class);
 
         makeAccessible(routeHandler1);
         makeAccessible(routeHandler2);
         makeAccessible(routeHandler3);
 
+        // setup routes & handlers
         routes.put("/chat/{id}/send", new RouteComponent(chatRoutes, routeHandler1));
         routes.put("/chat/{id}/update_message/{messageId}", new RouteComponent(chatRoutes, routeHandler2));
         routes.put("/chat/ping", new RouteComponent(chatRoutes, routeHandler3));
 
-        // bind routes with router
-        Field routesField = wsRouter.getClass().getDeclaredField("routes");
+        // bind routes to router
+        final Field routesField = wsRouter.getClass().getDeclaredField("routes");
         makeAccessible(routesField);
         setField(routesField, wsRouter, routes);
         router = wsRouter;
@@ -70,7 +77,7 @@ public class WebSocketRouterTest {
     void shouldFindRouteForValidMessage() {
         final String messageTemplate = """
                 path=%s
-                
+                                
                 %s
                 """;
 
@@ -101,7 +108,7 @@ public class WebSocketRouterTest {
     void shouldThrowExWhenRouterCannotMatchPathWithAnyRoute(String invalidPath) {
         final String message = """
                 path=%s
-                
+                                
                 hello world!
                 """.formatted(invalidPath);
 
@@ -121,7 +128,7 @@ public class WebSocketRouterTest {
     void shouldThrowExForMessageWithInvalidPayload() {
         final String message = """
                 path=/chat/1/update_message/1
-                
+                                
                 hello world!
                 """;
 
@@ -136,6 +143,7 @@ public class WebSocketRouterTest {
         assertDoesNotThrow(() -> router.route(message, null));
     }
 
+    @NonNull
     static Stream<String> invalidPaths() {
         return Stream.of(
                 "/group/321#send",
@@ -149,6 +157,7 @@ public class WebSocketRouterTest {
         );
     }
 
+    @NonNull
     static Stream<String> invalidPathFormats() {
         return Stream.of("path=", "=/chat", "", "=");
     }
