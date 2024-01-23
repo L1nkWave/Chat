@@ -31,6 +31,7 @@ public class RedisTemplateUtils {
             public V execute(@NonNull RedisOperations operations) throws DataAccessException {
                 try {
                     operations.multi();
+                    //noinspection unchecked
                     consumer.accept(operations);
                     operations.exec();
                 } catch (RuntimeException e) {
