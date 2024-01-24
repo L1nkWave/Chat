@@ -3,12 +3,14 @@
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/dist/ScrollTrigger";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import React, { useLayoutEffect, useRef } from "react";
 
 import { CustomButton } from "@/components/CustomButton/CustomButton";
 import { ThemeToggle } from "@/components/ThemeToggle/ThemeToggle";
 
 export function Header() {
+  const router = useRouter();
   const parallaxRef = useRef(null);
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
@@ -34,15 +36,19 @@ export function Header() {
     return () => ctx.revert();
   }, []);
 
+  const handleSignIn = () => {
+    router.push("/login");
+  };
+
   return (
     <div className="header">
       <header className="fixed w-full z-10">
         <div className="px-16 flex items-center justify-between p-4 relative">
           <div className="flex items-center relative">
-            <div ref={parallaxRef}>
+            <div ref={parallaxRef} className="opacity-0">
               <button type="button">
                 <div className="flex rounded-lg contrast-100 relative">
-                  <div className="filter absolute top-0 left-0 w-full h-full blur rounded-full opacity-35" />
+                  <div className="filter absolute top-0 left-0 w-full h-full blur rounded-full" />
                   <Image
                     width={55}
                     height={55}
@@ -57,7 +63,7 @@ export function Header() {
 
           <nav className="flex gap-6 items-center text-sm font-medium text-gray-800">
             <ThemeToggle />
-            <CustomButton>Sign In</CustomButton>
+            <CustomButton onClick={handleSignIn}>Sign In</CustomButton>
           </nav>
         </div>
       </header>

@@ -97,7 +97,7 @@ export function HomePageParallax() {
           alt="link"
         />
 
-        <div ref={elements.centerText} className="parallax-text gap-4">
+        <div ref={elements.centerText} className="parallax-text gap-4 z-10">
           <h1 className="font-bold dark:text-gray-200 text-8xl">
             Link Wave Chat
           </h1>
