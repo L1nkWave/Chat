@@ -18,6 +18,12 @@ eureka:
     service-url:
       defaultZone: 'http://localhost:8761/eureka/'
 
+ws:
+  session:
+    concurrent:
+      send-time-limit: 2000
+      buffer-size-limit: 10240
+
 logging:
   level:
-    com.chat.wsserver: INFO
+    com.chat.wsserver: DEBUG

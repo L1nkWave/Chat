@@ -21,18 +21,22 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class RootWebSocketHandler extends AbstractWebSocketHandler {
 
+    private final WebSocketSessionConfigurer sessionConfigurer;
     private final WebSocketRouter router;
     private final SessionManager sessionManager;
 
     @SneakyThrows
     @Override
     public void afterConnectionEstablished(@NonNull WebSocketSession session) {
-        sessionManager.persist(session);
+        sessionManager.persist(sessionConfigurer.getConcurrentSession(session));
     }
 
     @Override
     protected void handleTextMessage(@NonNull WebSocketSession session,
                                      @NonNull TextMessage message) throws IOException {
+
+        session = sessionConfigurer.getConcurrentSession(session);
+
         log.debug("-> handleTextMessage()");
         try {
             router.route(message.getPayload(), session);
@@ -45,7 +49,7 @@ public class RootWebSocketHandler extends AbstractWebSocketHandler {
     @SneakyThrows
     @Override
     public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
-        sessionManager.remove(session);
+        sessionManager.remove(sessionConfigurer.getConcurrentSession(session));
     }
 
 }
