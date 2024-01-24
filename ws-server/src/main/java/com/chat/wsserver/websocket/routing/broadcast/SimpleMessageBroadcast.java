@@ -2,8 +2,6 @@ package com.chat.wsserver.websocket.routing.broadcast;
 
 import com.chat.wsserver.websocket.session.SessionManager;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
@@ -16,12 +14,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class SimpleMessageBroadcast implements WebSocketMessageBroadcast {
 
-    private SessionManager sessionManager;
-
-    @Autowired
-    public void setSessionManager(@Lazy SessionManager sessionManager) {
-        this.sessionManager = sessionManager;
-    }
+    private final SessionManager sessionManager;
 
     @Override
     public boolean share(@NonNull Set<String> sessionIds, String json) {

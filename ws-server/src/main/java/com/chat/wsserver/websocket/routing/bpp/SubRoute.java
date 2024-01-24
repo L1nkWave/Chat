@@ -14,6 +14,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface SubRoute {
-    String value();
+    String value() default "";
     boolean disabled() default false;
 }

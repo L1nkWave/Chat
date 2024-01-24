@@ -14,6 +14,8 @@ import com.chat.wsserver.websocket.routing.parser.TextMessageParser;
 import com.chat.wsserver.websocket.session.SessionManager;
 import com.chat.wsserver.websocket.session.callback.DefaultSessionManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -48,19 +50,19 @@ public class WebSocketRouterBroadcastTest {
             "111a5bbd-6666-d8ba-26e3-w5c7a55xl34b",
             "111a5bbd-6666-d8ba-26e3-w5c7a559904x",
             "113g5bbd-6666-d8ba-26e3-w5c7a5599ggw",
-            "12dfxpsx-6fcc-d8dc-26e3-w5c7a55mxa02"
+            "12xlsx-6fcc-d8dc-26e3-w5c7a55mxa02"
     );
 
     private static WebSocketRouter router;
-    private static Map<String, WebSocketSession> sessionMap;
+    private static Cache<String, WebSocketSession> sessionCache;
 
     @SuppressWarnings("unchecked")
     @SneakyThrows
     @BeforeEach
     void init() {
 
-        // prepare sessionMap
-        sessionMap = new HashMap<>();
+        // prepare session cache
+        sessionCache = Caffeine.newBuilder().build();
 
         constructPrincipals();
 
@@ -76,8 +78,7 @@ public class WebSocketRouterBroadcastTest {
         );
 
         // build broadcast & session manager
-        final var messageBroadcast = new SimpleMessageBroadcast();
-        messageBroadcast.setSessionManager(buildSessionManager());
+        final var messageBroadcast = new SimpleMessageBroadcast(buildSessionManager());
         final var broadcastManager = new SimpleBroadcastManager(messageBroadcast, chatRepository);
 
         router = constructWebSocketRouter(broadcastManager);
@@ -90,7 +91,7 @@ public class WebSocketRouterBroadcastTest {
 
         Class<?> superCls = sessionManager.getClass().getSuperclass();
         List<Field> fields = Arrays.stream(superCls.getDeclaredFields())
-                .filter(field -> field.getType().equals(Map.class))
+                .filter(field -> field.getType().equals(Cache.class))
                 .filter(field -> {
                     ParameterizedType genericType = (ParameterizedType) field.getGenericType();
                     Type[] types = genericType.getActualTypeArguments();
@@ -103,7 +104,7 @@ public class WebSocketRouterBroadcastTest {
 
         Field sessionsField = fields.get(0);
         makeAccessible(sessionsField);
-        setField(sessionsField, sessionManager, sessionMap);
+        setField(sessionsField, sessionManager, sessionCache);
 
         return sessionManager;
     }
@@ -133,7 +134,7 @@ public class WebSocketRouterBroadcastTest {
             when(session.getId()).thenReturn(SESSIONS.get(i));
             when(session.getPrincipal()).thenReturn(new UserPrincipal(uuid.toString(), accessToken));
 
-            sessionMap.put(SESSIONS.get(i), session);
+            sessionCache.put(SESSIONS.get(i), session);
         }
     }
 
@@ -184,10 +185,10 @@ public class WebSocketRouterBroadcastTest {
                 hello all!!!
                 """;
 
-        final WebSocketSession session = sessionMap.get(SESSIONS.get(0));
-        final WebSocketSession session2 = sessionMap.get(SESSIONS.get(1));
-        final WebSocketSession session3 = sessionMap.get(SESSIONS.get(2));
-        final WebSocketSession session4 = sessionMap.get(SESSIONS.get(3));
+        final WebSocketSession session = sessionCache.getIfPresent(SESSIONS.get(0));
+        final WebSocketSession session2 = sessionCache.getIfPresent(SESSIONS.get(1));
+        final WebSocketSession session3 = sessionCache.getIfPresent(SESSIONS.get(2));
+        final WebSocketSession session4 = sessionCache.getIfPresent(SESSIONS.get(3));
 
         router.route(message, session);
 

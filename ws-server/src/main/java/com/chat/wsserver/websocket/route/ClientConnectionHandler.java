@@ -4,7 +4,6 @@ import com.chat.wsserver.websocket.dto.Action;
 import com.chat.wsserver.websocket.dto.StatusMessage;
 import com.chat.wsserver.websocket.jwt.UserPrincipal;
 import com.chat.wsserver.websocket.repository.ChatRepository;
-import com.chat.wsserver.websocket.routing.bpp.WebSocketRoute;
 import com.chat.wsserver.websocket.routing.broadcast.WebSocketMessageBroadcast;
 import com.chat.wsserver.websocket.session.callback.AfterConnectionClosed;
 import com.chat.wsserver.websocket.session.callback.AfterConnectionEstablished;
@@ -12,8 +11,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
+import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.util.Map;
@@ -25,9 +27,9 @@ import static com.chat.wsserver.websocket.dto.Action.ONLINE;
 import static java.util.stream.Collectors.toSet;
 
 @Slf4j
-@WebSocketRoute("/user")
+@Component
 @RequiredArgsConstructor
-public class UserRoutes implements AfterConnectionEstablished, AfterConnectionClosed {
+public class ClientConnectionHandler implements AfterConnectionEstablished, AfterConnectionClosed {
 
     @Value("${server.instances.value}")
     private String instances;
@@ -35,9 +37,9 @@ public class UserRoutes implements AfterConnectionEstablished, AfterConnectionCl
     @Value("${server.instances.separator}")
     private String separator;
 
-    private final WebSocketMessageBroadcast messageBroadcast;
     private final ChatRepository<Long> chatRepository;
     private final ObjectMapper objectMapper;
+    private WebSocketMessageBroadcast messageBroadcast;
 
     @Override
     public void afterConnected(@NonNull WebSocketSession session) {
@@ -91,7 +93,7 @@ public class UserRoutes implements AfterConnectionEstablished, AfterConnectionCl
         */
         if (!messageBroadcast.share(allMembers, jsonMessage)) {
 
-            log.debug("-> notifyChatMembersWith(): multi-instance broadcast is required");
+            log.debug("-> notifyChatMembersWith(): {} ID={} mib is required", action, userId);
 
             // add field that contains chats ids in order to broadcast message
             // for chat members that are located in other instances
@@ -107,6 +109,11 @@ public class UserRoutes implements AfterConnectionEstablished, AfterConnectionCl
 
         }
 
+    }
+
+    @Autowired
+    public void setMessageBroadcast(@Lazy WebSocketMessageBroadcast messageBroadcast) {
+        this.messageBroadcast = messageBroadcast;
     }
 
 }
