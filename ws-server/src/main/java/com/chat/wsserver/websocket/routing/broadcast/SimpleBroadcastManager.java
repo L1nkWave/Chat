@@ -1,10 +1,10 @@
 package com.chat.wsserver.websocket.routing.broadcast;
 
+import com.chat.wsserver.websocket.repository.ChatRepository;
 import com.chat.wsserver.websocket.routing.bpp.Broadcast;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
@@ -24,18 +24,21 @@ public class SimpleBroadcastManager implements BroadcastManager {
     private String separator;
 
     private final WebSocketMessageBroadcast messageBroadcast;
-    private final RedisTemplate<String, String> redisTemplate;
+    private final ChatRepository<Long> chatRepository;
 
     @Override
     public void process(@NonNull Method routeHandler, @NonNull Map<String, String> pathVariables, String jsonMessage) {
 
-        log.debug("-> process(): routeHandler={}", routeHandler.getName());
+        log.debug("-> process(): routeHandler=[{}.{}]",
+                routeHandler.getDeclaringClass().getSimpleName(),
+                routeHandler.getName()
+        );
 
         Broadcast broadcastAnn = routeHandler.getAnnotation(Broadcast.class);
         String sessionSetKey = resolveKey(broadcastAnn.value(), pathVariables);
 
         // get all chat members' session ids
-        Set<String> members = redisTemplate.opsForSet().members(sessionSetKey);
+        Set<String> members = chatRepository.getChatMembersSessions(sessionSetKey);
         if (members == null || members.isEmpty()) {
             log.warn("-> process(): broadcast failed");
             return;
@@ -47,7 +50,7 @@ public class SimpleBroadcastManager implements BroadcastManager {
 
             for (String instanceId : instances.split(separator)) {
                 // here we should pass message with session id too
-                redisTemplate.convertAndSend(instanceId, jsonMessage);
+                chatRepository.shareWithConsumer(instanceId, jsonMessage);
             }
         }
     }

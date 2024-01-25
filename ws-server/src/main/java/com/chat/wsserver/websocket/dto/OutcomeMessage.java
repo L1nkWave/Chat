@@ -10,7 +10,7 @@ import lombok.experimental.SuperBuilder;
 public class OutcomeMessage extends BaseMessage {
 
     private Long chatId;
-    private String sender;
+    private Long senderId;
     private String text;
 
 }

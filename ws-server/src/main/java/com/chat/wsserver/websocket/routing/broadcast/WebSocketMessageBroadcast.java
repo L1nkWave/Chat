@@ -4,10 +4,16 @@ import org.springframework.lang.NonNull;
 
 import java.util.Set;
 
+/**
+ * Core component under the hood in {@link BroadcastManager} that does low-level job
+ * to deliver messages directly to clients via web socket sessions.
+ *
+ * @see org.springframework.web.socket.WebSocketSession
+ */
 public interface WebSocketMessageBroadcast {
 
     /**
-     * @param sessionIds ids of connected users that is needed to be delivered message to
+     * @param sessionIds ids of connected clients that are needed to be delivered message to
      * @param json       serialized object (message) that should be delivered
      * @return true      if all users received message (all session are present in current instance)
      */
