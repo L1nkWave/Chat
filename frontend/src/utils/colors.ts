@@ -13,8 +13,10 @@ export const colors = {
     200: "#D6D6D6",
     300: "#9F9F9F",
     400: "#60646E",
+    500: "#363B47",
   },
   dark: {
+    550: "#1E1F23",
     500: "#16171A",
     450: "#19191C",
     400: "#1A1B1E",
@@ -29,4 +31,5 @@ export const colors = {
   green: "#4DC886",
   black: "#000",
   white: "#fff",
+  transparent: "#00000000",
 };

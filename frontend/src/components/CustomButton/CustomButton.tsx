@@ -1,19 +1,33 @@
 import React, { forwardRef, Ref } from "react";
 
+import { styles } from "@/components/CustomButton/customButton.config";
 import { CustomButtonProps } from "@/components/CustomButton/customButton.types";
 
 export const CustomButton = forwardRef(
   (
-    { className, children, ...props }: CustomButtonProps,
+    { className, children, variant, icon, ...props }: CustomButtonProps,
     ref: Ref<HTMLButtonElement>
   ) => {
+    let style: string;
+    switch (variant) {
+      case "transparent":
+        style = styles.transparent;
+        break;
+      case "flattened":
+        style = styles.flattened;
+        break;
+      default:
+        style = styles.primary;
+        break;
+    }
     return (
       <button
         type="button"
-        className={`text-white bg-dark-400 px-8 py-4 font-bold rounded-lg hover:bg-dark-50 dark:bg-gray-100 dark:text-dark-400 dark:hover:bg-white ${className}`}
+        className={`flex gap-2 justify-center ${style} ${className}`}
         ref={ref}
         {...props}
       >
+        {icon ? <span className="w-[24px]">{icon}</span> : null}
         {children}
       </button>
     );

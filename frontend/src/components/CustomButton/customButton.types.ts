@@ -1,5 +1,8 @@
-import { HTMLAttributes, PropsWithChildren } from "react";
+import { HTMLAttributes, PropsWithChildren, ReactElement } from "react";
 
-export type CustomButtonProps = PropsWithChildren<
-  HTMLAttributes<HTMLButtonElement>
->;
+export type CustomButtonVariant = "flattened" | "primary" | "transparent";
+
+export type CustomButtonProps = {
+  variant?: CustomButtonVariant;
+  icon?: ReactElement;
+} & PropsWithChildren<HTMLAttributes<HTMLButtonElement>>;
