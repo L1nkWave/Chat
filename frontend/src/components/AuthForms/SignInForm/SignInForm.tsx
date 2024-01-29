@@ -4,13 +4,14 @@ import { useFormik } from "formik";
 import React from "react";
 
 import { AuthForm } from "@/components/AuthForm/AuthForm";
-import { CustomInput } from "@/components/CustomInput/CustomInput";
 import {
-  authForm,
   passwordInput,
-  signInValidationSchema,
+  signInForm,
   usernameInput,
-} from "@/components/SignInForm/signInForm.config";
+  validationSchema,
+} from "@/components/AuthForms/authForms.config";
+import { handleUsernameBlur } from "@/components/AuthForms/authForms.utils";
+import { CustomInput } from "@/components/CustomInput/CustomInput";
 
 export function SignInForm() {
   const formik = useFormik({
@@ -18,25 +19,20 @@ export function SignInForm() {
       username: "",
       password: "",
     },
-    validationSchema: signInValidationSchema,
+    validationSchema,
     onSubmit: values => {
       // Handle form submission logic here
       console.log("Form submitted with values:", values);
     },
   });
-  const handleUsernameBlur = () => {
-    if (!formik.values.username.startsWith("@")) {
-      formik.setFieldValue(usernameInput.name, `@${formik.values.username}`);
-    }
-    return formik.handleBlur(usernameInput.name);
-  };
+
   return (
     <AuthForm
       onSubmit={formik.handleSubmit}
-      titleIcon={authForm.titleIcon}
-      title={authForm.title}
-      description={authForm.description}
-      buttonTitle={authForm.buttonTitle}
+      titleIcon={signInForm.titleIcon}
+      title={signInForm.title}
+      description={signInForm.description}
+      buttonTitle={signInForm.buttonTitle}
     >
       <CustomInput
         name={usernameInput.name}
@@ -47,7 +43,7 @@ export function SignInForm() {
         icon={usernameInput.icon}
         value={formik.values.username}
         onChange={formik.handleChange}
-        onBlur={handleUsernameBlur}
+        onBlur={() => handleUsernameBlur(formik)}
         error={formik.touched.username && formik.errors.username}
       />
       <CustomInput
