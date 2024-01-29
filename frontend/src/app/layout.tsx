@@ -10,22 +10,22 @@ import { ThemeProvider } from "@/context/ThemeProvider/ThemeProvider";
 const ggSans = localFont({
   src: [
     {
-      path: "../../public/fonts/gg-sans/gg sans Bold.woff",
+      path: "../../public/fonts/gg-sans/gg_sans_Bold.woff",
       weight: "700",
       style: "bold",
     },
     {
-      path: "../../public/fonts/gg-sans/gg sans Medium.woff",
+      path: "../../public/fonts/gg-sans/gg_sans_Medium.woff",
       weight: "500",
       style: "medium",
     },
     {
-      path: "../../public/fonts/gg-sans/gg sans Regular.woff",
+      path: "../../public/fonts/gg-sans/gg_sans_Regular.woff",
       weight: "400",
       style: "regular",
     },
     {
-      path: "../../public/fonts/gg-sans/gg sans Semibold.woff",
+      path: "../../public/fonts/gg-sans/gg_sans_Semibold.woff",
       weight: "600",
       style: "semibold",
     },
