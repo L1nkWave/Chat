@@ -23,6 +23,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 
+import static org.springframework.http.HttpMethod.GET;
+
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
@@ -63,7 +65,8 @@ public class SecurityConfig {
                 .userDetailsService(userDetailsService)
 
                 .authorizeHttpRequests(c -> c
-                        .requestMatchers("/api/v1/auth/validate-token", HttpMethod.GET.name()).permitAll()
+                        .requestMatchers("/actuator/health", GET.name()).permitAll()
+                        .requestMatchers("/api/v1/auth/validate-token", GET.name()).permitAll()
                         .anyRequest().denyAll())
 
                 .apply(jwtAuthFiltersConfigurer)

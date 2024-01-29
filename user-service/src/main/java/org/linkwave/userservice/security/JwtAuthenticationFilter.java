@@ -8,7 +8,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.Cleanup;
 import lombok.RequiredArgsConstructor;
 import org.linkwave.userservice.dto.ApiError;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
 import org.springframework.security.core.Authentication;
@@ -23,11 +22,13 @@ import java.io.IOException;
 import java.time.Instant;
 
 import static jakarta.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
+import static org.springframework.http.HttpMethod.POST;
 
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final RequestMatcher requestMatcher = new AntPathRequestMatcher("/api/v1/users/register", HttpMethod.POST.name());
+    private final RequestMatcher registrationRequestMatcher = new AntPathRequestMatcher("/api/v1/users/register", POST.name());
+    private final RequestMatcher requestMatcher = new AntPathRequestMatcher("/api/v1/users/**");
     private final AuthenticationConverter authenticationConverter;
     private final ObjectMapper objectMapper;
 
@@ -36,7 +37,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
 
-        if (requestMatcher.matches(request)) {
+        if (registrationRequestMatcher.matches(request) || !requestMatcher.matches(request)) {
             filterChain.doFilter(request, response);
             return;
         }

@@ -16,6 +16,7 @@ import org.springframework.security.web.authentication.AuthenticationConverter;
 
 import java.security.interfaces.RSAPublicKey;
 
+import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 
 @Configuration
@@ -40,6 +41,7 @@ public class SecurityConfiguration {
 
                 .authorizeHttpRequests(matcherRegistry -> matcherRegistry
                         .requestMatchers("/api/v1/users/register", POST.name()).permitAll()
+                        .requestMatchers("/actuator/health", GET.name()).permitAll()
                         .requestMatchers("/api/v1/users/**").hasRole("USER")
                         .anyRequest().authenticated())
 
