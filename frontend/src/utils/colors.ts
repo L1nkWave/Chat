@@ -28,6 +28,10 @@ export const colors = {
     100: "#2D2F37",
     50: "#2D333E",
   },
+  red: {
+    50: "#ff5555",
+    100: "#ff4444",
+  },
   green: "#4DC886",
   black: "#000",
   white: "#fff",
