@@ -24,7 +24,7 @@ import static java.util.stream.Collectors.toSet;
 @RequiredArgsConstructor
 public class MessageDelegateImpl implements MessageDelegate {
 
-    private final ChatRepository chatRepository;
+    private final ChatRepository<Long> chatRepository;
     private final WebSocketMessageBroadcast messageBroadcast;
     private final ObjectMapper mapper;
 
@@ -50,7 +50,7 @@ public class MessageDelegateImpl implements MessageDelegate {
         switch (action) {
             case JOIN, LEAVE, MESSAGE -> {
                 var outcomeMessage = mapper.readValue(message, OutcomeMessage.class);
-                members = chatRepository.getChatMembers(outcomeMessage.getChatId());
+                members = chatRepository.getChatMembersSessions(outcomeMessage.getChatId());
             }
             case OFFLINE, ONLINE -> {
 
@@ -70,12 +70,12 @@ public class MessageDelegateImpl implements MessageDelegate {
                     message = mapper.writeValueAsString(statusMessage); // remove chats property
                     System.out.println();
                 } else {
-                    userChats = chatRepository.getUserChats(statusMessage.getUser());
+                    userChats = chatRepository.getChats(statusMessage.getSenderId());
                 }
 
                 // collect members from user's chats
                 members = userChats.stream()
-                        .map(chatRepository::getChatMembers)
+                        .map(chatRepository::getChatMembersSessions)
                         .map(Set::stream)
                         .flatMap(Stream::distinct)
                         .collect(toSet());

@@ -7,12 +7,23 @@ server:
 
 spring:
   application:
-    name: LinkWave WSS
+    name: ws-server
 
   data:
     redis:
       port: 6379
 
+eureka:
+  client:
+    service-url:
+      defaultZone: 'http://localhost:8761/eureka/'
+
+ws:
+  session:
+    concurrent:
+      send-time-limit: 2000
+      buffer-size-limit: 10240
+
 logging:
   level:
-    com: DEBUG
+    com.chat.wsserver: DEBUG

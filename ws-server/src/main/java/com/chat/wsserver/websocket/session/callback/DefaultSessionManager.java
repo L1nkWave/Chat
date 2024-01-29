@@ -25,12 +25,12 @@ public class DefaultSessionManager extends AbstractSessionManager {
 
     @Override
     public WebSocketSession find(@NonNull String sessionId) {
-        return sessions.get(sessionId);
+        return sessions.getIfPresent(sessionId);
     }
 
     @Override
     public void remove(@NonNull WebSocketSession session) {
-        sessions.remove(session.getId());
+        sessions.invalidate(session.getId());
         disconnectedCallbacks.forEach(c -> c.afterDisconnected(session));
     }
 

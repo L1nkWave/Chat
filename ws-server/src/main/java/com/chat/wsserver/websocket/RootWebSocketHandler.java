@@ -21,19 +21,23 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class RootWebSocketHandler extends AbstractWebSocketHandler {
 
+    private final WebSocketSessionConfigurer sessionConfigurer;
     private final WebSocketRouter router;
     private final SessionManager sessionManager;
 
     @SneakyThrows
     @Override
     public void afterConnectionEstablished(@NonNull WebSocketSession session) {
-        log.info("user[{}] connected", session.getId());
-        sessionManager.persist(session);
+        sessionManager.persist(sessionConfigurer.getConcurrentSession(session));
     }
 
     @Override
-    protected void handleTextMessage(@NonNull WebSocketSession session, @NonNull TextMessage message) throws IOException {
-        log.info("-> handleTextMessage(): ss={}", session.getId());
+    protected void handleTextMessage(@NonNull WebSocketSession session,
+                                     @NonNull TextMessage message) throws IOException {
+
+        session = sessionConfigurer.getConcurrentSession(session);
+
+        log.debug("-> handleTextMessage()");
         try {
             router.route(message.getPayload(), session);
         } catch (InvalidMessageFormatException | InvalidPathException e) {
@@ -45,8 +49,7 @@ public class RootWebSocketHandler extends AbstractWebSocketHandler {
     @SneakyThrows
     @Override
     public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
-        log.info("user[{}] disconnected", session.getId());
-        sessionManager.remove(session);
+        sessionManager.remove(sessionConfigurer.getConcurrentSession(session));
     }
 
 }

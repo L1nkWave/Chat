@@ -24,7 +24,8 @@ public class ApiGatewayRouterConfig {
     @RequiredArgsConstructor
     public enum Service {
         AUTH_SERVICE("lb://auth-service"),
-        USER_SERVICE("lb://user-service");
+        USER_SERVICE("lb://user-service"),
+        WS_SERVER("lb:ws://ws-server");
 
         private final String url;
     }
@@ -50,6 +51,10 @@ public class ApiGatewayRouterConfig {
                         .path("/api/v1/users/**")
                         .filters(f -> f.filter(gatewayFilter))
                         .uri(USER_SERVICE.getUrl()))
+                .route(r -> r
+                        .path("/ws-gate")
+                        .filters(f -> f.filter(gatewayFilter))
+                        .uri(WS_SERVER.getUrl()))
                 .build();
     }
 

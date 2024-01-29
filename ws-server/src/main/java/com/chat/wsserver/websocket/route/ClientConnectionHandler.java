@@ -2,8 +2,8 @@ package com.chat.wsserver.websocket.route;
 
 import com.chat.wsserver.websocket.dto.Action;
 import com.chat.wsserver.websocket.dto.StatusMessage;
+import com.chat.wsserver.websocket.jwt.UserPrincipal;
 import com.chat.wsserver.websocket.repository.ChatRepository;
-import com.chat.wsserver.websocket.routing.bpp.WebSocketRoute;
 import com.chat.wsserver.websocket.routing.broadcast.WebSocketMessageBroadcast;
 import com.chat.wsserver.websocket.session.callback.AfterConnectionClosed;
 import com.chat.wsserver.websocket.session.callback.AfterConnectionEstablished;
@@ -11,16 +11,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.lang.NonNull;
+import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
 
-import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
 import static com.chat.wsserver.websocket.dto.Action.OFFLINE;
@@ -28,9 +27,9 @@ import static com.chat.wsserver.websocket.dto.Action.ONLINE;
 import static java.util.stream.Collectors.toSet;
 
 @Slf4j
-@WebSocketRoute("/user")
+@Component
 @RequiredArgsConstructor
-public class UserRoutes implements AfterConnectionEstablished, AfterConnectionClosed {
+public class ClientConnectionHandler implements AfterConnectionEstablished, AfterConnectionClosed {
 
     @Value("${server.instances.value}")
     private String instances;
@@ -38,72 +37,54 @@ public class UserRoutes implements AfterConnectionEstablished, AfterConnectionCl
     @Value("${server.instances.separator}")
     private String separator;
 
-    private final WebSocketMessageBroadcast messageBroadcast;
-    private final RedisTemplate<String, String> redisTemplate;
-    private final ChatRepository chatRepository;
+    private final ChatRepository<Long> chatRepository;
     private final ObjectMapper objectMapper;
+    private WebSocketMessageBroadcast messageBroadcast;
 
     @Override
     public void afterConnected(@NonNull WebSocketSession session) {
-        String sessionId = session.getId();
-        log.debug("-> handleUserConnected(): ss={}", sessionId);
+        final String sessionId = session.getId();
+        final var principal = (UserPrincipal) session.getPrincipal();
+        final Long userId = principal.token().userId();
 
-        final List<Long> predefinedChats = List.of(11L, 777L);
+        log.debug("-> user:[{}] connected, SSID={}", principal.getName(), sessionId);
+
+        final Set<Long> predefinedChats = Set.of(11L, 777L);
 
         // notify & add connected user to predefined chats
-        notifyChatMembersWith(
-                predefinedChats,
-                ONLINE,
-                sessionId,
-                chatRepository::addMember
-        );
-
+        chatRepository.addMember(userId, predefinedChats);
+        notifyChatMembersWith(ONLINE, predefinedChats, userId);
+        chatRepository.saveSession(userId, sessionId);
     }
 
     @Override
     public void afterDisconnected(@NonNull WebSocketSession session) {
-        String sessionId = session.getId();
-        log.debug("-> handleUserDisconnected(): ss={}", sessionId);
+        final String sessionId = session.getId();
+        final var principal = (UserPrincipal) session.getPrincipal();
+        final Long userId = principal.token().userId();
 
-        // notify & remove disconnected user from his chats
-        notifyChatMembersWith(
-                chatRepository.getUserChats(sessionId),
-                OFFLINE,
-                sessionId,
-                chatRepository::removeMember
-        );
+        log.debug("-> user:[{}] disconnected, SSID={}", principal.getName(), sessionId);
 
-        // remove session from redis
-        chatRepository.clearUserChats(sessionId);
+        notifyChatMembersWith(OFFLINE, chatRepository.getChats(userId), userId);
+        chatRepository.removeSession(userId, sessionId);
     }
 
     @SuppressWarnings("unchecked")
     @SneakyThrows
-    private void notifyChatMembersWith(@NonNull Collection<Long> chats,
-                                       Action action,
-                                       String sessionId,
-                                       BiConsumer<Long, String> biConsumer) {
+    private void notifyChatMembersWith(Action action, @NonNull Set<Long> chats, Long userId) {
 
         String jsonMessage = objectMapper.writeValueAsString(
                 StatusMessage.builder()
-                        .user(sessionId)
+                        .senderId(userId)
                         .action(action)
                         .build()
         );
 
-        Set<String> allMembers = chats.stream()
-                .map(chatRepository::getChatMembers)
+        final Set<String> allMembers = chats.stream()
+                .map(chatRepository::getChatMembersSessions)
                 .map(Set::stream)
                 .flatMap(Stream::distinct)
                 .collect(toSet());
-
-        // iterate through user's chats
-        for (Long chatId : chats) {
-
-            // perform operation between user and his chats
-            biConsumer.accept(chatId, sessionId);
-
-        }
 
         /*
             Share user status between chat participants.
@@ -112,22 +93,27 @@ public class UserRoutes implements AfterConnectionEstablished, AfterConnectionCl
         */
         if (!messageBroadcast.share(allMembers, jsonMessage)) {
 
-            log.debug("-> notifyChatMembersWith(): multi-instance broadcast is required");
+            log.debug("-> notifyChatMembersWith(): {} ID={} mib is required", action, userId);
 
             // add field that contains chats ids in order to broadcast message
             // for chat members that are located in other instances
-            if (action.equals(OFFLINE)) {
+            if (action == OFFLINE) {
                 var content = objectMapper.readValue(jsonMessage, Map.class);
                 content.put("chats", chats);
                 jsonMessage = objectMapper.writeValueAsString(content);
             }
 
             for (String instanceId : instances.split(separator)) {
-                redisTemplate.convertAndSend(instanceId, jsonMessage);
+                chatRepository.shareWithConsumer(instanceId, jsonMessage);
             }
 
         }
 
+    }
+
+    @Autowired
+    public void setMessageBroadcast(@Lazy WebSocketMessageBroadcast messageBroadcast) {
+        this.messageBroadcast = messageBroadcast;
     }
 
 }
