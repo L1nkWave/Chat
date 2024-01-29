@@ -1,3 +1,11 @@
-import { HTMLAttributes, PropsWithChildren } from "react";
+import {
+  DetailedHTMLProps,
+  FormHTMLAttributes,
+  PropsWithChildren,
+} from "react";
 
-export type AuthCardProps = HTMLAttributes<HTMLFormElement> & PropsWithChildren;
+export type AuthCardProps = DetailedHTMLProps<
+  FormHTMLAttributes<HTMLFormElement>,
+  HTMLFormElement
+> &
+  PropsWithChildren;

@@ -7,6 +7,7 @@ import React, {
 export type CustomInputProps = {
   icon?: ReactElement;
   label?: string;
+  error?: string | false;
   containerClassName?: string;
 } & DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>;
 
@@ -14,6 +15,7 @@ export function CustomInput({
   icon,
   containerClassName,
   label,
+  error,
   className,
   ...props
 }: Readonly<CustomInputProps>) {
@@ -28,11 +30,11 @@ export function CustomInput({
           <span className="w-[32px] mr-2">{icon}</span>
           <input
             type="text"
-            id="custom-input"
             className={`block w-full bg-transparent outline-none sm:text-md dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-blue-500 ${className}`}
             {...props}
           />
         </div>
+        {error ?? null}
       </label>
     </div>
   );
