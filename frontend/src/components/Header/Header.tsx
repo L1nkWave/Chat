@@ -5,13 +5,10 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/dist/ScrollTrigger";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useLayoutEffect, useRef } from "react";
 
 import { CustomButton } from "@/components/CustomButton/CustomButton";
-import {
-  HeaderProps,
-  HeaderStateParams,
-} from "@/components/Header/header.types";
+import { HeaderProps } from "@/components/Header/header.types";
 import { ThemeToggle } from "@/components/ThemeToggle/ThemeToggle";
 
 export function Header({
@@ -21,26 +18,8 @@ export function Header({
   const pathname = usePathname();
   const onSignInPage = pathname === "/sign-in";
 
-  const [headerState, setHeaderState] = useState<HeaderStateParams>({
-    authButton: {
-      label: "Sign In",
-      icon: <CurvedArrowIcon />,
-    },
-  });
-
   const router = useRouter();
   const parallaxRef = useRef(null);
-
-  useEffect(() => {
-    if (onSignInPage) {
-      setHeaderState({
-        authButton: {
-          label: "Sign Up",
-          icon: <UserPlusIcon />,
-        },
-      });
-    }
-  }, [onSignInPage]);
 
   useLayoutEffect(() => {
     if (withoutEffects) return () => {};
@@ -108,12 +87,12 @@ export function Header({
           <nav className="flex gap-6 items-center text-sm font-medium text-gray-800">
             <ThemeToggle />
             <CustomButton
-              icon={headerState.authButton.icon}
+              icon={onSignInPage ? <UserPlusIcon /> : <CurvedArrowIcon />}
               className="flex gap-2 text-lg"
               variant="transparent"
               onClick={handleRedirectAuth}
             >
-              {headerState.authButton.label}
+              {onSignInPage ? "Sign Up" : "Sign In"}
             </CustomButton>
           </nav>
         </div>
