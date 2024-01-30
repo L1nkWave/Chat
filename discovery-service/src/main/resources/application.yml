@@ -1,6 +1,12 @@
 server:
   port: 8761
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
 eureka:
   client:
     register-with-eureka: false
