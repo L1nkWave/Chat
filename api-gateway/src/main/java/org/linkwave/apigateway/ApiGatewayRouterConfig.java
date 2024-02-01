@@ -14,8 +14,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import static org.linkwave.apigateway.ApiGatewayRouterConfig.Service.*;
-import static org.springframework.http.HttpMethod.GET;
-import static org.springframework.http.HttpMethod.POST;
+import static org.springframework.http.HttpMethod.*;
 
 @Configuration
 public class ApiGatewayRouterConfig {
@@ -39,13 +38,13 @@ public class ApiGatewayRouterConfig {
                                 "/api/v1/auth/logout",
                                 "/api/v1/auth/refresh-tokens")
                         .and()
-                        .method(POST, GET)
+                        .method(POST, GET, OPTIONS)
                         .uri(AUTH_SERVICE.getUrl())
                 )
                 .route(r -> r
                         .path("/api/v1/users/register")
                         .and()
-                        .method(POST)
+                        .method(POST, OPTIONS)
                         .uri(USER_SERVICE.getUrl()))
                 .route(r -> r
                         .path("/api/v1/users/**")
