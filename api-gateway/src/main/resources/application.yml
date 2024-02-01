@@ -5,6 +5,15 @@ spring:
   application:
     name: api-gateway
 
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: http://localhost
+            allowedMethods: '*'
+            allowedHeaders: '*'
+
 eureka:
   client:
     service-url:
