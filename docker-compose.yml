@@ -143,5 +143,6 @@ services:
     env_file: .env
     environment:
       SPRING_APPLICATION_JSON: '{
-        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL"
+        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL",
+        "spring.cloud.gateway.globalcors.cors-configurations.[/**].allowedOrigins": "$ORIGINS"
       }'
