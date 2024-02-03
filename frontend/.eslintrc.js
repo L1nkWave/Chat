@@ -39,6 +39,8 @@ module.exports = {
   ],
 
   rules: {
+    "no-shadow": "off",
+    "@typescript-eslint/no-shadow": "warn",
     "simple-import-sort/imports": "error",
     "simple-import-sort/exports": "error",
     "@typescript-eslint/no-unused-vars": "error",

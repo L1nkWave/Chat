@@ -6,7 +6,7 @@ import { HomePageParallax } from "@/components/HomePageParallax/HomePageParallax
 
 export default function Home() {
   return (
-    <div className="bg-white dark:bg-dark-450">
+    <>
       <Header />
       <HomePageParallax />
       <HomeContainer>
@@ -767,6 +767,6 @@ export default function Home() {
           aperiam sapiente corporis! Quisquam, veritatis repellendus?
         </p>
       </HomeContainer>
-    </div>
+    </>
   );
 }
