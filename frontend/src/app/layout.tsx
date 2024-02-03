@@ -43,11 +43,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="no-scrollbar" suppressHydrationWarning>
-      <body className={ggSans.className}>
+      <body
+        className={`${ggSans.className} bg-white dark:bg-dark-400 h-screen`}
+      >
         <StoreProvider>
-          <ThemeProvider>
-            <div className="bg-white dark:bg-dark-400">{children}</div>
-          </ThemeProvider>
+          <ThemeProvider>{children}</ThemeProvider>
         </StoreProvider>
       </body>
     </html>
