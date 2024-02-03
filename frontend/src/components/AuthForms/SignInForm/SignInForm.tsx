@@ -1,28 +1,39 @@
 "use client";
 
 import { useFormik } from "formik";
+import { useRouter } from "next/navigation";
 import React from "react";
 
+import { signIn } from "@/api/auth/auth";
 import { AuthForm } from "@/components/AuthForm/AuthForm";
 import {
   passwordInput,
   signInForm,
+  signInValidationSchema,
   usernameInput,
-  validationSchema,
 } from "@/components/AuthForms/authForms.config";
 import { handleUsernameBlur } from "@/components/AuthForms/authForms.utils";
 import { CustomInput } from "@/components/CustomInput/CustomInput";
+import { setAccessToken } from "@/redux/features/authSlice";
+import { useAppDispatch } from "@/redux/hooks";
 
 export function SignInForm() {
+  const router = useRouter();
+  const dispatch = useAppDispatch();
   const formik = useFormik({
     initialValues: {
       username: "",
       password: "",
     },
-    validationSchema,
-    onSubmit: values => {
-      // Handle form submission logic here
-      console.log("Form submitted with values:", values);
+    validationSchema: signInValidationSchema,
+    onSubmit: async values => {
+      try {
+        const data = await signIn(values.username, values.password);
+        dispatch(setAccessToken(data.accessToken));
+        router.push("/chat");
+      } catch (error) {
+        console.log(error);
+      }
     },
   });
 
