@@ -1,30 +1,37 @@
 "use client";
 
-import { FormikValues, useFormik } from "formik";
+import { useFormik } from "formik";
+import { useRouter } from "next/navigation";
 import React from "react";
 
+import { signUp } from "@/api/auth/auth";
 import { AuthForm } from "@/components/AuthForm/AuthForm";
 import {
   fullNameInput,
   passwordInput,
   signUpForm,
+  signUpValidationSchema,
   usernameInput,
-  validationSchema,
 } from "@/components/AuthForms/authForms.config";
 import { handleUsernameBlur } from "@/components/AuthForms/authForms.utils";
 import { CustomInput } from "@/components/CustomInput/CustomInput";
 
 export function SignUpForm() {
-  const formik: FormikValues = useFormik({
+  const router = useRouter();
+  const formik = useFormik({
     initialValues: {
       username: "",
       fullName: "",
       password: "",
     },
-    validationSchema,
-    onSubmit: values => {
-      // Handle form submission logic here
-      console.log("Form submitted with values:", values);
+    validationSchema: signUpValidationSchema,
+    onSubmit: async values => {
+      try {
+        await signUp(values.fullName, values.username, values.password);
+        router.push("/sign-in");
+      } catch (error) {
+        console.log(error);
+      }
     },
   });
 
