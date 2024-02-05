@@ -28,14 +28,14 @@ public class RootWebSocketHandler extends AbstractWebSocketHandler {
     @SneakyThrows
     @Override
     public void afterConnectionEstablished(@NonNull WebSocketSession session) {
-        sessionManager.persist(sessionConfigurer.getConcurrentSession(session));
+        sessionManager.persist(sessionConfigurer.configure(session));
     }
 
     @Override
     protected void handleTextMessage(@NonNull WebSocketSession session,
                                      @NonNull TextMessage message) throws IOException {
 
-        session = sessionConfigurer.getConcurrentSession(session);
+        session = sessionConfigurer.configure(session);
 
         log.debug("-> handleTextMessage()");
         try {
@@ -49,7 +49,7 @@ public class RootWebSocketHandler extends AbstractWebSocketHandler {
     @SneakyThrows
     @Override
     public void afterConnectionClosed(@NonNull WebSocketSession session, @NonNull CloseStatus status) {
-        sessionManager.remove(sessionConfigurer.getConcurrentSession(session));
+        sessionManager.remove(sessionConfigurer.configure(session));
     }
 
 }
