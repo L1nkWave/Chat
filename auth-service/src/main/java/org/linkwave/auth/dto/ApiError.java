@@ -7,7 +7,7 @@ import java.time.Instant;
 @Builder
 public record ApiError(
         String path,
-        int statusCode,
-        String error,
+        int status,
+        String message,
         Instant timestamp) {
 }

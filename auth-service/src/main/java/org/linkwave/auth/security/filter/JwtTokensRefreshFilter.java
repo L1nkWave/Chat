@@ -131,8 +131,8 @@ public class JwtTokensRefreshFilter extends OncePerRequestFilter {
             objectMapper.writeValue(response.getOutputStream(), ApiError.builder()
                     .path(request.getRequestURI())
                     .timestamp(Instant.now())
-                    .error(e.getMessage())
-                    .statusCode(status)
+                    .message(e.getMessage())
+                    .status(status)
                     .build());
         } finally {
             var os = response.getOutputStream();
