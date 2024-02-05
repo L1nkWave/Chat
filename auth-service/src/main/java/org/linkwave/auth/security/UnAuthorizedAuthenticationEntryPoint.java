@@ -38,8 +38,8 @@ public class UnAuthorizedAuthenticationEntryPoint implements AuthenticationEntry
 
         final var apiError = ApiError.builder()
                 .path(request.getRequestURI())
-                .statusCode(status)
-                .error(authException.getMessage())
+                .status(status)
+                .message(authException.getMessage())
                 .timestamp(Instant.now())
                 .build();
 
