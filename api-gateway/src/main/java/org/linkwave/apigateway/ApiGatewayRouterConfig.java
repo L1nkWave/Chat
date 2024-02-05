@@ -1,9 +1,8 @@
 package org.linkwave.apigateway;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import org.linkwave.apigateway.security.AuthenticationGatewayFilter;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.route.RouteLocator;
@@ -30,7 +29,9 @@ public class ApiGatewayRouterConfig {
     }
 
     @Bean
-    public RouteLocator routeLocator(@NonNull RouteLocatorBuilder builder, GatewayFilter gatewayFilter) {
+    public RouteLocator routeLocator(@NonNull RouteLocatorBuilder builder,
+                                     @Qualifier("authHeaderFilter") GatewayFilter authHeaderGatewayFilter,
+                                     @Qualifier("authParamFilter") GatewayFilter authParamGatewayFilter) {
         return builder.routes()
                 .route(r -> r
                         .path(
@@ -48,11 +49,11 @@ public class ApiGatewayRouterConfig {
                         .uri(USER_SERVICE.getUrl()))
                 .route(r -> r
                         .path("/api/v1/users/**")
-                        .filters(f -> f.filter(gatewayFilter))
+                        .filters(f -> f.filter(authHeaderGatewayFilter))
                         .uri(USER_SERVICE.getUrl()))
                 .route(r -> r
                         .path("/ws-gate")
-                        .filters(f -> f.filter(gatewayFilter))
+                        .filters(f -> f.filter(authParamGatewayFilter))
                         .uri(WS_SERVER.getUrl()))
                 .build();
     }
@@ -64,11 +65,8 @@ public class ApiGatewayRouterConfig {
     }
 
     @Bean
-    public GatewayFilter gatewayFilter(@NonNull WebClient.Builder webClientBuilder, ObjectMapper objectMapper) {
-        return new AuthenticationGatewayFilter(
-                webClientBuilder.baseUrl(AUTH_SERVICE.getUrl()).build(),
-                objectMapper
-        );
+    public WebClient webClient(@NonNull WebClient.Builder webClientBuilder) {
+        return webClientBuilder.baseUrl(AUTH_SERVICE.getUrl()).build();
     }
 
 }

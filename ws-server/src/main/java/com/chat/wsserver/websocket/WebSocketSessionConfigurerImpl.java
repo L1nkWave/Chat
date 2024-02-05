@@ -16,7 +16,7 @@ public class WebSocketSessionConfigurerImpl implements WebSocketSessionConfigure
     private int bufferSizeLimit;
 
     @Override
-    public WebSocketSession getConcurrentSession(@NonNull WebSocketSession session) {
+    public WebSocketSession configure(@NonNull WebSocketSession session) {
         return new ConcurrentWebSocketSessionDecorator(session, sendTimeLimit, bufferSizeLimit);
     }
 
