@@ -9,9 +9,9 @@ import org.springframework.web.socket.server.support.AbstractHandshakeHandler;
 
 import java.security.Principal;
 import java.util.Map;
+import java.util.Optional;
 
-import static com.chat.wsserver.websocket.jwt.JwtHandshakeInterceptor.BEARER_PREFIX;
-import static com.chat.wsserver.websocket.jwt.JwtHandshakeInterceptor.JWT_HEADER_KEY;
+import static com.chat.wsserver.websocket.jwt.JwtHandshakeInterceptor.TOKEN_PARAM_KEY;
 
 @Component
 @RequiredArgsConstructor
@@ -24,12 +24,11 @@ public class JwtHandshakeHandler extends AbstractHandshakeHandler {
                                       @NonNull WebSocketHandler wsHandler,
                                       @NonNull Map<String, Object> attributes) {
 
-        final String rawToken = request.getHeaders()
-                .get(JWT_HEADER_KEY)
-                .get(0)
-                .substring(BEARER_PREFIX.length());
+        final var token = Optional.ofNullable(attributes.get(TOKEN_PARAM_KEY))
+                .map(Object::toString)
+                .orElseThrow(() -> new IllegalStateException("Not found access token"));
 
-        return new UserPrincipal(rawToken, tokenParser.parse(rawToken));
+        return new UserPrincipal(token, tokenParser.parse(token));
     }
 
 }

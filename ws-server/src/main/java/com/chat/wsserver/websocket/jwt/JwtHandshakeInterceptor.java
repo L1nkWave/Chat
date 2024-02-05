@@ -10,6 +10,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
+import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -28,7 +29,8 @@ import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 @Component
 public class JwtHandshakeInterceptor implements HandshakeInterceptor {
 
-    public static final String JWT_HEADER_KEY = HttpHeaders.AUTHORIZATION;
+    public static final String TOKEN_HEADER_KEY = HttpHeaders.AUTHORIZATION;
+    public static final String TOKEN_PARAM_KEY = "access";
     public static final String CONTENT_HEADER_KEY = "Content";
     public static final String BEARER_PREFIX = "Bearer ";
 
@@ -47,22 +49,35 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
                                    @NonNull WebSocketHandler wsHandler,
                                    @NonNull Map<String, Object> attributes) {
 
-        log.debug("-> beforeHandshake()");
-
-        HttpHeaders headers = request.getHeaders();
-        List<String> values = headers.get(JWT_HEADER_KEY);
-
-        String error;
+        final List<String> authorizationHeader = request.getHeaders().get(TOKEN_HEADER_KEY);
+        final String error;
+        final String token;
 
         // check header & token format
-        if (values == null || values.isEmpty() || !values.get(0).startsWith(BEARER_PREFIX)) {
-            error = format("%s header is undefined or invalid bearer format", JWT_HEADER_KEY);
-            log.debug("-> beforeHandshake(): {}", error);
-            fillResponse(response, error);
-            return false;
+        if (authorizationHeader != null && !authorizationHeader.isEmpty()) {
+
+            final String headerValue = authorizationHeader.get(0);
+            if (!headerValue.startsWith(BEARER_PREFIX)) {
+                error = format("Header \"%s\" contains invalid bearer format", TOKEN_HEADER_KEY);
+                log.debug("-> beforeHandshake(): {}", error);
+                fillResponse(response, error);
+                return false;
+            }
+
+            token = headerValue.substring(BEARER_PREFIX.length());
+        } else { // check parameter & token format
+            final String paramValue = ((ServletServerHttpRequest) request).getServletRequest().getParameter(TOKEN_PARAM_KEY);
+
+            if (paramValue == null || paramValue.isBlank()) {
+                error = format("Parameter \"%s\" is empty", TOKEN_PARAM_KEY);
+                log.debug("-> beforeHandshake(): {}", error);
+                fillResponse(response, error);
+                return false;
+            }
+
+            token = paramValue;
         }
 
-        final String token = values.get(0).substring(BEARER_PREFIX.length());
         if (tokenParser.isInvalid(token)) {
             error = "invalid access token";
             log.debug("-> beforeHandshake(): {}", error);
@@ -70,6 +85,7 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
             return false;
         }
 
+        attributes.put(TOKEN_PARAM_KEY, token);
         return true;
     }
 
