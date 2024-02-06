@@ -1,12 +1,14 @@
 package com.chat.wsserver.unit;
 
+import com.chat.wsserver.websocket.dto.Action;
+import com.chat.wsserver.websocket.dto.OutcomeMessage;
 import com.chat.wsserver.websocket.jwt.Token;
 import com.chat.wsserver.websocket.jwt.UserPrincipal;
 import com.chat.wsserver.websocket.repository.ChatRepository;
-import com.chat.wsserver.websocket.routing.DefaultRouteHandlerArgumentResolver;
-import com.chat.wsserver.websocket.routing.RouteComponent;
-import com.chat.wsserver.websocket.routing.WebSocketRouter;
-import com.chat.wsserver.websocket.routing.WebSocketRouterImpl;
+import com.chat.wsserver.websocket.routing.*;
+import com.chat.wsserver.websocket.routing.bpp.Broadcast;
+import com.chat.wsserver.websocket.routing.bpp.SubRoute;
+import com.chat.wsserver.websocket.routing.bpp.WebSocketRoute;
 import com.chat.wsserver.websocket.routing.broadcast.BroadcastManager;
 import com.chat.wsserver.websocket.routing.broadcast.SimpleBroadcastManager;
 import com.chat.wsserver.websocket.routing.broadcast.SimpleMessageBroadcast;
@@ -21,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.lang.NonNull;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
@@ -32,6 +35,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
+import static com.chat.wsserver.unit.SessionTestUtils.generateSessionIds;
 import static java.lang.String.format;
 import static java.util.Collections.emptyList;
 import static java.util.List.of;
@@ -45,13 +49,7 @@ public class WebSocketRouterBroadcastTest {
 
     private static final List<Long> USERS_IDS = of(1L, 2L, 3L, 4L, 5L);
 
-    private static final List<String> SESSIONS = of(
-            "861a5bbd-7119-d8ba-26e3-65b7a48af37a",
-            "111a5bbd-6666-d8ba-26e3-w5c7a55xl34b",
-            "111a5bbd-6666-d8ba-26e3-w5c7a559904x",
-            "113g5bbd-6666-d8ba-26e3-w5c7a5599ggw",
-            "12xlsx-6fcc-d8dc-26e3-w5c7a55mxa02"
-    );
+    private static final List<String> SESSIONS = generateSessionIds(5).stream().toList();
 
     private static WebSocketRouter router;
     private static Cache<String, WebSocketSession> sessionCache;
@@ -196,6 +194,26 @@ public class WebSocketRouterBroadcastTest {
         verify(session2, times(1)).sendMessage(any(TextMessage.class));
         verify(session3, times(1)).sendMessage(any(TextMessage.class));
         verify(session4, never()).sendMessage(any());
+    }
+
+    @WebSocketRoute("/group-chat")
+    private static class ChatRoutesBroadcastT {
+
+        @SubRoute("/{id}/send")
+        @Broadcast("chat:{id}")
+        Box<OutcomeMessage> sendMessage(@PathVariable long id,
+                                        @NonNull WebSocketSession session,
+                                        @Payload String message) {
+            final var principal = (UserPrincipal) session.getPrincipal();
+            assert principal != null;
+            return Box.ok(OutcomeMessage.builder()
+                    .action(Action.MESSAGE)
+                    .chatId(id)
+                    .senderId(principal.token().userId())
+                    .text(message)
+                    .build());
+        }
+
     }
 
 }

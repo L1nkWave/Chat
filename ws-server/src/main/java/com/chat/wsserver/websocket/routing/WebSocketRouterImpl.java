@@ -53,7 +53,7 @@ public class WebSocketRouterImpl implements WebSocketRouter {
         Method routeHandler = route.routeHandler();
 
         // prepare arguments for route handler invocation
-        final List<Object> arguments = argumentResolver.resolveParams(
+        final List<Object> arguments = argumentResolver.resolve(
                 matchedRoute, pathVariables, routingMessage, session
         );
 
