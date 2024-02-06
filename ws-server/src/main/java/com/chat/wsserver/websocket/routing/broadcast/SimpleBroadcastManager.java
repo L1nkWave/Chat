@@ -8,9 +8,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Set;
+
+import static java.lang.String.format;
 
 @Slf4j
 @Component
@@ -34,18 +37,31 @@ public class SimpleBroadcastManager implements BroadcastManager {
                 routeHandler.getName()
         );
 
-        Broadcast broadcastAnn = routeHandler.getAnnotation(Broadcast.class);
-        String sessionSetKey = resolveKey(broadcastAnn.value(), pathVariables);
+        final Broadcast broadcastAnn = routeHandler.getAnnotation(Broadcast.class);
 
-        // get all chat members' session ids
-        Set<String> members = chatRepository.getChatMembersSessions(sessionSetKey);
-        if (members == null || members.isEmpty()) {
-            log.warn("-> process(): broadcast failed");
+        // broadcast manager determines by itself if it's necessary to broadcast message
+        if (broadcastAnn == null) {
             return;
         }
 
-        // if message is not shared completely
-        if (!messageBroadcast.share(members, jsonMessage)) {
+        final String sessionSetKey = resolveKey(broadcastAnn.value(), pathVariables);
+
+        // get all chat members' session ids
+        final Set<String> members = chatRepository.getChatMembersSessions(sessionSetKey);
+        if (members == null || members.isEmpty()) {
+            log.warn("-> process(): members not found");
+            return;
+        }
+
+        boolean isSharedCompletely;
+        try {
+            isSharedCompletely = messageBroadcast.share(members, jsonMessage);
+        } catch (IOException e) {
+            log.error("-> process(): {}", e.getMessage());
+            isSharedCompletely = false;
+        }
+
+        if (!isSharedCompletely) {
             log.debug("-> process(): multi-instance broadcast is required");
 
             for (String instanceId : instances.split(separator)) {
@@ -55,18 +71,25 @@ public class SimpleBroadcastManager implements BroadcastManager {
         }
     }
 
-    private String resolveKey(String keyPattern, Map<String, String> pathVariables) {
+    @NonNull
+    private String resolveKey(@NonNull String keyPattern, @NonNull Map<String, String> pathVariables) {
 
         // parse broadcast value pattern
         String[] components = keyPattern.trim().split(KEY_SEPARATOR);
         var keyBuilder = new StringBuilder();
 
         for (String part : components) {
-            keyBuilder.append(
-                    part.startsWith("{") && part.endsWith("}") ?
-                            pathVariables.get(part.substring(1, part.length() - 1)) :
-                            part
-            ).append(":");
+            if (part.startsWith("{") && part.endsWith("}")) {
+                final String pathVarName = part.substring(1, part.length() - 1);
+                final String pathVarValue = pathVariables.get(pathVarName);
+                if (pathVarValue == null) {
+                    throw new IllegalStateException(format("Path variable \"%s\" not found", pathVarName));
+                }
+                keyBuilder.append(pathVarValue);
+            } else {
+                keyBuilder.append(part);
+            }
+            keyBuilder.append(":");
         }
 
         // remove redundant ":" at the end
