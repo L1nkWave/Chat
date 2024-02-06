@@ -26,10 +26,10 @@ public class DefaultRouteHandlerArgumentResolver implements RouteHandlerArgument
     private final ObjectMapper objectMapper;
 
     @Override
-    public List<Object> resolveParams(@NonNull Map.Entry<String, RouteComponent> matchedRoute,
-                                      @NonNull Map<String, String> pathVariables,
-                                      @NonNull RoutingMessage message,
-                                      @NonNull WebSocketSession session
+    public List<Object> resolve(@NonNull Map.Entry<String, RouteComponent> matchedRoute,
+                                @NonNull Map<String, String> pathVariables,
+                                @NonNull RoutingMessage message,
+                                @NonNull WebSocketSession session
     ) throws InvalidMessageFormatException, InvalidPathException {
 
         final Method routeHandler = matchedRoute.getValue().routeHandler();
@@ -62,12 +62,13 @@ public class DefaultRouteHandlerArgumentResolver implements RouteHandlerArgument
 
             } else if (param.isAnnotationPresent(PathVariable.class)) {
 
-                final String varName = param.getAnnotation(PathVariable.class).value();
-                final String varValue = pathVariables.get(varName.isEmpty() ? param.getName() : varName);
+                String varName = param.getAnnotation(PathVariable.class).value();
+                varName = varName.isBlank() ? param.getName() : varName;
+                final String varValue = pathVariables.get(varName);
 
                 if (varValue == null) {
                     throw new RoutingException(
-                            format("\n\tNot found path variable with name \"%s\" in route:\t%s\n",
+                            format("\n\tNot found path variable with name \"%s\" in route[%s]",
                                     varName, matchedRoute.getKey()
                             )
                     );
@@ -79,8 +80,12 @@ public class DefaultRouteHandlerArgumentResolver implements RouteHandlerArgument
                         requiredArgument = Integer.parseInt(varValue);
                     } else if (paramType.equals(long.class)) {
                         requiredArgument = Long.parseLong(varValue);
-                    } else {
+                    } else if (paramType.equals(String.class)){
                         requiredArgument = varValue;
+                    } else {
+                        throw new RoutingException(
+                                format("\n\tType \"%s\" is not supported for path variables", paramType.getName())
+                        );
                     }
                 } catch (NumberFormatException e) {
                     throw new InvalidPathException(format("Path variable \"%s\" incorrect type", varName));

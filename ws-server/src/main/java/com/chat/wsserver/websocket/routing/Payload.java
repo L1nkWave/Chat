@@ -8,8 +8,8 @@ import com.chat.wsserver.websocket.routing.bpp.SubRoute;
 
 /**
  * Used to indicate parameter as message payload in {@link SubRoute} (route handler).
- * Moreover, the type of parameter with this annotation is involved
- * by {@link RouteHandlerArgumentResolver} in message injection.
+ * Moreover, the annotated parameter is involved in {@link RouteHandlerArgumentResolver}
+ * in message injection.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.PARAMETER)
