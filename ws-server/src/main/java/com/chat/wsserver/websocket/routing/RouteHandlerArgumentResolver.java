@@ -28,9 +28,9 @@ public interface RouteHandlerArgumentResolver {
      * path representation or payload type, etc.
      * @throws InvalidPathException if path is unavailable to parse
      */
-    List<Object> resolveParams(@NonNull Map.Entry<String, RouteComponent> matchedRoute,
-                               @NonNull Map<String, String> pathVariables,
-                               @NonNull RoutingMessage message, @NonNull WebSocketSession session
+    List<Object> resolve(@NonNull Map.Entry<String, RouteComponent> matchedRoute,
+                         @NonNull Map<String, String> pathVariables,
+                         @NonNull RoutingMessage message, @NonNull WebSocketSession session
     ) throws InvalidMessageFormatException, InvalidPathException;
 
 }

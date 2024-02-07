@@ -10,21 +10,21 @@ import org.springframework.stereotype.Component;
 @Component
 public class TextMessageParser implements MessageParser {
 
-    private static final String PATH_KEY = "path";
-    private static final String PATH_DELIMITER = "=";
+    public static final String PATH_KEY = "path";
+    public static final String PATH_DELIMITER = "=";
 
     @Override
     public RoutingMessage parse(@NonNull String raw) throws InvalidMessageFormatException {
-        String[] lines = raw.split("\n");
 
-        if (lines.length == 0) {
-            throw new InvalidMessageFormatException("path is not defined");
+        if (raw.isBlank()) {
+            throw new InvalidMessageFormatException("Message is undefined");
         }
 
-        String[] pathLine = lines[0].split(PATH_DELIMITER);
+        final String[] lines = raw.split("\n");
+        final String[] pathLine = lines[0].split(PATH_DELIMITER);
 
-        if (pathLine.length < 2 || !pathLine[0].equals(PATH_KEY) || pathLine[1].isBlank()) {
-            throw new InvalidMessageFormatException("message is unavailable to route");
+        if (pathLine.length != 2 || !pathLine[0].equals(PATH_KEY) || pathLine[1].isBlank()) {
+            throw new InvalidMessageFormatException("Message is unavailable to route");
         }
 
         final String path = pathLine[1].trim();
