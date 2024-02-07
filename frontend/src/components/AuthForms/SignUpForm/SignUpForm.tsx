@@ -3,17 +3,22 @@
 import { useFormik } from "formik";
 import { useRouter } from "next/navigation";
 import React from "react";
+import { toast } from "react-toastify";
 
 import { signUp } from "@/api/auth/auth";
 import { AuthForm } from "@/components/AuthForm/AuthForm";
 import {
   fullNameInput,
+  messages,
   passwordInput,
   signUpForm,
   signUpValidationSchema,
   usernameInput,
 } from "@/components/AuthForms/authForms.config";
-import { handleUsernameBlur } from "@/components/AuthForms/authForms.utils";
+import {
+  axiosErrorHandler,
+  handleUsernameBlur,
+} from "@/components/AuthForms/authForms.utils";
 import { CustomInput } from "@/components/CustomInput/CustomInput";
 
 export function SignUpForm() {
@@ -29,8 +34,10 @@ export function SignUpForm() {
       try {
         await signUp(values.fullName, values.username, values.password);
         router.push("/sign-in");
+        toast.dismiss();
+        toast.success(messages.SIGN_UP_SUCCESS_MESSAGE);
       } catch (error) {
-        console.log(error);
+        axiosErrorHandler(error);
       }
     },
   });

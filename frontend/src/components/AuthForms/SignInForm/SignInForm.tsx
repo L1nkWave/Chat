@@ -3,6 +3,7 @@
 import { useFormik } from "formik";
 import { useRouter } from "next/navigation";
 import React from "react";
+import { toast } from "react-toastify";
 
 import { signIn } from "@/api/auth/auth";
 import { AuthForm } from "@/components/AuthForm/AuthForm";
@@ -12,7 +13,10 @@ import {
   signInValidationSchema,
   usernameInput,
 } from "@/components/AuthForms/authForms.config";
-import { handleUsernameBlur } from "@/components/AuthForms/authForms.utils";
+import {
+  axiosErrorHandler,
+  handleUsernameBlur,
+} from "@/components/AuthForms/authForms.utils";
 import { CustomInput } from "@/components/CustomInput/CustomInput";
 import { setAccessToken } from "@/redux/features/authSlice";
 import { useAppDispatch } from "@/redux/hooks";
@@ -30,9 +34,10 @@ export function SignInForm() {
       try {
         const data = await signIn(values.username, values.password);
         dispatch(setAccessToken(data.accessToken));
+        toast.dismiss();
         router.push("/chat");
       } catch (error) {
-        console.log(error);
+        axiosErrorHandler(error);
       }
     },
   });

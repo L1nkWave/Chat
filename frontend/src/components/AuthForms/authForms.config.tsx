@@ -71,3 +71,8 @@ export const passwordInput = {
   label: "Password",
   icon: <LockOutlineIcon />,
 };
+
+export const messages = {
+  DEFAULT_ERROR_MESSAGE: "An error occurred. Please try again.",
+  SIGN_UP_SUCCESS_MESSAGE: "Account created successfully! You can sign in now.",
+};

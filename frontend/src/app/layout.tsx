@@ -1,9 +1,11 @@
 import "./globals.css";
+import "react-toastify/dist/ReactToastify.css";
 
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import React from "react";
 
+import { ToastManager } from "@/components/ToastManager/ToastManager";
 import StoreProvider from "@/context/StoreProvider/StoreProvider";
 import { ThemeProvider } from "@/context/ThemeProvider/ThemeProvider";
 
@@ -47,7 +49,10 @@ export default function RootLayout({
         className={`${ggSans.className} bg-white dark:bg-dark-400 h-screen`}
       >
         <StoreProvider>
-          <ThemeProvider>{children}</ThemeProvider>
+          <ThemeProvider>
+            <ToastManager />
+            {children}
+          </ThemeProvider>
         </StoreProvider>
       </body>
     </html>
