@@ -56,8 +56,8 @@
                 },
                 "example": {
                   "path": "/api/v1/auth/login",
-                  "statusCode": 400,
-                  "error": "Incorrect username or password",
+                  "status": 400,
+                  "message": "Incorrect username or password",
                   "timestamp": 1705653700.223180100
                 }
               }
@@ -95,8 +95,8 @@
                 },
                 "example": {
                   "path": "/api/v1/auth/logout",
-                  "statusCode": 400,
-                  "error": "Bearer is not present",
+                  "status": 400,
+                  "message": "Bearer is not present",
                   "timestamp": 1705653700.223180100
                 }
               }
@@ -111,8 +111,8 @@
                 },
                 "example": {
                   "path": "/api/v1/auth/logout",
-                  "statusCode": 401,
-                  "error": "Access token is unavailable",
+                  "status": 401,
+                  "message": "Access token is unavailable",
                   "timestamp": 1705653700.223180100
                 }
               }
@@ -152,8 +152,8 @@
                 },
                 "example": {
                   "path": "/api/v1/auth/refresh-tokens",
-                  "statusCode": 400,
-                  "error": "Refresh token is not present",
+                  "status": 400,
+                  "message": "Refresh token is not present",
                   "timestamp": 1705653700.223180100
                 }
               }
@@ -168,8 +168,8 @@
                 },
                 "example": {
                   "path": "/api/v1/auth/refresh-tokens",
-                  "statusCode": 401,
-                  "error": "Refresh token is unavailable",
+                  "status": 401,
+                  "message": "Refresh token is unavailable",
                   "timestamp": 1705653700.223180100
                 }
               }
@@ -184,8 +184,8 @@
                 },
                 "example": {
                   "path": "/api/v1/auth/refresh-tokens",
-                  "statusCode": 403,
-                  "error": "You do not have permissions",
+                  "status": 403,
+                  "message": "You do not have permissions",
                   "timestamp": 1705653700.223180100
                 }
               }
@@ -214,8 +214,8 @@
                 },
                 "example": {
                   "path": "/api/v1/auth/validate-token",
-                  "statusCode": 400,
-                  "error": "Bearer is not present",
+                  "status": 400,
+                  "message": "Bearer is not present",
                   "timestamp": 1705653700.223180100
                 }
               }
@@ -230,8 +230,8 @@
                 },
                 "example": {
                   "path": "/api/v1/auth/validate-token",
-                  "statusCode": 401,
-                  "error": "Invalid access token",
+                  "status": 401,
+                  "message": "Invalid access token",
                   "timestamp": 1705653700.223180100
                 }
               }
@@ -257,11 +257,11 @@
             "type": "string",
             "nullable": false
           },
-          "statusCode": {
+          "status": {
             "type": "integer",
             "nullable": false
           },
-          "error": {
+          "message": {
             "type": "string",
             "nullable": false
           },
