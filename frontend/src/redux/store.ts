@@ -1,11 +1,13 @@
 import { configureStore } from "@reduxjs/toolkit";
 
-import { authReducer } from "@/redux/features/authSlice";
+import { authReducer } from "@/redux/features/AuthSlice/authSlice";
+import { socketReducer } from "@/redux/features/SocketSlice/socketSlice";
 
 export const makeStore = () =>
   configureStore({
     reducer: {
       auth: authReducer,
+      socket: socketReducer,
     },
   });
 
