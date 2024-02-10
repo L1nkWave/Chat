@@ -1,5 +1,5 @@
-import { instance } from "@/api";
-import { AuthTypes } from "@/api/auth/auth.types";
+import { instance } from "@/api/http";
+import { AuthTypes } from "@/api/http/auth/auth.types";
 
 export async function signUp(name: string, username: string, password: string) {
   const body = {
