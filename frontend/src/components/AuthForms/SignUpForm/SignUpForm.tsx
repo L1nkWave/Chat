@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import React from "react";
 import { toast } from "react-toastify";
 
-import { signUp } from "@/api/auth/auth";
+import { signUp } from "@/api/http/auth/auth";
 import { AuthForm } from "@/components/AuthForm/AuthForm";
 import {
   fullNameInput,
