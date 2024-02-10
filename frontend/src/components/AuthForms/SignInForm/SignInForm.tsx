@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import React from "react";
 import { toast } from "react-toastify";
 
-import { signIn } from "@/api/auth/auth";
+import { signIn } from "@/api/http/auth/auth";
 import { AuthForm } from "@/components/AuthForm/AuthForm";
 import {
   passwordInput,
@@ -18,7 +18,7 @@ import {
   handleUsernameBlur,
 } from "@/components/AuthForms/authForms.utils";
 import { CustomInput } from "@/components/CustomInput/CustomInput";
-import { setAccessToken } from "@/redux/features/authSlice";
+import { setAccessToken } from "@/redux/features/AuthSlice/authSlice";
 import { useAppDispatch } from "@/redux/hooks";
 
 export function SignInForm() {
