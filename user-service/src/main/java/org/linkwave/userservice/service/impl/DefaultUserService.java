@@ -2,20 +2,24 @@ package org.linkwave.userservice.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.linkwave.userservice.dto.*;
+import org.linkwave.userservice.dto.UserDto;
+import org.linkwave.userservice.dto.UserRegisterRequest;
 import org.linkwave.userservice.entity.RoleEntity;
 import org.linkwave.userservice.entity.UserEntity;
+import org.linkwave.userservice.exception.ResourceNotFoundException;
 import org.linkwave.userservice.repository.RoleRepository;
 import org.linkwave.userservice.repository.UserRepository;
+import org.linkwave.userservice.security.DefaultUserDetails;
 import org.linkwave.userservice.service.UserService;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.util.Pair;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.File;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
@@ -31,13 +35,17 @@ public class DefaultUserService implements UserService {
     @Value("${files.avatar.path}")
     private String avatarPath;
 
-    @Value("${files.avatar.default}")
-    private String defaultAvatarName;
-
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
 
     private final PasswordEncoder passwordEncoder;
+    private final ModelMapper modelMapper;
+
+    @Override
+    public UserEntity findById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("user[%d] not found".formatted(userId)));
+    }
 
     @Transactional
     @Override
@@ -57,7 +65,6 @@ public class DefaultUserService implements UserService {
                 .username(registerRequest.getUsername())
                 .password(passwordEncoder.encode(registerRequest.getPassword()))
                 .lastSeen(Instant.EPOCH.atZone(ZoneId.systemDefault()))
-                .avatarPath(String.format("%s%s%s", avatarPath, File.separator, defaultAvatarName))
                 .roles(List.of(defaultRole))
                 .build();
 
@@ -65,19 +72,31 @@ public class DefaultUserService implements UserService {
     }
 
     @Override
-    public UserDto getPersonalInfo(Long userId) {
-        log.info("-> getPersonalInfo()");
+    public UserDto getUser(Long id) {
+        log.debug("-> getUser()");
+        return modelMapper.map(findById(id), UserDto.class);
+    }
 
-        UserEntity user = userRepository.findUserWithRoles(userId)
-                .orElseThrow(() -> new IllegalStateException("user not found"));
+    @Override
+    public Pair<Long, List<UserDto>> getUsersByUsername(@NonNull DefaultUserDetails userDetails,
+                                                        String username, int offset, int limit) {
 
-        List<String> roles = user.getRoles().stream()
-                .map(RoleEntity::getName)
-                .toList();
+        log.debug("-> getUsersByUsername(): username = {}, offset = {}, limit = {}", username, offset, limit);
 
-        return new UserDto(
-                user.getId(), user.getName(), user.getUsername(),
-                user.getCreatedAt(), user.isTheme(), roles
+        final String requestUsername = userDetails.username();
+        final List<UserEntity> selectedUsers = userRepository.getUsersByUsernameStartsWith(
+                requestUsername,
+                username,
+                offset, limit
+        );
+
+        final long totalUsersCount = userRepository.getUsersCountByUsernameStartsWith(requestUsername, username);
+
+        return Pair.of(
+                totalUsersCount,
+                selectedUsers.stream()
+                        .map(user -> modelMapper.map(user, UserDto.class))
+                        .toList()
         );
     }
 
