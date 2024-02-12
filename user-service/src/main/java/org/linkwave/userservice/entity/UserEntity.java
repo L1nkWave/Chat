@@ -1,5 +1,6 @@
 package org.linkwave.userservice.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -13,7 +14,8 @@ import java.util.List;
 @Data
 @Builder
 @EqualsAndHashCode(of = {"id", "username", "name"})
-@ToString(exclude = "roles")
+@JsonIgnoreProperties({"password", "roles", "contacts"})
+@ToString(exclude = {"password", "roles", "contacts"})
 public class UserEntity {
 
     @Id
@@ -29,7 +31,6 @@ public class UserEntity {
     @Column(nullable = false, length = 64)
     private String name;
 
-    @Column(nullable = false)
     private String avatarPath;
 
     @Column(nullable = false)
@@ -42,6 +43,11 @@ public class UserEntity {
     @Column(nullable = false)
     private boolean theme;
 
+    @Column(nullable = false)
+    private boolean isOnline;
+
+    private String bio;
+
     @ManyToMany
     @JoinTable(
             name = "user_roles",
@@ -49,5 +55,9 @@ public class UserEntity {
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     private List<RoleEntity> roles;
+
+    @OneToMany(cascade = CascadeType.PERSIST, orphanRemoval = true)
+    @JoinColumn(name = "user_id_1")
+    private List<ContactEntity> contacts;
 
 }

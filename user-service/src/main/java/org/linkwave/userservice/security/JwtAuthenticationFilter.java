@@ -28,7 +28,7 @@ import static org.springframework.http.HttpMethod.POST;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final RequestMatcher registrationRequestMatcher = new AntPathRequestMatcher("/api/v1/users/register", POST.name());
-    private final RequestMatcher requestMatcher = new AntPathRequestMatcher("/api/v1/users/**");
+    private final RequestMatcher requestMatcher = new AntPathRequestMatcher("/api/v*/users/**");
     private final AuthenticationConverter authenticationConverter;
     private final ObjectMapper objectMapper;
 

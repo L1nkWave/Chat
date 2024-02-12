@@ -3,6 +3,7 @@ package org.linkwave.userservice.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.userservice.dto.ApiError;
+import org.linkwave.userservice.exception.ResourceNotFoundException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -16,11 +17,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
-import java.time.Instant;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static java.time.Instant.now;
+import static org.springframework.http.HttpStatus.*;
 
 @Slf4j
 @RestControllerAdvice
@@ -31,7 +32,7 @@ public class RestControllerExceptionHandler extends ResponseEntityExceptionHandl
                                                                   @NonNull HttpHeaders headers,
                                                                   @NonNull HttpStatusCode status,
                                                                   @NonNull WebRequest request) {
-        log.info("-> handleMethodArgumentNotValid(...)");
+        log.debug("-> handleMethodArgumentNotValid(...)");
 
         Map<String, String> errors = ex.getBindingResult()
                 .getAllErrors()
@@ -45,11 +46,24 @@ public class RestControllerExceptionHandler extends ResponseEntityExceptionHandl
         return new ResponseEntity<>(errors, BAD_REQUEST);
     }
 
-    @ExceptionHandler({BadCredentialsException.class})
+    @ExceptionHandler(BadCredentialsException.class)
     @ResponseStatus(BAD_REQUEST)
-    public ApiError handleRuntimeExceptions(RuntimeException ex, HttpServletRequest request) {
-        log.info("-> handleRuntimeExceptions(...): path={}, msg={}", request.getRequestURI(), ex.getMessage());
-        return new ApiError(request.getRequestURI(), ex.getMessage(), BAD_REQUEST.value(), Instant.now());
+    public ApiError handleBadRequestError(RuntimeException ex, HttpServletRequest request) {
+        log.debug("-> handleRuntimeExceptions(...): path={}, msg={}", request.getRequestURI(), ex.getMessage());
+        return new ApiError(request.getRequestURI(), ex.getMessage(), BAD_REQUEST.value(), now());
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    @ResponseStatus(INTERNAL_SERVER_ERROR)
+    public ApiError handleRuntimeError(RuntimeException ex, HttpServletRequest request) {
+        log.debug("-> handleRuntimeExceptions(...): path={}, msg={}", request.getRequestURI(), ex.getMessage());
+        return new ApiError(request.getRequestURI(), ex.getMessage(), INTERNAL_SERVER_ERROR.value(), now());
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    @ResponseStatus(NOT_FOUND)
+    public ApiError handleNotFoundResource(RuntimeException ex, HttpServletRequest request) {
+        return new ApiError(request.getRequestURI(), ex.getMessage(), NOT_FOUND.value(), now());
     }
 
 }
