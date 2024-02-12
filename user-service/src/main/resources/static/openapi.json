@@ -1,0 +1,473 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "LW User Service",
+    "description": "This API exposes end-points to retrieve users data",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8082/{basePath}",
+      "variables": {
+        "basePath": {
+          "default": "api"
+        }
+      }
+    }
+  ],
+  "paths": {
+    "/v1/users/register": {
+      "post": {
+        "summary": "Create an account for a new user",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "User was successfully registered"
+          },
+          "400": {
+            "description": "Passed username is already taken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/users/register",
+                  "status": 400,
+                  "message": "username is already taken",
+                  "timestamp": 1705653700.223180100
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Passed username is already taken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/users/register",
+                  "status": 500,
+                  "message": "role_user is not found",
+                  "timestamp": 1705653700.223180100
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/{id}": {
+      "get": {
+        "summary": "Get user information by ID",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retrieved information about user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Access token is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/users/100",
+                  "message": "Access token is invalid",
+                  "status": 400,
+                  "timestamp": 1705653700.223180100
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User with specified ID does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/users/100",
+                  "status": 404,
+                  "message": "user[100] not found",
+                  "timestamp": 1705653700.223180100
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users": {
+      "get": {
+        "summary": "Retrieve a portion of users that have usernames that start with specified one",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/username"
+          },
+          {
+            "$ref": "#/components/parameters/offset"
+          },
+          {
+            "$ref": "#/components/parameters/limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A portion of selected users",
+            "headers": {
+              "X-Total-Count": {
+                "description": "Represents the number of all users whose usernames matched with specified value"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserDto"
+                  },
+                  "nullable": false
+                },
+                "example": [
+                  {
+                    "id": 2,
+                    "username": "@user2",
+                    "name": "User2",
+                    "lastSeen": 1707597104.417882000,
+                    "avatarPath": null,
+                    "bio": null,
+                    "online": false
+                  },
+                  {
+                    "id": 3,
+                    "username": "@user3",
+                    "name": "User3",
+                    "lastSeen": 1707597134.622333000,
+                    "avatarPath": null,
+                    "bio": null,
+                    "online": false
+                  },
+                  {
+                    "id": 4,
+                    "username": "@user4",
+                    "name": "User4",
+                    "lastSeen": 1707597134.622333000,
+                    "avatarPath": null,
+                    "bio": null,
+                    "online": false
+                  }
+                ]
+              }
+            }
+          },
+          "400": {
+            "description": "Access token is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/users?username=@user&offset=1&limit=3",
+                  "message": "Access token is invalid",
+                  "status": 400,
+                  "timestamp": 1705653700.223180100
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/contacts": {
+      "get": {
+        "summary": "Retrieve a portion of contacts that have usernames that start with specified one",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/username"
+          },
+          {
+            "$ref": "#/components/parameters/offset"
+          },
+          {
+            "$ref": "#/components/parameters/limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A portion of selected contacts",
+            "headers": {
+              "X-Total-Count": {
+                "description": "Represents the number of all contacts whose usernames matched with specified value"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ContactDto"
+                  },
+                  "example": [
+                    {
+                      "user": {
+                        "id": 8,
+                        "username": "user8",
+                        "name": "User",
+                        "lastSeen": 1707597134.622333000,
+                        "avatarPath": null,
+                        "bio": null,
+                        "online": false
+                      },
+                      "addedAt": 1707597185.177375000,
+                      "alias": "User"
+                    },
+                    {
+                      "user": {
+                        "id": 9,
+                        "username": "user9",
+                        "name": "User",
+                        "lastSeen": 1707597134.622333000,
+                        "avatarPath": null,
+                        "bio": null,
+                        "online": false
+                      },
+                      "addedAt": 1707597185.177375000,
+                      "alias": "User"
+                    },
+                    {
+                      "user": {
+                        "id": 10,
+                        "username": "user10",
+                        "name": "User",
+                        "lastSeen": 1707597134.622333000,
+                        "avatarPath": null,
+                        "bio": null,
+                        "online": false
+                      },
+                      "addedAt": 1707597185.177375000,
+                      "alias": "User"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Access token is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/users/contacts?username=@user&offset=1&limit=3",
+                  "message": "Access token is invalid",
+                  "status": 400,
+                  "timestamp": 1705653700.223180100
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "nullable": false
+          },
+          "status": {
+            "type": "integer",
+            "nullable": false
+          },
+          "message": {
+            "type": "string",
+            "nullable": false
+          },
+          "timestamp": {
+            "type": "number",
+            "nullable": false
+          }
+        }
+      },
+      "UserRegisterRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "nullable": false,
+            "minLength": 3,
+            "maxLength": 32
+          },
+          "password": {
+            "type": "string",
+            "nullable": false,
+            "minLength": 3,
+            "maxLength": 64
+          },
+          "name": {
+            "type": "string",
+            "nullable": false,
+            "minLength": 3,
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "username",
+          "password",
+          "name"
+        ],
+        "example": {
+          "username": "@emmtlor",
+          "password": "qwerty123",
+          "name": "Emma Taylor"
+        }
+      },
+      "UserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "nullable": false
+          },
+          "username": {
+            "type": "string",
+            "nullable": false
+          },
+          "name": {
+            "type": "string",
+            "nullable": false
+          },
+          "lastSeen": {
+            "type": "number",
+            "nullable": false
+          },
+          "online": {
+            "type": "boolean",
+            "nullable": false
+          },
+          "avatarPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "example": {
+          "id": 22,
+          "username": "@emmtlor",
+          "name": "Emma Taylor",
+          "lastSeen": 1707606183.446933000,
+          "avatarPath": null,
+          "bio": null,
+          "online": false
+        }
+      },
+      "ContactDto": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserDto"
+          },
+          "addedAt": {
+            "type": "number",
+            "nullable": false,
+            "example": 1707597134.622333000
+          },
+          "alias": {
+            "type": "string",
+            "nullable": false,
+            "example": "User"
+          }
+        }
+      }
+    },
+    "headers": {
+      "X-Total-Count": {
+        "description": "Represents the number of all items",
+        "schema": {
+          "type": "integer"
+        }
+      }
+    },
+    "parameters": {
+      "id": {
+        "in": "path",
+        "name": "id",
+        "required": true,
+        "schema": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "description": "Resource identification",
+        "example": 22
+      },
+      "username": {
+        "in": "query",
+        "name": "username",
+        "schema": {
+          "type": "string"
+        },
+        "description": "Value that is used for matching and returning records",
+        "example": "@user"
+      },
+      "offset": {
+        "in": "query",
+        "name": "offset",
+        "schema": {
+          "type": "integer"
+        },
+        "description": "The number of items to skip before starting to collect the result set",
+        "example": 1
+      },
+      "limit": {
+        "in": "query",
+        "name": "limit",
+        "schema": {
+          "type": "integer"
+        },
+        "description": "The number of items are needed to retrieve",
+        "example": 3
+      }
+    }
+  }
+}

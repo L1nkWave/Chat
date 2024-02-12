@@ -12,6 +12,7 @@ import org.linkwave.userservice.service.UserService;
 import org.linkwave.userservice.service.impl.DefaultUserService;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.modelmapper.ModelMapper;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
@@ -44,7 +45,8 @@ class UserServiceUnitTest {
 	void setUp() {
 		// prepare user service
 		var passwordEncoder = new BCryptPasswordEncoder();
-		userService = new DefaultUserService(userRepository, roleRepository, passwordEncoder);
+		var modelMapper = new ModelMapper();
+		userService = new DefaultUserService(userRepository, roleRepository, passwordEncoder, modelMapper);
 
 		// initialize fields
 		username = "zookeeper";

@@ -4,6 +4,9 @@ eureka:
     register-with-eureka: false
 
 spring:
+  application:
+    name: 'user-service-test'
+
   datasource:
     url: jdbc:h2:mem:lw-chat-test
 
@@ -25,5 +28,4 @@ spring:
 
 files:
   avatar:
-    path: 'C:\Users\Igor\Desktop\test\images'
-    default: '1.jpg'
+    path: 'static\api\v1\users\images'
