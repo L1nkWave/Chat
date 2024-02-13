@@ -8,6 +8,7 @@ import java.time.ZonedDateTime;
 @AllArgsConstructor
 @Getter
 @Setter
+@EqualsAndHashCode
 @Builder
 public class ContactDto {
     private UserDto user;

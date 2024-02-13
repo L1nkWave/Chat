@@ -42,7 +42,7 @@ public class UserController {
     public List<ContactDto> getContacts(@RequestParam String username,
                                         @RequestParam int offset, @RequestParam int limit,
                                         @NonNull HttpServletResponse response) {
-        final Pair<Integer, List<ContactDto>> result = contactService.getContactsUsername(getDetails().id(), username, offset, limit);
+        final Pair<Integer, List<ContactDto>> result = contactService.getContactsByUsername(getDetails().id(), username, offset, limit);
         response.setHeader(TOTAL_COUNT.getValue(), String.valueOf(result.getFirst()));
         return result.getSecond();
     }

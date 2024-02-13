@@ -22,7 +22,7 @@ public class ContactServiceImpl implements ContactService {
     private final ModelMapper modelMapper;
 
     @Override
-    public Pair<Integer, List<ContactDto>> getContactsUsername(Long userId, String username, int offset, int limit) {
+    public Pair<Integer, List<ContactDto>> getContactsByUsername(Long userId, String username, int offset, int limit) {
 
         log.debug("-> getContactsUsername(): username = {}, offset = {}, limit = {}", username, offset, limit);
 

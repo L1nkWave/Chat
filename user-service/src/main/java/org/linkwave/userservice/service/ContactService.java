@@ -15,6 +15,6 @@ public interface ContactService {
      * @return pair the first value of is total count of matched contacts,
      * and the second - selected contacts with offset and limit params
      */
-    Pair<Integer, List<ContactDto>> getContactsUsername(Long userId, String username, int offset, int limit);
+    Pair<Integer, List<ContactDto>> getContactsByUsername(Long userId, String username, int offset, int limit);
 
 }
