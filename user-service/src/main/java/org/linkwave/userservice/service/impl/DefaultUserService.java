@@ -57,7 +57,7 @@ public class DefaultUserService implements UserService {
             throw new BadCredentialsException("username is already taken");
         }
 
-        RoleEntity defaultRole = roleRepository.findByName(USER.getName())
+        RoleEntity defaultRole = roleRepository.findByName(USER.getValue())
                 .orElseThrow(() -> new IllegalStateException("role_user is not found"));
 
         var newUser = UserEntity.builder()

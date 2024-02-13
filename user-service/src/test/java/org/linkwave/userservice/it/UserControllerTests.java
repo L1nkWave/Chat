@@ -70,7 +70,7 @@ public class UserControllerTests {
         password = "zookeeper123";
         name = "Zookeeper";
 
-        final String userRole = Roles.USER.getName();
+        final String userRole = Roles.USER.getValue();
 
         // save user role
         roleRepository.save(RoleEntity.builder()
@@ -212,7 +212,7 @@ public class UserControllerTests {
                 .username(username)
                 .password(password)
                 .lastSeen(ZonedDateTime.now())
-                .roles(List.of(roleRepository.findByName(Roles.USER.getName()).get()))
+                .roles(List.of(roleRepository.findByName(Roles.USER.getValue()).get()))
                 .build();
 
         return userRepository.save(newUser);

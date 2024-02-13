@@ -1,9 +1,6 @@
 package org.linkwave.userservice.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.ZonedDateTime;
 
@@ -11,6 +8,8 @@ import java.time.ZonedDateTime;
 @AllArgsConstructor
 @Setter
 @Getter
+@EqualsAndHashCode
+@Builder
 public class UserDto {
 
     private Long id;

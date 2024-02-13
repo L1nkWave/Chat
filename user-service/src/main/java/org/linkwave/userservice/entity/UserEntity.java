@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -54,10 +55,12 @@ public class UserEntity {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
-    private List<RoleEntity> roles;
+    @Builder.Default
+    private List<RoleEntity> roles = new ArrayList<>();
 
     @OneToMany(cascade = CascadeType.PERSIST, orphanRemoval = true)
     @JoinColumn(name = "user_id_1")
-    private List<ContactEntity> contacts;
+    @Builder.Default
+    private List<ContactEntity> contacts = new ArrayList<>();
 
 }

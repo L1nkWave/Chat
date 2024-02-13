@@ -36,7 +36,7 @@ public class RoleEntity {
         USER("ROLE_USER"),
         ADMIN("ROLE_ADMIN");
 
-        private final String name;
+        private final String value;
 
     }
 

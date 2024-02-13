@@ -44,7 +44,7 @@ public class TokenGenerator {
                 .id(UUID.randomUUID())
                 .userId(userId)
                 .username(username)
-                .authorities(List.of(Roles.USER.getName()))
+                .authorities(List.of(Roles.USER.getValue()))
                 .createdAt(now)
                 .expireAt(expireAt)
                 .build());
