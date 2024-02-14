@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { ChatItem } from "@/components/Chat/ChatItem/ChatItem";
 
 export function ChatList() {
-  const [isMouseEntered, setIsMouseEntered] = useState(true);
+  const [isMouseEntered, setIsMouseEntered] = useState(false);
   const handleMouseEnter = () => {
     setIsMouseEntered(true);
   };
