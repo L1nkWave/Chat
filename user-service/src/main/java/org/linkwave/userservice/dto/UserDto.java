@@ -15,6 +15,7 @@ public class UserDto {
     private Long id;
     private String username;
     private String name;
+    private ZonedDateTime createdAt;
     private ZonedDateTime lastSeen;
     private boolean isOnline;
     private String avatarPath;

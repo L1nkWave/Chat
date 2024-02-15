@@ -375,6 +375,10 @@
             "type": "string",
             "nullable": false
           },
+          "createdAt": {
+            "type": "number",
+            "nullable": false
+          },
           "lastSeen": {
             "type": "number",
             "nullable": false
@@ -396,6 +400,7 @@
           "id": 22,
           "username": "@emmtlor",
           "name": "Emma Taylor",
+          "createdAt": 1707606183.446933000,
           "lastSeen": 1707606183.446933000,
           "avatarPath": null,
           "bio": null,
