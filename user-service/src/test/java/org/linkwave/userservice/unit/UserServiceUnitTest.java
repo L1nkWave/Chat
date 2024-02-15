@@ -26,12 +26,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
-import static java.lang.String.format;
 import static java.util.Optional.empty;
-import static java.util.Optional.of;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.linkwave.userservice.entity.RoleEntity.Roles.USER;
@@ -151,11 +147,15 @@ class UserServiceUnitTest {
     @Test
     @DisplayName("Should get user info by id")
     void shouldGetUserInfoById() {
+
+        final var createdAt = ZonedDateTime.now();
+
         final var existingUser = UserEntity.builder()
                 .id(1L)
                 .name(name)
                 .username(username)
                 .password(password)
+                .createdAt(createdAt)
                 .roles(List.of(USER_ROLE))
                 .bio("Test")
                 .isOnline(true)
@@ -168,6 +168,7 @@ class UserServiceUnitTest {
                 .id(1L)
                 .name(name)
                 .username(username)
+                .createdAt(createdAt)
                 .bio("Test")
                 .isOnline(true)
                 .build();

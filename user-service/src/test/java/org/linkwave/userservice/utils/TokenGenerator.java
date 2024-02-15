@@ -1,9 +1,6 @@
 package org.linkwave.userservice.utils;
 
 import lombok.experimental.UtilityClass;
-import org.linkwave.auth.security.jwt.JwtAccessSerializer;
-import org.linkwave.auth.security.jwt.Token;
-import org.linkwave.auth.security.jwt.TokenSerializer;
 import org.linkwave.userservice.entity.RoleEntity.Roles;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.ResourceLoader;
@@ -24,7 +21,7 @@ public class TokenGenerator {
     private static final String PUBLIC_KEY_PATH = CLASSPATH_URL_PREFIX + "/keys/access_private_key.pem";
     private static final String ISSUER = "LW-auth";
 
-    private static final TokenSerializer TOKEN_SERIALIZER;
+    private static final JwtAccessSerializer TOKEN_SERIALIZER;
 
     static {
         final ResourceLoader resourceLoader = new DefaultResourceLoader(TokenGenerator.class.getClassLoader());
