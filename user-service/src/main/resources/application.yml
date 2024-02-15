@@ -34,5 +34,4 @@ spring:
 
 files:
   avatar:
-    path: 'C:\Users\Igor\Desktop\images'
-    default: '1.jpg'
+    path: 'static\api\v1\users\images'

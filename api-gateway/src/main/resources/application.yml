@@ -13,6 +13,8 @@ spring:
             allowedOrigins: http://localhost
             allowedMethods: '*'
             allowedHeaders: '*'
+            exposed-headers:
+              - 'X-Total-Count'
 
 eureka:
   client:

@@ -42,7 +42,7 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(matcherRegistry -> matcherRegistry
                         .requestMatchers("/api/v1/users/register", POST.name()).permitAll()
                         .requestMatchers("/actuator/health", GET.name()).permitAll()
-                        .requestMatchers("/api/v1/users/**").hasRole("USER")
+                        .requestMatchers("/api/v*/users/**").hasRole("USER")
                         .anyRequest().authenticated())
 
                 .apply(jwtAuthConfigurer)

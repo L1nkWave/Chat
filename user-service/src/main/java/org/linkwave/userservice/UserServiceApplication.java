@@ -1,6 +1,7 @@
 package org.linkwave.userservice;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.modelmapper.ModelMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
@@ -18,6 +19,11 @@ public class UserServiceApplication {
 		final var objectMapper = new ObjectMapper();
 		objectMapper.findAndRegisterModules();
 		return objectMapper;
+	}
+
+	@Bean
+	public ModelMapper modelMapper() {
+		return new ModelMapper();
 	}
 
 }
