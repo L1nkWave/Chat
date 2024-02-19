@@ -1,0 +1,148 @@
+version: '3.9'
+services:
+  discovery-service:
+    container_name: "discovery-service"
+    build: discovery-service
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8761/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  users-db:
+    container_name: "users-db"
+    image: postgres:16.1-alpine
+    ports:
+      - "15432:5432"
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-q", "-d", "lw-users", "-U", "postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    env_file: .env
+    environment:
+      POSTGRES_DB: "lw-users"
+      POSTGRES_USER: $DB_USER
+      POSTGRES_PASSWORD: $USERS_DB_PASSWORD
+    volumes:
+      - ./user-service/src/main/resources/docker-init/users_db.sql:/docker-entrypoint-initdb.d/user_db.sql
+    restart: unless-stopped
+
+  user-service:
+    container_name: "user-service"
+    build: user-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      discovery-service:
+        condition: service_healthy
+      users-db:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8082/actuator/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    env_file: .env
+    environment:
+      SPRING_APPLICATION_JSON: '{
+        "spring.datasource.url": "$USERS_DB_URL",
+        "spring.datasource.username": "$DB_USER",
+        "spring.datasource.password": "$USERS_DB_PASSWORD",
+        "spring.jpa.properties.hibernate.show_sql": true,
+        "spring.jpa.hibernate.ddl-auto": "update",
+        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL"
+      }'
+
+  auth-service:
+    container_name: "auth-service"
+    build: auth-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      user-service:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:8081/actuator/health" ]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    env_file: .env
+    environment:
+      SPRING_APPLICATION_JSON: '{
+        "spring.datasource.url": "$USERS_DB_URL",
+        "spring.datasource.username": "$DB_USER",
+        "spring.datasource.password": "$USERS_DB_PASSWORD",
+        "spring.jpa.hibernate.ddl-auto": "update",
+        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL"
+      }'
+
+  redis-sessions:
+    container_name: "redis-sessions"
+    image: redis:7.2.4-alpine
+    ports:
+      - "16379:6379"
+    depends_on:
+      auth-service:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 10s
+      retries: 3
+    env_file: .env
+    environment:
+      REDIS_DATABASES: 1
+    restart: unless-stopped
+
+  ws-server-1:
+    container_name: "ws-server"
+    build: ws-server
+    ports:
+      - "9090:9090"
+    depends_on:
+      redis-sessions:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      SPRING_APPLICATION_JSON: '{
+        "spring.data.redis.host": "host.docker.internal",
+        "spring.data.redis.port": 16379,
+        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL"
+      }'
+
+  ws-server-2:
+    container_name: "ws-server-2"
+    build: ws-server
+    ports:
+      - "9091:9091"
+    depends_on:
+      redis-sessions:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      SPRING_APPLICATION_JSON: '{
+        "server.port": 9091,
+        "server.id": "E2",
+        "server.instances.value": "E1",
+        "spring.data.redis.host": "host.docker.internal",
+        "spring.data.redis.port": 16379,
+        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL"
+      }'
+
+  api-gateway:
+    container_name: "api-gateway"
+    build: api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      auth-service:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      SPRING_APPLICATION_JSON: '{
+        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL",
+        "spring.cloud.gateway.globalcors.cors-configurations.[/**].allowedOrigins": "$ORIGINS"
+      }'
