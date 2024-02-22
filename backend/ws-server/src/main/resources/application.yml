@@ -1,0 +1,30 @@
+server:
+  port: 9090
+  id: 'E1'
+  instances:
+    value: 'E2'
+    separator: ','
+
+spring:
+  application:
+    name: ws-server
+
+  data:
+    redis:
+      host: 'localhost'
+      port: 6379
+
+eureka:
+  client:
+    service-url:
+      defaultZone: 'http://localhost:8761/eureka/'
+
+ws:
+  session:
+    concurrent:
+      send-time-limit: 2000
+      buffer-size-limit: 10240
+
+logging:
+  level:
+    org.linkwave.ws: DEBUG
