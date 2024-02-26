@@ -18,7 +18,7 @@ export function ChatItem() {
         </div>
         <div className="flex flex-col ml-4 justify-center items-start">
           <span className="text-lg">User Name</span>
-          <p className="text-gray-300">Message can be... </p>
+          <p className="text-gray-300">Message c... </p>
         </div>
       </div>
       <div>
