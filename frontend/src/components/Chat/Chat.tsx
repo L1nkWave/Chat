@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import React, { useEffect } from "react";
 
 import { ChatList } from "@/components/Chat/ChatList/ChatList";
+import { SideBar } from "@/components/Chat/SideBar/SideBar";
 import { useAppSelector } from "@/redux/hooks";
 import { decodeToken } from "@/utils/DecodeToken/decodeToken";
 
@@ -61,11 +62,9 @@ export function Chat() {
 
   return (
     <div className="w-screen flex px-64">
-      <div className="flex flex-col w-1/8 bg-dark-250 p-6 h-screen rounded-l-2xl">
-        LW
-      </div>
+      <SideBar />
       <ChatList />
-      <div className="flex w-full bg-dark-550 p-2 h-screen items-center justify-center rounded-r-2xl">
+      <div className="flex w-full bg-dark-550 p-2 h-screen items-center justify-center rounded-r-2xl text-gray-300">
         Choose chat room to start chatting
       </div>
     </div>
