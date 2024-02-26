@@ -88,6 +88,20 @@ services:
         "eureka.client.service-url.defaultZone": "$DISCOVERY_URL"
       }'
 
+  chat-service:
+    container_name: 'chat-service'
+    build: chat-service
+    ports:
+      - "8083:8083"
+    depends_on:
+      auth-service:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      SPRING_APPLICATION_JSON: '{
+        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL"
+      }'
+
   redis-sessions:
     container_name: "redis-sessions"
     image: redis:7.2.4-alpine
