@@ -1,4 +1,4 @@
-package org.linkwave.userservice.security;
+package org.linkwave.shared.auth;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;

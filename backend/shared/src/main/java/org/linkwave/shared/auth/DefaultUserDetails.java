@@ -1,4 +1,4 @@
-package org.linkwave.userservice.security;
+package org.linkwave.shared.auth;
 
 import lombok.Builder;
 import org.springframework.lang.Nullable;
