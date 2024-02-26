@@ -5,9 +5,14 @@ import {
   ReactElement,
 } from "react";
 
-export type CustomButtonVariant = "flattened" | "primary" | "transparent";
+export type CustomButtonVariant =
+  | "square"
+  | "flattened"
+  | "primary"
+  | "transparent";
 
 export type CustomButtonProps = {
+  iconSize?: number;
   variant?: CustomButtonVariant;
   icon?: ReactElement;
 } & PropsWithChildren<
