@@ -1,0 +1,22 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: http://localhost
+            allowedMethods: '*'
+            allowedHeaders: '*'
+            exposed-headers:
+              - 'X-Total-Count'
+
+eureka:
+  client:
+    service-url:
+      defaultZone: 'http://localhost:8761/eureka/'
