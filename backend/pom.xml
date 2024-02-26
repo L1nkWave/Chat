@@ -15,6 +15,7 @@
         <module>api-gateway</module>
         <module>auth-service</module>
         <module>user-service</module>
+        <module>chat-service</module>
         <module>ws-server</module>
     </modules>
 
