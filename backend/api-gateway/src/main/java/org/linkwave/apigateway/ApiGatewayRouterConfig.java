@@ -23,6 +23,7 @@ public class ApiGatewayRouterConfig {
     public enum Service {
         AUTH_SERVICE("lb://auth-service"),
         USER_SERVICE("lb://user-service"),
+        CHAT_SERVICE("lb://chat-service"),
         WS_SERVER("lb:ws://ws-server");
 
         private final String url;
@@ -51,6 +52,10 @@ public class ApiGatewayRouterConfig {
                         .path("/api/v1/users/**")
                         .filters(f -> f.filter(authHeaderGatewayFilter))
                         .uri(USER_SERVICE.getUrl()))
+                .route(r -> r
+                        .path("/api/v1/chats/**")
+                        .filters(f -> f.filter(authHeaderGatewayFilter))
+                        .uri(CHAT_SERVICE.getUrl()))
                 .route(r -> r
                         .path("/ws-gate")
                         .filters(f -> f.filter(authParamGatewayFilter))

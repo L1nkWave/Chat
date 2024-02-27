@@ -3,7 +3,7 @@ package org.linkwave.userservice.service;
 import org.linkwave.userservice.dto.UserDto;
 import org.linkwave.userservice.dto.UserRegisterRequest;
 import org.linkwave.userservice.entity.UserEntity;
-import org.linkwave.userservice.security.DefaultUserDetails;
+import org.linkwave.shared.auth.DefaultUserDetails;
 import org.springframework.data.util.Pair;
 
 import java.util.List;

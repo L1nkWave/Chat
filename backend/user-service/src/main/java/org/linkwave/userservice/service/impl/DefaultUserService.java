@@ -9,7 +9,7 @@ import org.linkwave.userservice.entity.UserEntity;
 import org.linkwave.userservice.exception.ResourceNotFoundException;
 import org.linkwave.userservice.repository.RoleRepository;
 import org.linkwave.userservice.repository.UserRepository;
-import org.linkwave.userservice.security.DefaultUserDetails;
+import org.linkwave.shared.auth.DefaultUserDetails;
 import org.linkwave.userservice.service.UserService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
