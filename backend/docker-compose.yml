@@ -1,17 +1,11 @@
 version: '3.9'
 services:
-  parent:
-    build:
-      context: .
-      dockerfile: Dockerfile
 
   discovery-service:
     container_name: "discovery-service"
     build: discovery-service
     ports:
       - "8761:8761"
-    depends_on:
-      - parent
     healthcheck:
       test: [ "CMD", "wget", "-qO-", "http://localhost:8761/actuator/health" ]
       interval: 10s
@@ -23,8 +17,6 @@ services:
     image: postgres:16.1-alpine
     ports:
       - "15432:5432"
-    depends_on:
-      - parent
     healthcheck:
       test: [ "CMD", "pg_isready", "-q", "-d", "lw-users", "-U", "postgres" ]
       interval: 5s
