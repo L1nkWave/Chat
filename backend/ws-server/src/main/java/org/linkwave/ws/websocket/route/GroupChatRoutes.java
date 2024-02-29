@@ -26,7 +26,7 @@ public class GroupChatRoutes {
 
     @SubRoute("/{id}/send")
     @Broadcast("chat:{id}")
-    Box<OutcomeMessage> sendMessage(@PathVariable("id") long id,
+    Box<OutcomeMessage> sendMessage(@PathVariable long id,
                                     @NonNull WebSocketSession session,
                                     @Payload String message) {
 
@@ -48,7 +48,7 @@ public class GroupChatRoutes {
 
     @SubRoute("/{id}/join")
     @Broadcast("chat:{id}")
-    Box<OutcomeMessage> join(@PathVariable("id") long id, @NonNull WebSocketSession session) {
+    Box<OutcomeMessage> join(@PathVariable long id, @NonNull WebSocketSession session) {
 
         final Long userId = ((UserPrincipal) session.getPrincipal()).token().userId();
         log.info("-> join(): chatId={}, userId={}", id, userId);
@@ -69,7 +69,7 @@ public class GroupChatRoutes {
     @SneakyThrows
     @SubRoute("/{id}/leave")
     @Broadcast("chat:{id}")
-    Box<OutcomeMessage> leaveChat(@PathVariable("id") long id, @NonNull WebSocketSession session) {
+    Box<OutcomeMessage> leaveChat(@PathVariable long id, @NonNull WebSocketSession session) {
 
         final Long userId = ((UserPrincipal) session.getPrincipal()).token().userId();
         log.info("-> leaveChat(): chatId={}, userId={}", id, userId);
@@ -88,8 +88,8 @@ public class GroupChatRoutes {
     }
 
     @SubRoute("/{id}/message/{messageId}")
-    void updateMessage(@PathVariable("id") long id,
-                       @PathVariable("messageId") long messageId,
+    void updateMessage(@PathVariable long id,
+                       @PathVariable long messageId,
                        @NonNull WebSocketSession session) {
 
         log.info("-> updateMessage(): id={}, messageId={}", id, messageId);
