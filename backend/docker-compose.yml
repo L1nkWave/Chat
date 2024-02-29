@@ -1,17 +1,11 @@
 version: '3.9'
 services:
-  parent:
-    build:
-      context: .
-      dockerfile: Dockerfile
 
   discovery-service:
     container_name: "discovery-service"
     build: discovery-service
     ports:
       - "8761:8761"
-    depends_on:
-      - parent
     healthcheck:
       test: [ "CMD", "wget", "-qO-", "http://localhost:8761/actuator/health" ]
       interval: 10s
@@ -23,8 +17,6 @@ services:
     image: postgres:16.1-alpine
     ports:
       - "15432:5432"
-    depends_on:
-      - parent
     healthcheck:
       test: [ "CMD", "pg_isready", "-q", "-d", "lw-users", "-U", "postgres" ]
       interval: 5s
@@ -85,6 +77,20 @@ services:
         "spring.datasource.username": "$DB_USER",
         "spring.datasource.password": "$USERS_DB_PASSWORD",
         "spring.jpa.hibernate.ddl-auto": "update",
+        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL"
+      }'
+
+  chat-service:
+    container_name: 'chat-service'
+    build: chat-service
+    ports:
+      - "8083:8083"
+    depends_on:
+      auth-service:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      SPRING_APPLICATION_JSON: '{
         "eureka.client.service-url.defaultZone": "$DISCOVERY_URL"
       }'
 

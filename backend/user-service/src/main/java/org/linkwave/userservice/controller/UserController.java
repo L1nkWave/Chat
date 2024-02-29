@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.linkwave.userservice.dto.ContactDto;
 import org.linkwave.userservice.dto.UserDto;
 import org.linkwave.userservice.dto.UserRegisterRequest;
-import org.linkwave.userservice.security.DefaultUserDetails;
+import org.linkwave.shared.auth.DefaultUserDetails;
 import org.linkwave.userservice.service.ContactService;
 import org.linkwave.userservice.service.UserService;
 import org.springframework.data.util.Pair;
