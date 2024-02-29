@@ -63,7 +63,7 @@ public class DefaultRouteHandlerArgumentResolver implements RouteHandlerArgument
             } else if (param.isAnnotationPresent(PathVariable.class)) {
 
                 String varName = param.getAnnotation(PathVariable.class).value();
-//                varName = varName.isBlank() ? param.getName() : varName;
+                varName = varName.isBlank() ? param.getName() : varName;
                 final String varValue = pathVariables.get(varName);
 
                 if (varValue == null) {

@@ -201,7 +201,7 @@ public class WebSocketRouterBroadcastTest {
 
         @SubRoute("/{id}/send")
         @Broadcast("chat:{id}")
-        Box<OutcomeMessage> sendMessage(@PathVariable("id") long id,
+        Box<OutcomeMessage> sendMessage(@PathVariable long id,
                                         @NonNull WebSocketSession session,
                                         @Payload String message) {
             final var principal = (UserPrincipal) session.getPrincipal();

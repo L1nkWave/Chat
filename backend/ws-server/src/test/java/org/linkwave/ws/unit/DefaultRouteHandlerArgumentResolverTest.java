@@ -161,23 +161,23 @@ public class DefaultRouteHandlerArgumentResolverTest {
         }
 
         @SubRoute("/chat/{id}/send")
-        void send(WebSocketSession session, @Payload String message, @PathVariable("id") long id, int abc) {
+        void send(WebSocketSession session, @Payload String message, @PathVariable long id, int abc) {
         }
 
         @SubRoute("/chat/{id}/send")
-        void send2(@Payload int message, @PathVariable("id") long id) {
+        void send2(@Payload int message, @PathVariable long id) {
         }
 
         @SubRoute("/chat/{ID}/send")
-        void send(@PathVariable("id") long id) {
+        void send(@PathVariable long id) {
         }
 
         @SubRoute("/chat/{objId}/send")
-        void send(@PathVariable("objId") Object objId) {
+        void send(@PathVariable Object objId) {
         }
 
         @SubRoute("/chat/{intId}/send/{stringId}")
-        void send(@PathVariable("intId") int intId, @PathVariable("stringId") String stringId) {
+        void send(@PathVariable int intId, @PathVariable String stringId) {
         }
 
     }
