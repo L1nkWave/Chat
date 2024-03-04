@@ -4,7 +4,6 @@ import org.linkwave.userservice.entity.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,8 +23,8 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
                     """,
             nativeQuery = true
     )
-    long getUsersCountByUsernameStartsWith(@Param("requestUsername") String requestUsername,
-                                           @Param("username") String username);
+    long getUsersCountByUsernameStartsWith(String requestUsername,
+                                           String username);
 
     @Query(
             value = """
@@ -37,13 +36,13 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
                     """,
             nativeQuery = true
     )
-    List<UserEntity> getUsersByUsernameStartsWith(@Param("requestUsername") String requestUsername,
-                                                  @Param("username") String username,
-                                                  @Param("offset") int offset,
-                                                  @Param("limit") int limit);
+    List<UserEntity> getUsersByUsernameStartsWith(String requestUsername,
+                                                  String username,
+                                                  int offset,
+                                                  int limit);
 
     @Query("select u from UserEntity u join fetch u.roles where u.id = :id")
-    Optional<UserEntity> findUserWithRoles(@Param("id") Long id);
+    Optional<UserEntity> findUserWithRoles(Long id);
 
     @Transactional
     @Modifying
