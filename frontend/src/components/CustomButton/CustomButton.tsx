@@ -31,7 +31,6 @@ export const CustomButton = forwardRef(
         break;
     }
 
-    const iconSizeStyle = iconSize ? `w-[${iconSize}px]` : "w-[24px]";
     return (
       <button
         type="button"
@@ -39,7 +38,7 @@ export const CustomButton = forwardRef(
         ref={ref}
         {...props}
       >
-        {icon ? <span className={iconSizeStyle}>{icon}</span> : null}
+        {icon ? <span style={{ width: iconSize ?? 24 }}>{icon}</span> : null}
         {children ?? null}
       </button>
     );

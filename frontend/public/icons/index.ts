@@ -1,4 +1,6 @@
+export { default as ChatPlusOutlineIcon } from "./chat-plus-outline.svg";
 export { default as FormOutlineIcon } from "./form-outline.svg";
+export { default as GroupOutlineIcon } from "./group-outline.svg";
 export { default as LockOutlineIcon } from "./lock-outline.svg";
 export { default as PinOutlineIcon } from "./pin-outline.svg";
 export { default as SettingOutlineIcon } from "./setting-outline.svg";

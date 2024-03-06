@@ -6,5 +6,5 @@ export const BUTTON_VARIANT_STYLES = {
   flattened:
     "px-4 rounded-lg py-2 text-gray-100 bg-blue-100 hover:bg-blue-500 dark:bg-blue-500 dark:hover:bg-blue-100",
   square:
-    "p-4 bg-dark-300 rounded-xl hover:bg-dark-200 dark:bg-dark-150 dark:hover:bg-dark-50",
+    "p-3 bg-dark-300 rounded-xl hover:bg-dark-200 dark:bg-dark-150 dark:hover:bg-dark-50",
 };
