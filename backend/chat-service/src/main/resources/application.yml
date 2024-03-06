@@ -9,3 +9,15 @@ eureka:
 spring:
   application:
     name: 'chat-service'
+
+  data:
+    mongodb:
+      host: 'localhost'
+      port: 27017
+      database: 'linkwave'
+      replica-set-name: 'rs0'
+
+logging:
+  level:
+    org.linkwave.chatservice: DEBUG
+    org.springframework.data.mongodb.core.MongoTemplate: DEBUG
