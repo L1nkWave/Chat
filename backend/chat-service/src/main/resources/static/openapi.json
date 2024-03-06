@@ -1,0 +1,767 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "LW Chat Service",
+    "description": "This API exposes end-points for chats data management",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8083/{basePath}",
+      "variables": {
+        "basePath": {
+          "default": "api"
+        }
+      }
+    }
+  ],
+  "paths": {
+    "/v1/chats": {
+      "get": {
+        "summary": "Retrieve a portion of user chats",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/offset"
+          },
+          {
+            "$ref": "#/components/parameters/limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A portion of selected user chats",
+            "headers": {
+              "X-Total-Count": {
+                "description": "Represents the number of all user chats"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/ChatDto"
+                      },
+                      {
+                        "$ref": "#/components/schemas/GroupChatDto"
+                      }
+                    ]
+                  },
+                  "example": [
+                    {
+                      "id": "65e837055f5dba18fffd2db4",
+                      "type": "GROUP",
+                      "createdAt": 1709717253.222000000,
+                      "lastMessage": {
+                        "id": "65e837055f5dba18fffd2db3",
+                        "action": "CREATED",
+                        "createdAt": 1709717253.222000000,
+                        "authorId": 1,
+                        "readers": [],
+                        "reactions": []
+                      },
+                      "name": "Group chat :)",
+                      "avatarPath": null
+                    },
+                    {
+                      "id": "65e8366ac2232573dce8e263",
+                      "type": "DUO",
+                      "createdAt": 1709717096.333000000,
+                      "lastMessage": {
+                        "id": "65e83668c2232573dce8e262",
+                        "action": "CREATED",
+                        "createdAt": 1709717096.333000000,
+                        "authorId": 1,
+                        "readers": [],
+                        "reactions": []
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "In case when token is not present or not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/chats",
+                  "message": "Access token is invalid",
+                  "status": 400,
+                  "timestamp": 1709745915.261717800
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create duo chat",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewChatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Duo chat successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "This response indicates that chat with specified recipient was already created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/chats",
+                  "message": "chat already exists",
+                  "status": 400,
+                  "timestamp": 1709746791.324618600
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chats/group": {
+      "post": {
+        "summary": "Create group chat",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewGroupChatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The group chat was successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupChatDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chats/{id}/group": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/id"
+        }
+      ],
+      "get": {
+        "summary": "Get group chat details by ID",
+        "responses": {
+          "200": {
+            "description": "The response whose body contains details of required group chat",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupChatDetailsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chats/{id}/messages": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/id"
+        }
+      ],
+      "get": {
+        "summary": "Get all chat messages",
+        "responses": {
+          "200": {
+            "description": "Messages were successfully retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "anyOf": [
+                      {
+                        "$ref": "#/components/schemas/MessageDto"
+                      },
+                      {
+                        "$ref": "#/components/schemas/TextMessageDto"
+                      }
+                    ]
+                  },
+                  "example": [
+                    {
+                      "id": "65e8c005099364735d754ecd",
+                      "action": "MESSAGE",
+                      "createdAt": 1709752325.297000000,
+                      "authorId": 1,
+                      "readers": [],
+                      "reactions": [],
+                      "text": "hello world!",
+                      "editedAt": null,
+                      "edited": false
+                    },
+                    {
+                      "id": "65e8bd1188860555a2bbfa5f",
+                      "action": "JOIN",
+                      "createdAt": 1709751569.410000000,
+                      "authorId": 1,
+                      "readers": [],
+                      "reactions": []
+                    },
+                    {
+                      "id": "65e8b0e4404b9356a273e304",
+                      "action": "CREATED",
+                      "createdAt": 1709748452.204000000,
+                      "authorId": 1,
+                      "readers": [],
+                      "reactions": []
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Save a message that only consists of action as content",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/action"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "The simplest message was successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageCreated"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unsupported action for message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/chats/65e8b0e4404b9356a273e305/messages",
+                  "message": "simple message can only contain JOIN or LEAVE as action",
+                  "status": 400,
+                  "timestamp": 1709751789.612699500
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Only member of the chat is privileged to send messages to",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/chats/65e8b0e4404b9356a273e305/messages",
+                  "message": "do not have permissions to access the resource",
+                  "status": 403,
+                  "timestamp": 1709751789.612699500
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chats/{id}/messages/text": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/id"
+        }
+      ],
+      "post": {
+        "summary": "Save a text message to the chat",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewTextMessage"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The text message was successfully saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageCreated"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Only member of the chat is privileged to send messages to",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/chats/65e8b0e4404b9356a273e305/messages/text",
+                  "message": "do not have permissions to access the resource",
+                  "status": 403,
+                  "timestamp": 1709752263.3128679
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "nullable": false
+          },
+          "status": {
+            "type": "integer",
+            "nullable": false
+          },
+          "message": {
+            "type": "string",
+            "nullable": false
+          },
+          "timestamp": {
+            "type": "number",
+            "nullable": false
+          }
+        }
+      },
+      "ChatDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": false
+          },
+          "type": {
+            "type": "string",
+            "nullable": false,
+            "example": "DUO"
+          },
+          "createdAt": {
+            "type": "number",
+            "nullable": false
+          },
+          "lastMessage": {
+            "$ref": "#/components/schemas/MessageDto"
+          }
+        }
+      },
+      "GroupChatDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": false
+          },
+          "type": {
+            "type": "string",
+            "nullable": false,
+            "example": "GROUP"
+          },
+          "name": {
+            "type": "string",
+            "nullable": false
+          },
+          "avatarPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "number",
+            "nullable": false
+          },
+          "lastMessage": {
+            "$ref": "#/components/schemas/MessageDto"
+          }
+        },
+        "example": {
+          "id": "65e8b0e4404b9356a273e305",
+          "type": "GROUP",
+          "name": "My group chat",
+          "avatarPath": null,
+          "createdAt": 1709748452.204932100,
+          "lastMessage": {
+            "id": "65e8b0e4404b9356a273e304",
+            "action": "CREATED",
+            "createdAt": 1709748452.204932100,
+            "authorId": 1,
+            "readers": [],
+            "reactions": []
+          }
+        }
+      },
+      "GroupChatDetailsDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 256
+          },
+          "membersLimit": {
+            "type": "integer",
+            "nullable": false
+          },
+          "private": {
+            "type": "boolean",
+            "nullable": false
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatMember"
+            }
+          }
+        },
+        "example": {
+          "description": "This is a sample chat description",
+          "members": [
+            {
+              "id": 1,
+              "role": "ADMIN",
+              "joinedAt": 1709717253.222000000
+            }
+          ],
+          "membersLimit": 20,
+          "private": true
+        }
+      },
+      "NewChatRequest": {
+        "type": "object",
+        "properties": {
+          "recipient": {
+            "type": "integer",
+            "nullable": false,
+            "minimum": 1
+          }
+        },
+        "example": {
+          "recipient": 2
+        }
+      },
+      "NewGroupChatRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": false,
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 256
+          },
+          "isPrivate": {
+            "type": "boolean",
+            "nullable": false
+          }
+        },
+        "example": {
+          "name": "My group chat",
+          "description": "This is a sample chat description",
+          "isPrivate": true
+        }
+      },
+      "ChatMember": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "nullable": false
+          },
+          "role": {
+            "type": "string",
+            "nullable": false
+          },
+          "joinedAt": {
+            "type": "number",
+            "nullable": false
+          }
+        },
+        "example": {
+          "id": 1,
+          "role": "ADMIN",
+          "joinedAt": 1709748452.204932100
+        }
+      },
+      "MessageDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": false
+          },
+          "action": {
+            "type": "string",
+            "nullable": false
+          },
+          "createdAt": {
+            "type": "number",
+            "nullable": false
+          },
+          "authorId": {
+            "type": "integer",
+            "nullable": false
+          },
+          "readers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MessageReader"
+            }
+          },
+          "reactions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MessageReaction"
+            }
+          }
+        },
+        "example": {
+          "id": "65e837055f5dba18fffd2db3",
+          "action": "CREATED",
+          "createdAt": 1709717096.333000000,
+          "authorId": 1,
+          "readers": [],
+          "reactions": []
+        }
+      },
+      "TextMessageDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": false
+          },
+          "action": {
+            "type": "string",
+            "nullable": false
+          },
+          "createdAt": {
+            "type": "number",
+            "nullable": false
+          },
+          "authorId": {
+            "type": "integer",
+            "nullable": false
+          },
+          "text": {
+            "type": "string",
+            "nullable": false
+          },
+          "edited": {
+            "type": "boolean",
+            "nullable": false
+          },
+          "editedAt": {
+            "type": "number",
+            "nullable": true
+          },
+          "readers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MessageReader"
+            }
+          },
+          "reactions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MessageReaction"
+            }
+          }
+        },
+        "example": {
+          "id": "65e837055f5dba18fffd2db3",
+          "action": "MESSAGE",
+          "createdAt": 1709717096.333000000,
+          "authorId": 1,
+          "text": "hello world!",
+          "editedAt": null,
+          "edited": false,
+          "readers": [],
+          "reactions": []
+        }
+      },
+      "MessageReader": {
+        "type": "object",
+        "properties": {
+          "memberId": {
+            "type": "integer",
+            "nullable": false
+          },
+          "readAt": {
+            "type": "number",
+            "nullable": false
+          }
+        },
+        "example": {
+          "memberId": 1,
+          "readAt": 1709717096.333000000
+        }
+      },
+      "MessageReaction": {
+        "type": "object",
+        "properties": {
+          "memberId": {
+            "type": "integer",
+            "nullable": false
+          },
+          "reaction": {
+            "type": "string",
+            "nullable": false
+          },
+          "reactedAt": {
+            "type": "number",
+            "nullable": false
+          }
+        },
+        "example": {
+          "memberId": 1,
+          "reaction": ":shy:",
+          "reactedAt": 1709717096.333000000
+        }
+      },
+      "MessageCreated": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": false
+          },
+          "createdAt": {
+            "type": "number",
+            "nullable": false
+          }
+        },
+        "example": {
+          "id": "65e8bd1188860555a2bbfa5f",
+          "createdAt": 1709751569.410053400
+        }
+      },
+      "NewTextMessage": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "nullable": false,
+            "minLength": 1,
+            "maxLength": 512
+          }
+        },
+        "example": {
+          "text": "hello world!"
+        }
+      }
+    },
+    "headers": {
+      "X-Total-Count": {
+        "description": "Represents the number of all items",
+        "schema": {
+          "type": "integer"
+        }
+      }
+    },
+    "parameters": {
+      "id": {
+        "in": "path",
+        "name": "resource identification",
+        "schema": {
+          "type": "string",
+          "nullable": false
+        },
+        "example": "65e8b0e4404b9356a273e305"
+      },
+      "action": {
+        "in": "query",
+        "name": "message action",
+        "schema": {
+          "type": "string",
+          "nullable": false
+        },
+        "examples": {
+          "example1": {
+            "value": "JOIN"
+          },
+          "example2": {
+            "value": "LEAVE"
+          }
+        }
+      },
+      "offset": {
+        "in": "query",
+        "name": "offset",
+        "schema": {
+          "type": "integer"
+        },
+        "description": "The number of items to skip before starting to collect the result set",
+        "example": 1
+      },
+      "limit": {
+        "in": "query",
+        "name": "limit",
+        "schema": {
+          "type": "integer"
+        },
+        "description": "The number of items are needed to retrieve",
+        "example": 3
+      }
+    }
+  }
+}
