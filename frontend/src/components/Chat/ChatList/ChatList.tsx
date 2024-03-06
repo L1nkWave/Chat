@@ -1,3 +1,5 @@
+import "./chatList.css";
+
 import { SignOutCircleIcon } from "@public/icons";
 import React, { useState } from "react";
 
@@ -15,7 +17,7 @@ export function ChatList() {
   return (
     <div className="h-screen flex flex-col w-[55%]">
       <div
-        className={`flex flex-col outline-none bg-dark-500 pl-8 pr-6 py-8 gap-2 overflow-y-scroll scrollbar-thin scrollbar-thumb-rounded-full scrollbar-track-rounded-full ${isMouseEntered ? "scrollbar-thumb-blue-700 scrollbar-track-dark-50/20" : ""}`}
+        className={`flex flex-col outline-none bg-dark-500 pl-8 pr-6 py-8 gap-2 overflow-y-auto ${isMouseEntered ? "scrollbar" : "scrollbar-hidden"}`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         role="tablist"
@@ -32,7 +34,8 @@ export function ChatList() {
           <div className="flex flex-col gap-0">
             <p className="text-lg">Name</p>
             <div className="flex items-center text-gray-300">
-              <div className="bg-green rounded-full w-2 h-2 mr-1" /> Active
+              <div className="bg-green rounded-full w-2 h-2 mr-1" />
+              Active
             </div>
           </div>
         </div>
