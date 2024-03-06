@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-import static org.linkwave.userservice.utils.Headers.TOTAL_COUNT;
+import static org.linkwave.shared.utils.Headers.TOTAL_COUNT;
 import static org.springframework.http.HttpStatus.CREATED;
 
 @RestController
