@@ -30,14 +30,14 @@ export function ChatList() {
         <div className="flex items-center gap-2">
           <div className="w-12 h-12 bg-gray-400 rounded-full" />
           <div className="flex flex-col gap-0">
-            <p className="text-lg">Artem Magei</p>
+            <p className="text-lg">Name</p>
             <div className="flex items-center text-gray-300">
               <div className="bg-green rounded-full w-2 h-2 mr-1" /> Active
             </div>
           </div>
         </div>
         <CustomButton
-          className="p-1.5 text-blue-300 dark:bg-dark-250 w-10 h-10"
+          className="px-1 py-1 text-blue-300 dark:bg-dark-250 w-10 text-2x"
           iconSize={32}
           variant="square"
           icon={<SignOutCircleIcon />}
