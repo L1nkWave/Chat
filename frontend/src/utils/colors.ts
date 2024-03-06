@@ -36,4 +36,4 @@ export const colors = {
   black: "#000",
   white: "#fff",
   transparent: "#00000000",
-};
+} as const;

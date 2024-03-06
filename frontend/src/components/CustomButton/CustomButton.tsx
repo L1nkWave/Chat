@@ -1,34 +1,45 @@
 import React, { forwardRef, Ref } from "react";
 
-import { styles } from "@/components/CustomButton/customButton.config";
+import { BUTTON_VARIANT_STYLES } from "@/components/CustomButton/customButton.config";
 import { CustomButtonProps } from "@/components/CustomButton/customButton.types";
 
 export const CustomButton = forwardRef(
   (
-    { className, children, variant, icon, ...props }: CustomButtonProps,
+    {
+      className,
+      children,
+      variant,
+      icon,
+      iconSize,
+      ...props
+    }: CustomButtonProps,
     ref: Ref<HTMLButtonElement>
   ) => {
     let style: string;
     switch (variant) {
       case "transparent":
-        style = styles.transparent;
+        style = BUTTON_VARIANT_STYLES.transparent;
         break;
       case "flattened":
-        style = styles.flattened;
+        style = BUTTON_VARIANT_STYLES.flattened;
+        break;
+      case "square":
+        style = BUTTON_VARIANT_STYLES.square;
         break;
       default:
-        style = styles.primary;
+        style = BUTTON_VARIANT_STYLES.primary;
         break;
     }
+
     return (
       <button
         type="button"
-        className={`flex gap-2 justify-center ${style} ${className}`}
+        className={`outline-none flex gap-2 justify-center items-center ${style} ${className}`}
         ref={ref}
         {...props}
       >
-        {icon ? <span className="w-[24px]">{icon}</span> : null}
-        {children}
+        {icon ? <span style={{ width: iconSize ?? 24 }}>{icon}</span> : null}
+        {children ?? null}
       </button>
     );
   }

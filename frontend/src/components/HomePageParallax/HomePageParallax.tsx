@@ -67,7 +67,7 @@ export function HomePageParallax() {
       <div ref={parallaxRef} className="parallax">
         <ParallaxImage
           ref={elements.stroke}
-          src="/images/homePageParallax/stroke.svg"
+          src="/images/HomePageParallax/stroke.svg"
           className="stroke"
           alt="stroke"
         />
@@ -75,24 +75,24 @@ export function HomePageParallax() {
           ref={elements.frontWave}
           alt="front-wave"
           className="front-wave"
-          src="/images/homePageParallax/front-wave.svg"
+          src="/images/HomePageParallax/front-wave.svg"
         />
         <ParallaxImage
           ref={elements.middleWave}
           priority
-          src="/images/homePageParallax/middle-wave.svg"
+          src="/images/HomePageParallax/middle-wave.svg"
           className="middle-wave"
           alt="middle-wave"
         />
         <ParallaxImage
           ref={elements.backWave}
           className="back-wave"
-          src="/images/homePageParallax/back-wave.svg"
+          src="/images/HomePageParallax/back-wave.svg"
           alt="back-wave"
         />
         <ParallaxImage
           ref={elements.link}
-          src="/images/homePageParallax/link.svg"
+          src="/images/HomePageParallax/link.svg"
           className="link"
           alt="link"
         />
