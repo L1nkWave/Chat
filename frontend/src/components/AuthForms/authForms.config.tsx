@@ -1,18 +1,10 @@
-import {
-  LockOutlineIcon,
-  PinOutlineIcon,
-  UserFillIcon,
-  UserOutlineIcon,
-} from "@public/icons";
+import { LockOutlineIcon, PinOutlineIcon, UserFillIcon, UserOutlineIcon } from "@public/icons";
 import * as yup from "yup";
 
 export const commonValidationSchema = {
   username: yup
     .string()
-    .matches(
-      /^@[_\-a-z0-9]+$/,
-      "Username can contain only _, -, numbers and lowercase letters."
-    )
+    .matches(/^@[_\-a-z0-9]+$/, "Username can contain only _, -, numbers and lowercase letters.")
     .min(3, "Username must be at least 3 characters.")
     .max(32, "Username must be at most 64 characters.")
     .required("Username is required"),

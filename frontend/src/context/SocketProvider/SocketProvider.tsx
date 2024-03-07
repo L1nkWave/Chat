@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { PropsWithChildren, useEffect } from "react";
 
 import { connectToSocket, disconnectFromSocket } from "@/api/socket";
-import { setSocket } from "@/redux/features/SocketSlice/socketSlice";
+import { setSocket } from "@/redux/features/socket/socketSlice";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 export function SocketProvider({ children }: Readonly<PropsWithChildren>) {

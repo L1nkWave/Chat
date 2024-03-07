@@ -45,9 +45,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="no-scrollbar" suppressHydrationWarning>
-      <body
-        className={`${ggSans.className} bg-white h-screen dark:bg-dark-400 dark:text-white`}
-      >
+      <body className={`${ggSans.className} bg-white h-screen dark:bg-dark-400 dark:text-white`}>
         <StoreProvider>
           <ThemeProvider>
             <ToastManager />

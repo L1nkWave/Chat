@@ -12,10 +12,7 @@ export function CustomInput({
 }: Readonly<CustomInputProps>) {
   return (
     <div className={`mb-6 ${containerClassName}`}>
-      <label
-        htmlFor="custom-input"
-        className="block mb-2 text-sm font-medium text-blue-600 dark:text-blue-200"
-      >
+      <label htmlFor="custom-input" className="block mb-2 text-sm font-medium text-blue-600 dark:text-blue-200">
         {label}
         <div className="flex items-center w-full py-1 px-2 text-gray-900 border-2 border-gray-500 rounded-lg focus:border-gray-400">
           <span className="w-[32px] mr-2">{icon}</span>

@@ -6,21 +6,13 @@ import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
 import React, { useState } from "react";
 
-import {
-  DARK_THEME,
-  LIGHT_THEME,
-} from "@/components/ThemeToggle/themeToggle.config";
+import { DARK_THEME, LIGHT_THEME } from "@/components/ThemeToggle/themeToggle.config";
 
-const Expand = dynamic(
-  () => import("@theme-toggles/react").then(module => module.Expand),
-  { ssr: false }
-);
+const Expand = dynamic(() => import("@theme-toggles/react").then(module => module.Expand), { ssr: false });
 
 export function ThemeToggle() {
   const { setTheme, resolvedTheme } = useTheme();
-  const [isLightTheme, setIsLightTheme] = useState(
-    LIGHT_THEME === resolvedTheme
-  );
+  const [isLightTheme, setIsLightTheme] = useState(LIGHT_THEME === resolvedTheme);
 
   const handleToggleTheme = () => {
     setIsLightTheme(!isLightTheme);

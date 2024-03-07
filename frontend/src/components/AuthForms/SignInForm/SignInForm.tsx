@@ -13,12 +13,9 @@ import {
   signInValidationSchema,
   usernameInput,
 } from "@/components/AuthForms/authForms.config";
-import {
-  axiosErrorHandler,
-  handleUsernameBlur,
-} from "@/components/AuthForms/authForms.utils";
+import { axiosErrorHandler, handleUsernameBlur } from "@/components/AuthForms/authForms.utils";
 import { CustomInput } from "@/components/CustomInput/CustomInput";
-import { setAccessToken } from "@/redux/features/AuthSlice/authSlice";
+import { setAccessToken } from "@/redux/features/auth/authSlice";
 import { useAppDispatch } from "@/redux/hooks";
 
 export function SignInForm() {

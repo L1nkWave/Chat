@@ -4,17 +4,7 @@ import { BUTTON_VARIANT_STYLES } from "@/components/CustomButton/customButton.co
 import { CustomButtonProps } from "@/components/CustomButton/customButton.types";
 
 export const CustomButton = forwardRef(
-  (
-    {
-      className,
-      children,
-      variant,
-      icon,
-      iconSize,
-      ...props
-    }: CustomButtonProps,
-    ref: Ref<HTMLButtonElement>
-  ) => {
+  ({ className, children, variant, icon, iconSize, ...props }: CustomButtonProps, ref: Ref<HTMLButtonElement>) => {
     let style: string;
     switch (variant) {
       case "transparent":

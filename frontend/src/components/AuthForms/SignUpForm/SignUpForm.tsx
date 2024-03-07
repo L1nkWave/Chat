@@ -15,10 +15,7 @@ import {
   signUpValidationSchema,
   usernameInput,
 } from "@/components/AuthForms/authForms.config";
-import {
-  axiosErrorHandler,
-  handleUsernameBlur,
-} from "@/components/AuthForms/authForms.utils";
+import { axiosErrorHandler, handleUsernameBlur } from "@/components/AuthForms/authForms.utils";
 import { CustomInput } from "@/components/CustomInput/CustomInput";
 
 export function SignUpForm() {

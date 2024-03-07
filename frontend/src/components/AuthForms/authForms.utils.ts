@@ -2,10 +2,7 @@ import { AxiosError } from "axios";
 import { FormikValues } from "formik";
 import { toast } from "react-toastify";
 
-import {
-  messages,
-  usernameInput,
-} from "@/components/AuthForms/authForms.config";
+import { messages, usernameInput } from "@/components/AuthForms/authForms.config";
 import { formatMessage } from "@/utils/formatMessage";
 
 export const handleUsernameBlur = (formik: FormikValues) => {
@@ -17,10 +14,7 @@ export const handleUsernameBlur = (formik: FormikValues) => {
 
 export const axiosErrorHandler = (error: unknown) => {
   if (error instanceof AxiosError) {
-    toast.error(
-      formatMessage(error.response?.data.message) ??
-        messages.DEFAULT_ERROR_MESSAGE
-    );
+    toast.error(formatMessage(error.response?.data.message) ?? messages.DEFAULT_ERROR_MESSAGE);
   } else {
     toast.error(messages.DEFAULT_ERROR_MESSAGE);
   }

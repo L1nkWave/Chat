@@ -21,11 +21,7 @@ export function HomeContainer({ children }: Readonly<HomeContainerProps>) {
           end: "5000 top",
           scrub: true,
           onUpdate: self => {
-            const newColor = gsap.utils.interpolate(
-              `${colors.blue["100"]}65`,
-              colors.blue["700"],
-              self.progress
-            );
+            const newColor = gsap.utils.interpolate(`${colors.blue["100"]}65`, colors.blue["700"], self.progress);
             setBackground(newColor);
           },
         },
