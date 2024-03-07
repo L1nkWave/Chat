@@ -9,6 +9,10 @@ export const makeStore = () =>
       auth: authReducer,
       socket: socketReducer,
     },
+    middleware: getDefaultMiddleware =>
+      getDefaultMiddleware({
+        serializableCheck: false,
+      }),
   });
 
 export type AppStore = ReturnType<typeof makeStore>;
