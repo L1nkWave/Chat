@@ -15,8 +15,8 @@ import {
 } from "@/components/AuthForms/authForms.config";
 import { axiosErrorHandler, handleUsernameBlur } from "@/components/AuthForms/authForms.utils";
 import { CustomInput } from "@/components/CustomInput/CustomInput";
-import { setAccessToken } from "@/redux/features/auth/authSlice";
-import { useAppDispatch } from "@/redux/hooks";
+import { setAccessToken } from "@/lib/features/auth/authSlice";
+import { useAppDispatch } from "@/lib/hooks";
 
 export function SignInForm() {
   const router = useRouter();
