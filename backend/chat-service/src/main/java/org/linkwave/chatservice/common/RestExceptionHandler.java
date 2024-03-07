@@ -12,6 +12,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.lang.reflect.UndeclaredThrowableException;
 import java.time.Instant;
@@ -38,9 +40,12 @@ public class RestExceptionHandler {
     @ExceptionHandler({
             BadCredentialsException.class,
             ApiResponseClientErrorException.class,
-            UnacceptableRequestDataException.class
+            UnacceptableRequestDataException.class,
+            IllegalArgumentException.class,
+            MultipartException.class,
+            MissingServletRequestPartException.class
     })
-    public ApiError handleBadRequest(@NonNull RuntimeException e, @NonNull HttpServletRequest request) {
+    public ApiError handleBadRequest(@NonNull Exception e, @NonNull HttpServletRequest request) {
         e = revealCauseIfNeed(e);
         return ApiError.builder()
                 .message(e.getMessage())
@@ -51,7 +56,7 @@ public class RestExceptionHandler {
     }
 
     @ResponseStatus(NOT_FOUND)
-    @ExceptionHandler(ChatNotFoundException.class)
+    @ExceptionHandler({ChatNotFoundException.class, ResourceNotFoundException.class})
     public ApiError handleNotFoundResourceError(@NonNull RuntimeException e, @NonNull HttpServletRequest request) {
         return ApiError.builder()
                 .message(e.getMessage())
@@ -74,7 +79,7 @@ public class RestExceptionHandler {
 
     @ResponseStatus(INTERNAL_SERVER_ERROR)
     @ExceptionHandler(ServiceErrorException.class)
-    public ApiError handleServerError(@NonNull RuntimeException e, @NonNull HttpServletRequest request) {
+    public ApiError handleServerError(@NonNull Exception e, @NonNull HttpServletRequest request) {
         e = revealCauseIfNeed(e);
         return ApiError.builder()
                 .message(e.getMessage())
@@ -84,7 +89,7 @@ public class RestExceptionHandler {
                 .build();
     }
 
-    private RuntimeException revealCauseIfNeed(RuntimeException e) {
+    private Exception revealCauseIfNeed(Exception e) {
         return e instanceof UndeclaredThrowableException
                 ? (RuntimeException) e.getCause()
                 : e;
