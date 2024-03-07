@@ -1,6 +1,7 @@
 package org.linkwave.chatservice.chat;
 
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import org.linkwave.chatservice.api.users.UserServiceClient;
 import org.linkwave.chatservice.chat.duo.Chat;
 import org.linkwave.chatservice.chat.duo.ChatDto;
@@ -11,8 +12,10 @@ import org.linkwave.chatservice.chat.group.GroupChatDto;
 import org.linkwave.chatservice.chat.group.NewGroupChatRequest;
 import org.linkwave.chatservice.common.PrivacyViolationException;
 import org.linkwave.chatservice.common.RequestInitiator;
+import org.linkwave.chatservice.common.ResourceNotFoundException;
 import org.linkwave.chatservice.message.Message;
 import org.linkwave.chatservice.message.MessageService;
+import org.linkwave.shared.storage.StorageService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -21,7 +24,9 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 
@@ -32,9 +37,12 @@ import static org.linkwave.chatservice.message.Action.CREATED;
 @RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
 
+    public static final Path CHAT_AVATAR_PATH = Path.of("api", "chats");
+
     private final UserServiceClient userServiceClient;
     private final ChatRepository<Chat> chatRepository;
     private final ModelMapper modelMapper;
+    private final StorageService storageService;
 
     private MessageService messageService;
 
@@ -51,7 +59,7 @@ public class ChatServiceImpl implements ChatService {
 
         // forbid creating chat with yourself
         if (initiator.userId().equals(recipientId)) {
-            throw new BadCredentialsException("invalid recipient id");
+            throw new BadCredentialsException("Invalid recipient id");
         }
 
         // check recipient existence
@@ -60,7 +68,7 @@ public class ChatServiceImpl implements ChatService {
         // check if chat already exists
         final var chat = chatRepository.findChatWithPair(initiator.userId(), recipientId);
         if (chat.isPresent()) {
-            throw new BadCredentialsException("chat already exists");
+            throw new BadCredentialsException("Chat already exists");
         }
 
         final var now = Instant.now();
@@ -163,6 +171,35 @@ public class ChatServiceImpl implements ChatService {
             throw new PrivacyViolationException();
         }
         return modelMapper.map(chat, GroupChatDetailsDto.class);
+    }
+
+    @Transactional
+    @SneakyThrows
+    @Override
+    public void changeGroupChatAvatar(String chatId, @NonNull MultipartFile avatar) {
+        final GroupChat chat = findGroupChat(chatId);
+        final String filename = storageService.storePicture(CHAT_AVATAR_PATH, chatId, avatar);
+        chat.setAvatarPath(filename); // save avatar path
+        updateChat(chat);
+    }
+
+    @SneakyThrows
+    @Override
+    public byte[] getGroupChatAvatar(String chatId) {
+        final GroupChat groupChat = findGroupChat(chatId);
+        if (groupChat.getAvatarPath() == null) {
+            throw new ResourceNotFoundException();
+        }
+        final Path avatarPath = Path.of(CHAT_AVATAR_PATH.toString(), chatId, groupChat.getAvatarPath());
+        return storageService.readFileAsBytes(avatarPath);
+    }
+
+    @Transactional
+    @Override
+    public void deleteGroupChatAvatar(String chatId) {
+        final GroupChat chat = findGroupChat(chatId);
+        chat.setAvatarPath(null);
+        updateChat(chat);
     }
 
 }

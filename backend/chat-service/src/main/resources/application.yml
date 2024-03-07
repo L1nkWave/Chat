@@ -10,12 +10,20 @@ spring:
   application:
     name: 'chat-service'
 
+  servlet:
+    multipart:
+      max-file-size: 32MB
+      max-request-size: 32MB
+
   data:
     mongodb:
       host: 'localhost'
       port: 27017
       database: 'linkwave'
       replica-set-name: 'rs0'
+
+files:
+  storage-folder: 'D:\Files\storage'
 
 logging:
   level:
