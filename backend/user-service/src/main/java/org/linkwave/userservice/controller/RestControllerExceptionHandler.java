@@ -3,6 +3,7 @@ package org.linkwave.userservice.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.shared.dto.ApiError;
+import org.linkwave.userservice.exception.LimitExceededException;
 import org.linkwave.userservice.exception.ResourceNotFoundException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
@@ -46,7 +47,7 @@ public class RestControllerExceptionHandler extends ResponseEntityExceptionHandl
         return new ResponseEntity<>(errors, BAD_REQUEST);
     }
 
-    @ExceptionHandler(BadCredentialsException.class)
+    @ExceptionHandler({BadCredentialsException.class, LimitExceededException.class})
     @ResponseStatus(BAD_REQUEST)
     public ApiError handleBadRequestError(RuntimeException ex, HttpServletRequest request) {
         log.debug("-> handleRuntimeExceptions(...): path={}, msg={}", request.getRequestURI(), ex.getMessage());
