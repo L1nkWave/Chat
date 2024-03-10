@@ -48,37 +48,7 @@
                         "$ref": "#/components/schemas/GroupChatDto"
                       }
                     ]
-                  },
-                  "example": [
-                    {
-                      "id": "65e837055f5dba18fffd2db4",
-                      "type": "GROUP",
-                      "createdAt": 1709717253.222000000,
-                      "lastMessage": {
-                        "id": "65e837055f5dba18fffd2db3",
-                        "action": "CREATED",
-                        "createdAt": 1709717253.222000000,
-                        "authorId": 1,
-                        "readers": [],
-                        "reactions": []
-                      },
-                      "name": "Group chat :)",
-                      "avatarPath": null
-                    },
-                    {
-                      "id": "65e8366ac2232573dce8e263",
-                      "type": "DUO",
-                      "createdAt": 1709717096.333000000,
-                      "lastMessage": {
-                        "id": "65e83668c2232573dce8e262",
-                        "action": "CREATED",
-                        "createdAt": 1709717096.333000000,
-                        "authorId": 1,
-                        "readers": [],
-                        "reactions": []
-                      }
-                    }
-                  ]
+                  }
                 }
               }
             }
@@ -529,6 +499,23 @@
           "lastMessage": {
             "$ref": "#/components/schemas/MessageDto"
           }
+        },
+        "example": {
+          "id": "65ed725dc636007bd4027c80",
+          "type": "DUO",
+          "createdAt": 1710060125.916620300,
+          "lastMessage": {
+            "id": "65ed725dc636007bd4027c7f",
+            "action": "CREATED",
+            "createdAt": 1710060125.916620300,
+            "author": {
+              "id": 1,
+              "username": null,
+              "name": null
+            },
+            "readers": [],
+            "reactions": []
+          }
         }
       },
       "GroupChatDto": {
@@ -569,7 +556,11 @@
             "id": "65e8b0e4404b9356a273e304",
             "action": "CREATED",
             "createdAt": 1709748452.204932100,
-            "authorId": 1,
+            "author": {
+              "id": 1,
+              "username": null,
+              "name": null
+            },
             "readers": [],
             "reactions": []
           }
@@ -594,7 +585,7 @@
           "members": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ChatMember"
+              "$ref": "#/components/schemas/ChatMemberDto"
             }
           }
         },
@@ -604,7 +595,13 @@
             {
               "id": 1,
               "role": "ADMIN",
-              "joinedAt": 1709717253.222000000
+              "joinedAt": 1709717253.222000000,
+              "details": {
+                "username": "mathew",
+                "name": "Matthew McConaughey",
+                "avatarPath": null,
+                "online": false
+              }
             }
           ],
           "membersLimit": 20,
@@ -649,7 +646,7 @@
           "isPrivate": true
         }
       },
-      "ChatMember": {
+      "ChatMemberDto": {
         "type": "object",
         "properties": {
           "id": {
@@ -663,12 +660,42 @@
           "joinedAt": {
             "type": "number",
             "nullable": false
+          },
+          "details": {
+            "$ref": "#/components/schemas/ChatMemberDetailsDto"
           }
         },
         "example": {
           "id": 1,
           "role": "ADMIN",
           "joinedAt": 1709748452.204932100
+        }
+      },
+      "ChatMemberDetailsDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "nullable": false
+          },
+          "name": {
+            "type": "string",
+            "nullable": false
+          },
+          "avatarPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "online": {
+            "type": "boolean",
+            "nullable": false
+          }
+        },
+        "example": {
+          "username": "mathew",
+          "name": "Matthew McConaughey",
+          "avatarPath": null,
+          "online": false
         }
       },
       "MessageDto": {
@@ -686,9 +713,8 @@
             "type": "number",
             "nullable": false
           },
-          "authorId": {
-            "type": "integer",
-            "nullable": false
+          "author": {
+            "$ref": "#/components/schemas/MessageAuthorDto"
           },
           "readers": {
             "type": "array",
@@ -707,7 +733,11 @@
           "id": "65e837055f5dba18fffd2db3",
           "action": "CREATED",
           "createdAt": 1709717096.333000000,
-          "authorId": 1,
+          "author": {
+            "id": 1,
+            "username": "mathew",
+            "name": "Matthew McConaughey"
+          },
           "readers": [],
           "reactions": []
         }
@@ -766,6 +796,28 @@
           "edited": false,
           "readers": [],
           "reactions": []
+        }
+      },
+      "MessageAuthorDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "nullable": false
+          },
+          "username": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "example": {
+          "id": 1,
+          "username": "mathew",
+          "name": "Matthew McConaughey"
         }
       },
       "MessageReader": {
