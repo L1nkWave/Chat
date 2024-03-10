@@ -23,7 +23,7 @@ public interface ChatService {
 
     GroupChat findGroupChat(String id);
 
-    Pair<Long, List<ChatDto>> getUserChats(Long userId, int offset, int limit);
+    Pair<Long, List<ChatDto>> getUserChats(@NonNull RequestInitiator initiator, int offset, int limit);
 
     void updateChat(@NonNull Chat chat);
 
@@ -31,7 +31,7 @@ public interface ChatService {
 
     boolean isMember(Long userId, @NonNull Chat chat);
 
-    GroupChatDetailsDto getGroupChatDetails(Long userId, String chatId);
+    GroupChatDetailsDto getGroupChatDetails(@NonNull RequestInitiator initiator, String chatId);
 
     void changeGroupChatAvatar(String chatId, @NonNull MultipartFile avatar);
 

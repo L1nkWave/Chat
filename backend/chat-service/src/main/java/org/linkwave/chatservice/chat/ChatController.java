@@ -35,11 +35,15 @@ public class ChatController {
 
     @GetMapping
     public List<ChatDto> getUserChats(@RequestParam int offset, @RequestParam int limit,
+                                      @NonNull HttpServletRequest request,
                                       @NonNull HttpServletResponse response) {
 
         log.debug("-> getUserChats(): offset = {}, limit={}", offset, limit);
 
-        final Pair<Long, List<ChatDto>> userChats = chatService.getUserChats(userDetails().id(), offset, limit);
+        final Pair<Long, List<ChatDto>> userChats = chatService.getUserChats(
+                requestInitiator(request),
+                offset, limit
+        );
         response.addHeader(TOTAL_COUNT.getValue(), String.valueOf(userChats.getFirst()));
         return userChats.getSecond();
     }
@@ -58,8 +62,9 @@ public class ChatController {
     }
 
     @GetMapping("/{id}/group")
-    public GroupChatDetailsDto getGroupChat(@PathVariable String id) {
-        return chatService.getGroupChatDetails(userDetails().id(), id);
+    public GroupChatDetailsDto getGroupChat(@PathVariable String id,
+                                            @NonNull HttpServletRequest request) {
+        return chatService.getGroupChatDetails(requestInitiator(request), id);
     }
 
     @PostMapping("/{id}/group/avatar")
