@@ -15,20 +15,20 @@ public class ListUtils {
             throw new IllegalArgumentException("Parameter \"chunkSize\" can't be less than 1");
         }
 
-        int offset = 0, requests = 0;
+        int offset = 0, iterations = 0;
 
         while (offset + chunkSize <= sourceList.size()) {
             action.accept(sourceList.subList(offset, offset + chunkSize));
             offset += chunkSize;
-            requests++;
+            iterations++;
         }
 
         if (offset != sourceList.size()) {
             action.accept(sourceList.subList(offset, sourceList.size()));
-            requests++;
+            iterations++;
         }
 
-        return requests;
+        return iterations;
     }
 
 }
