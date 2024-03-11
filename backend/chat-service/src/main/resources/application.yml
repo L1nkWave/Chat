@@ -17,8 +17,6 @@ spring:
 
   data:
     mongodb:
-      host: 'localhost'
-      port: 27017
       database: 'linkwave'
       replica-set-name: 'rs0'
 
