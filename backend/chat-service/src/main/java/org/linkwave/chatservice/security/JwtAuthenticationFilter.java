@@ -36,6 +36,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     @NonNull FilterChain filterChain) throws IOException, ServletException {
 
         if (!requestMatcher.matches(request)) {
+            filterChain.doFilter(request, response);
             return;
         }
 

@@ -100,4 +100,11 @@ public class DefaultUserService implements UserService {
         );
     }
 
+    public List<UserDto> getUsers(@NonNull List<Long> usersIds) {
+        return userRepository.findAllById(usersIds)
+                .stream()
+                .map(user -> modelMapper.map(user, UserDto.class))
+                .toList();
+    }
+
 }

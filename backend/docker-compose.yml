@@ -80,18 +80,37 @@ services:
         "eureka.client.service-url.defaultZone": "$DISCOVERY_URL"
       }'
 
+  chat-db:
+    container_name: 'chat-db'
+    image: mongo:7.0
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
+    ports:
+      - "27017:27017"
+    depends_on:
+      auth-service:
+        condition: service_healthy
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --port 27017 --quiet
+      interval: 5s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - ./chat-service/src/main/resources/docker-init/mongo_rs_init.js:/docker-entrypoint-initdb.d/mongo_rs_init.js
+
   chat-service:
     container_name: 'chat-service'
     build: chat-service
     ports:
       - "8083:8083"
     depends_on:
-      auth-service:
+      chat-db:
         condition: service_healthy
     env_file: .env
     environment:
       SPRING_APPLICATION_JSON: '{
-        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL"
+        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL",
+        "files.storage-folder": "/media",
+        "spring.data.mongodb.uri": "$CHAT_DB_URL"
       }'
 
   redis-sessions:

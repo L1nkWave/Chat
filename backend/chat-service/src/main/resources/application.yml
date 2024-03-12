@@ -9,3 +9,21 @@ eureka:
 spring:
   application:
     name: 'chat-service'
+
+  servlet:
+    multipart:
+      max-file-size: 32MB
+      max-request-size: 32MB
+
+  data:
+    mongodb:
+      database: 'linkwave'
+      replica-set-name: 'rs0'
+
+files:
+  storage-folder: 'D:\Files\storage'
+
+logging:
+  level:
+    org.linkwave.chatservice: DEBUG
+    org.springframework.data.mongodb.core.MongoTemplate: DEBUG
