@@ -11,12 +11,6 @@ name: Java CI with Maven
 on:
   pull_request:
     branches: [ "main", "dev" ]
-  workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Branch to run tests on'
-        required: true
-        default: 'dev'
 
 jobs:
   build:
