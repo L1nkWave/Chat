@@ -6,3 +6,6 @@ eureka:
 spring:
   application:
     name: 'chat-service-test'
+
+files:
+  storage-folder: 'D:\Files\storage'
