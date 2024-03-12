@@ -3,10 +3,11 @@ package org.linkwave.userservice.controller;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.linkwave.shared.auth.DefaultUserDetails;
 import org.linkwave.userservice.dto.ContactDto;
 import org.linkwave.userservice.dto.UserDto;
 import org.linkwave.userservice.dto.UserRegisterRequest;
-import org.linkwave.shared.auth.DefaultUserDetails;
+import org.linkwave.userservice.exception.LimitExceededException;
 import org.linkwave.userservice.service.ContactService;
 import org.linkwave.userservice.service.UserService;
 import org.springframework.data.util.Pair;
@@ -16,13 +17,16 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-import static org.linkwave.userservice.utils.Headers.TOTAL_COUNT;
+import static java.lang.String.format;
+import static org.linkwave.shared.utils.Headers.TOTAL_COUNT;
 import static org.springframework.http.HttpStatus.CREATED;
 
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 public class UserController {
+
+    public static final int BATCH_SIZE_LIMIT = 100;
 
     private final UserService userService;
     private final ContactService contactService;
@@ -54,6 +58,16 @@ public class UserController {
         final Pair<Long, List<UserDto>> result = userService.getUsersByUsername(getDetails(), username, offset, limit);
         response.setHeader(TOTAL_COUNT.getValue(), String.valueOf(result.getFirst()));
         return result.getSecond();
+    }
+
+    @GetMapping("/batch")
+    public List<UserDto> getUsers(@RequestParam List<Long> usersIds) {
+        if (usersIds.size() > BATCH_SIZE_LIMIT) {
+            throw new LimitExceededException(
+                    format("Allowed to load maximum %d users per request", BATCH_SIZE_LIMIT)
+            );
+        }
+        return userService.getUsers(usersIds);
     }
 
     private DefaultUserDetails getDetails() {

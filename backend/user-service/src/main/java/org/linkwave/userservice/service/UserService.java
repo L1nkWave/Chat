@@ -5,6 +5,7 @@ import org.linkwave.userservice.dto.UserRegisterRequest;
 import org.linkwave.userservice.entity.UserEntity;
 import org.linkwave.shared.auth.DefaultUserDetails;
 import org.springframework.data.util.Pair;
+import org.springframework.lang.NonNull;
 
 import java.util.List;
 
@@ -28,4 +29,6 @@ public interface UserService {
             String username,
             int offset, int limit
     );
+
+    List<UserDto> getUsers(@NonNull List<Long> usersIds);
 }

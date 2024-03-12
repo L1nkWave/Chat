@@ -1,4 +1,4 @@
-package org.linkwave.userservice.utils;
+package org.linkwave.shared.utils;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
