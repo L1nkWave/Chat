@@ -201,10 +201,14 @@ public class ChatServiceImpl implements ChatService {
     }
 
     public boolean isMember(Long userId, @NonNull Chat chat) {
+        return findChatMember(userId, chat).isPresent();
+    }
+
+    public Optional<ChatMember> findChatMember(Long userId, @NonNull Chat chat) {
         return chat.getMembers()
                 .stream()
-                .map(ChatMember::getId)
-                .anyMatch(uId -> uId.equals(userId));
+                .filter(_chat -> _chat.getId().equals(userId))
+                .findAny();
     }
 
     public GroupChatDetailsDto getGroupChatDetails(@NonNull RequestInitiator initiator, String chatId) {
