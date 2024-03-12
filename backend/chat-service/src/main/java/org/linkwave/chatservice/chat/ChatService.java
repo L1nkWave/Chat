@@ -66,6 +66,13 @@ public interface ChatService {
     Pair<Long, List<ChatDto>> getUserChats(@NonNull RequestInitiator initiator, int offset, int limit);
 
     /**
+     * Returns ids for all chats user is involved in.
+     * @param userId any user ID
+     * @return list of chats ids
+     */
+    List<String> getUserChats(Long userId);
+
+    /**
      * Inter-service method to update attributes of the passed chat. Works for both {@link Chat} and {@link GroupChat}.
      * This can also be used for saving.
      *

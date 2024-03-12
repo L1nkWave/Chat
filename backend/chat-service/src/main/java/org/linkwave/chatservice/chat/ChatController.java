@@ -48,6 +48,11 @@ public class ChatController {
         return userChats.getSecond();
     }
 
+    @GetMapping("/ids")
+    public List<String> getUserChats() {
+        return chatService.getUserChats(userDetails().id());
+    }
+
     @PostMapping
     @ResponseStatus(CREATED)
     public ChatDto createChat(@RequestBody @Valid NewChatRequest chatRequest,

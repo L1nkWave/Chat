@@ -112,6 +112,36 @@
         }
       }
     },
+    "/v1/chats/ids": {
+      "get": {
+        "summary": "Get ids of all user chats",
+        "responses": {
+          "200": {
+            "description": "Received all chats ids that request initiator is involved in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "example": [
+                    "65e8366ac2232573dce8e263",
+                    "65e837055f5dba18fffd2db4",
+                    "65e8a9f2404b9356a273e303",
+                    "65e8b0e4404b9356a273e305",
+                    "65ea20a04926ec4620023d13",
+                    "65ecd82cf8702942acee3e0f",
+                    "65ed725dc636007bd4027c80",
+                    "65ed72c7c636007bd4027c82"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/chats/group": {
       "post": {
         "summary": "Create group chat",

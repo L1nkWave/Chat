@@ -192,6 +192,13 @@ public class ChatServiceImpl implements ChatService {
         return Pair.of(chatsTotalCount, selectedChats);
     }
 
+    public List<String> getUserChats(Long userId) {
+        return chatRepository.getUserChatsIds(userId)
+                .stream()
+                .map(Chat::getId)
+                .toList();
+    }
+
     public void updateChat(@NonNull Chat chat) {
         chatRepository.save(chat);
     }

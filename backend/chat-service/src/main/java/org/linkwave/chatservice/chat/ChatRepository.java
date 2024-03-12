@@ -59,4 +59,19 @@ public interface ChatRepository<T extends Chat> extends MongoRepository<T, Strin
 
     Optional<GroupChat> findGroupChatById(String id);
 
+    @Query(
+            value = """
+                    {
+                      'members': {
+                        $elemMatch: {
+                          _id: {
+                            $eq: ?0
+                          }
+                        }
+                      }
+                    }
+                    """,
+            fields = "{ '_id': 1 }")
+    List<Chat> getUserChatsIds(Long userId);
+
 }
