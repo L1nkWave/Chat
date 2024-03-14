@@ -1,4 +1,6 @@
-import axios, { AxiosInstance, AxiosResponse } from "axios";
+import axios, { AxiosInstance } from "axios";
+
+import { store } from "@/lib/store";
 
 const baseURL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/";
 
@@ -7,27 +9,19 @@ export const instance: AxiosInstance = axios.create({
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
+    "ngrok-skip-browser-warning": true,
   },
 });
 
-// Request interceptor
+// Request interceptor for authInstance
 instance.interceptors.request.use(
   config => {
-    return config;
-  },
-  error => {
-    return Promise.reject(error);
-  }
-);
+    const newConfig = config;
 
-// Response interceptor
-instance.interceptors.response.use(
-  (response: AxiosResponse) => {
-    // You can modify the response here (e.g., handling global errors)
-    return response;
+    newConfig.headers.Authorization = `Bearer ${store.getState().auth.accessToken}`;
+    return newConfig;
   },
   error => {
-    // You can handle errors globally here
     return Promise.reject(error);
   }
 );
