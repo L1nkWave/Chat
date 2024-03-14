@@ -2,6 +2,7 @@ import React, { forwardRef, Ref } from "react";
 
 import { BUTTON_VARIANT_STYLES } from "@/components/CustomButton/customButton.config";
 import { CustomButtonProps } from "@/components/CustomButton/customButton.types";
+import { Icon } from "@/components/Icon/Icon";
 
 export const CustomButton = forwardRef(
   ({ className, children, variant, icon, iconSize, ...props }: CustomButtonProps, ref: Ref<HTMLButtonElement>) => {
@@ -28,7 +29,7 @@ export const CustomButton = forwardRef(
         ref={ref}
         {...props}
       >
-        {icon ? <span style={{ width: iconSize ?? 24 }}>{icon}</span> : null}
+        {icon ? <Icon name={icon} iconSize={iconSize} /> : null}
         {children ?? null}
       </button>
     );

@@ -1,7 +1,9 @@
-import { DetailedHTMLProps, InputHTMLAttributes, ReactElement } from "react";
+import { DetailedHTMLProps, InputHTMLAttributes } from "react";
+
+import { IconName } from "@/components/Icon/Icon";
 
 export type CustomInputProps = {
-  icon?: ReactElement;
+  icon?: IconName;
   label?: string;
   error?: string | false;
   containerClassName?: string;
