@@ -1,7 +1,7 @@
-export type MainBoxStateParams = "chat" | "user-info" | "empty" | "settings";
-export type UserItemStateParams = "contact" | "chat";
+import { InteractiveListVariant } from "@/components/Chat/InteractiveList/interactiveList.types";
+import { MainBoxVariant } from "@/components/Chat/MainBox/mainBox.types";
 
 export type ChatStateParams = {
-  currentMainBox: MainBoxStateParams;
-  currentUserItem: UserItemStateParams;
+  currentMainBox: MainBoxVariant;
+  currentInteractiveList: InteractiveListVariant;
 };
