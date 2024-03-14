@@ -1,6 +1,8 @@
 package org.linkwave.userservice;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.linkwave.shared.storage.LocalFileStorageService;
+import org.linkwave.shared.storage.FileStorageService;
 import org.modelmapper.ModelMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -24,6 +26,11 @@ public class UserServiceApplication {
 	@Bean
 	public ModelMapper modelMapper() {
 		return new ModelMapper();
+	}
+
+	@Bean
+	public FileStorageService storageService() {
+		return new LocalFileStorageService();
 	}
 
 }
