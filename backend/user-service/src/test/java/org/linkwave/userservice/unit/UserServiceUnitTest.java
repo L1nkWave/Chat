@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.linkwave.shared.storage.LocalFileStorageService;
 import org.linkwave.userservice.dto.UserDto;
 import org.linkwave.userservice.dto.UserRegisterRequest;
 import org.linkwave.userservice.entity.RoleEntity;
@@ -61,7 +62,11 @@ class UserServiceUnitTest {
         // prepare user service
         var passwordEncoder = new BCryptPasswordEncoder();
         modelMapper = new ModelMapper();
-        userService = new DefaultUserService(userRepository, roleRepository, passwordEncoder, modelMapper);
+        userService = new DefaultUserService(
+                userRepository, roleRepository,
+                new LocalFileStorageService(),
+                passwordEncoder, modelMapper
+        );
 
         // initialize fields
         username = "zookeeper";
