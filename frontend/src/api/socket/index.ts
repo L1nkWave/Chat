@@ -1,6 +1,6 @@
 import { ChatType } from "@/api/socket/index.types";
 
-const socketUrl = process.env.NEXT_PUBLIC_WEB_SOCKET_URL ?? "ws://localhost:8080";
+const socketUrl = process.env.NEXT_PUBLIC_WEB_SOCKET_URL;
 
 export const connectToSocket = (token: string) => {
   return new WebSocket(`${socketUrl}?access=${token}`);
