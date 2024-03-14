@@ -1,0 +1,25 @@
+:root {
+    --scrollbar-thumb-color: rgba(38, 69, 101, 0.3);
+    --scrollbar-track-color: rgba(40, 44, 53, 0.2);
+}
+
+/* width */
+.scroll-list__scrollbar::-webkit-scrollbar {
+    width: 8px;
+}
+
+/* Track */
+.scroll-list__scrollbar::-webkit-scrollbar-track {
+    background: var(--scrollbar-track-color);
+    border-radius: 10px;
+}
+
+/* Handle */
+.scroll-list__scrollbar::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb-color);
+    border-radius: 10px;
+}
+
+.scroll-list__scrollbar-hidden::-webkit-scrollbar {
+    width: 8px;
+}
