@@ -203,6 +203,149 @@
         }
       }
     },
+    "/v1/users/avatar": {
+      "post": {
+        "summary": "Multipart request to upload user avatar",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "object",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User avatar was successfully changed"
+          },
+          "400": {
+            "description": "Common possible errors that may happen during avatar uploading",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "example 1": {
+                    "value": {
+                      "path": "/api/v1/users/avatar",
+                      "message": "Received file is not an image",
+                      "status": 400,
+                      "timestamp": 1709820925.785678700
+                    }
+                  },
+                  "example 2": {
+                    "value": {
+                      "path": "/api/v1/users/avatar",
+                      "message": "Only one file can be uploaded per request",
+                      "status": 400,
+                      "timestamp": 1709820925.785678700
+                    }
+                  },
+                  "example 3": {
+                    "value": {
+                      "path": "/api/v1/users/avatar",
+                      "message": "Maximum upload size exceeded",
+                      "status": 400,
+                      "timestamp": 1709820925.785678700
+                    }
+                  },
+                  "example 4": {
+                    "value": {
+                      "path": "/api/v1/users/avatar",
+                      "message": "Uploaded file can not be empty",
+                      "status": 400,
+                      "timestamp": 1709821262.760822800
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete uploaded user chat avatar",
+        "responses": {
+          "200": {
+            "description": "Uploaded avatar was successfully deleted"
+          },
+          "404": {
+            "description": "User does not have the avatar set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/users/avatar",
+                  "message": "User[1] not found",
+                  "status": 404,
+                  "timestamp": 1709820925.785678700
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/{id}/avatar": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/id"
+        }
+      ],
+      "get": {
+        "summary": "Retrieve the user avatar",
+        "responses": {
+          "200": {
+            "description": "User avatar",
+            "content": {
+              "image/png": {},
+              "image/jpeg": {},
+              "image/jpg": {},
+              "image/webp": {},
+              "image/gif": {}
+            }
+          },
+          "404": {
+            "description": "Requested avatar was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "example 1": {
+                    "value": {
+                      "path": "/api/v1/users/2/avatar",
+                      "message": "Requested resource not found",
+                      "status": 404,
+                      "timestamp": 1709825321.086538400
+                    }
+                  },
+                  "example 2": {
+                    "value": {
+                      "path": "/api/v1/users/2232/avatar",
+                      "message": "User[2232] not found",
+                      "status": 404,
+                      "timestamp": 1709825321.086538400
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/users/batch": {
       "get": {
         "summary": "Find users by provided ids array",
