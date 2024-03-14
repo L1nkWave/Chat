@@ -54,7 +54,8 @@ services:
         "spring.datasource.password": "$USERS_DB_PASSWORD",
         "spring.jpa.properties.hibernate.show_sql": true,
         "spring.jpa.hibernate.ddl-auto": "update",
-        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL"
+        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL",
+        "files.storage-folder": "/media"
       }'
 
   auth-service:
