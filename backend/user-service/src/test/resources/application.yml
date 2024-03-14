@@ -27,5 +27,4 @@ spring:
         physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
 
 files:
-  avatar:
-    path: 'static\api\v1\users\images'
+  storage-folder: 'D:\Files\storage'
