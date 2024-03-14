@@ -18,6 +18,8 @@ public interface UserService {
     UserDto getUser(Long id);
 
     /**
+     * Performs users global searching and ignores users which initiator is familiar with.
+     *
      * @param userDetails details of the user that initiated request
      * @param username    match value
      * @param offset      how many records to skip
@@ -25,7 +27,7 @@ public interface UserService {
      * @return pair the first value of is total count of matched users,
      * and the second - selected users with offset and limit params
      */
-    Pair<Long, List<UserDto>> getUsersByUsername(
+    Pair<Long, List<UserDto>> getUsersByUsernameWithoutContacts(
             DefaultUserDetails userDetails,
             String username,
             int offset, int limit
