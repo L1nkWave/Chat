@@ -1,6 +1,5 @@
 "use client";
 
-import { CurvedArrowIcon, UserPlusOutlineIcon } from "@public/icons";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/dist/ScrollTrigger";
 import Image from "next/image";
@@ -65,7 +64,7 @@ export function Header({ withoutEffects = false, logoLabel }: Readonly<HeaderPro
           <nav className="flex gap-6 items-center text-sm font-medium text-gray-800">
             <ThemeToggle />
             <CustomButton
-              icon={onSignInPage ? <UserPlusOutlineIcon /> : <CurvedArrowIcon />}
+              icon={onSignInPage ? "user-plus-outline" : "curved-arrow"}
               className="flex gap-2 text-lg"
               variant="transparent"
               onClick={handleRedirectAuth}

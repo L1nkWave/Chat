@@ -1,5 +1,6 @@
-import { LockOutlineIcon, PinOutlineIcon, UserFillIcon, UserOutlineIcon } from "@public/icons";
 import * as yup from "yup";
+
+import {FormParams, InputParams} from "@/components/Auth/auth.types";
 
 export const commonValidationSchema = {
   username: yup
@@ -28,40 +29,40 @@ export const signUpValidationSchema = yup.object({
     .required("Full name is required"),
 });
 
-export const signInForm = {
+export const signInForm: FormParams = {
   title: "Welcome back!",
   description: "Enter your email and password to sign in",
-  titleIcon: <UserFillIcon />,
+  titleIcon: "user-fill",
   buttonTitle: "Sign in",
 };
 
-export const signUpForm = {
+export const signUpForm: FormParams = {
   title: "Create an account",
   description: "Enter your details to create an account",
-  titleIcon: <UserFillIcon />,
+  titleIcon: "user-fill",
   buttonTitle: "Sign up",
 };
 
-export const fullNameInput = {
+export const fullNameInput: InputParams = {
   placeholder: "Emma Taylor",
   name: "fullName",
   label: "Full name",
-  icon: <UserOutlineIcon />,
+  icon: "user-outline",
 };
 
-export const usernameInput = {
+export const usernameInput: InputParams = {
   placeholder: "@emmtlor",
   name: "username",
   label: "Username",
-  icon: <PinOutlineIcon />,
+  icon: "pin-outline",
 };
 
-export const passwordInput = {
+export const passwordInput: InputParams = {
   placeholder: "●●●●●●●●●",
   type: "password",
   name: "password",
   label: "Password",
-  icon: <LockOutlineIcon />,
+  icon: "lock-outline",
 };
 
 export const messages = {

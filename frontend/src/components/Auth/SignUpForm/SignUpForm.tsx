@@ -5,34 +5,34 @@ import { useRouter } from "next/navigation";
 import React from "react";
 import { toast } from "react-toastify";
 
-import { signIn } from "@/api/http/auth/auth";
-import { AuthForm } from "@/components/AuthForm/AuthForm";
+import { signUp } from "@/api/http/auth/auth";
 import {
+  fullNameInput,
+  messages,
   passwordInput,
-  signInForm,
-  signInValidationSchema,
+  signUpForm,
+  signUpValidationSchema,
   usernameInput,
-} from "@/components/AuthForms/authForms.config";
-import { axiosErrorHandler, handleUsernameBlur } from "@/components/AuthForms/authForms.utils";
+} from "@/components/Auth/auth.config";
+import { axiosErrorHandler, handleUsernameBlur } from "@/components/Auth/auth.utils";
 import { CustomInput } from "@/components/CustomInput/CustomInput";
-import { setAccessToken } from "@/lib/features/auth/authSlice";
-import { useAppDispatch } from "@/lib/hooks";
+import { Form } from "@/components/Form/Form";
 
-export function SignInForm() {
+export function SignUpForm() {
   const router = useRouter();
-  const dispatch = useAppDispatch();
   const formik = useFormik({
     initialValues: {
       username: "",
+      fullName: "",
       password: "",
     },
-    validationSchema: signInValidationSchema,
+    validationSchema: signUpValidationSchema,
     onSubmit: async values => {
       try {
-        const data = await signIn(values.username, values.password);
-        dispatch(setAccessToken(data.accessToken));
+        await signUp(values.fullName, values.username, values.password);
+        router.push("/sign-in");
         toast.dismiss();
-        router.push("/chat");
+        toast.success(messages.SIGN_UP_SUCCESS_MESSAGE);
       } catch (error) {
         axiosErrorHandler(error);
       }
@@ -40,13 +40,24 @@ export function SignInForm() {
   });
 
   return (
-    <AuthForm
+    <Form
       onSubmit={formik.handleSubmit}
-      titleIcon={signInForm.titleIcon}
-      title={signInForm.title}
-      description={signInForm.description}
-      buttonTitle={signInForm.buttonTitle}
+      titleIcon={signUpForm.titleIcon}
+      title={signUpForm.title}
+      description={signUpForm.description}
+      buttonTitle={signUpForm.buttonTitle}
     >
+      <CustomInput
+        name={fullNameInput.name}
+        placeholder={fullNameInput.placeholder}
+        label={fullNameInput.label}
+        className="text-base"
+        containerClassName="w-3/5"
+        icon={fullNameInput.icon}
+        value={formik.values.fullName}
+        onChange={formik.handleChange}
+        error={formik.touched.fullName && formik.errors.fullName}
+      />
       <CustomInput
         name={usernameInput.name}
         placeholder={usernameInput.placeholder}
@@ -72,6 +83,6 @@ export function SignInForm() {
         onBlur={formik.handleBlur}
         error={formik.touched.password && formik.errors.password}
       />
-    </AuthForm>
+    </Form>
   );
 }

@@ -1,19 +1,19 @@
 import React from "react";
 
-import { AuthCard } from "@/components/AuthCard/AuthCard";
-import { AuthFormProps } from "@/components/AuthForm/authForm.types";
+import { Card } from "@/components/Card/Card";
 import { CustomButton } from "@/components/CustomButton/CustomButton";
+import { FormProps } from "@/components/Form/form.types";
 
-export function AuthForm({
+export function Form({
   children,
   titleIcon,
   title,
   description,
   buttonTitle,
   onSubmit: handleSubmit,
-}: Readonly<AuthFormProps>) {
+}: Readonly<FormProps>) {
   return (
-    <AuthCard onSubmit={handleSubmit}>
+    <Card onSubmit={handleSubmit}>
       <div className="w-[100px] rounded-full p-4 text-2xl bg-gray-100 text-dark-50 dark:text-gray-100 dark:bg-dark-150">
         {titleIcon}
       </div>
@@ -23,6 +23,6 @@ export function AuthForm({
       <CustomButton type="submit" className="mt-10 w-3/5" variant="flattened">
         {buttonTitle}
       </CustomButton>
-    </AuthCard>
+    </Card>
   );
 }

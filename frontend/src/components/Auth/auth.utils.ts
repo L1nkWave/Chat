@@ -2,7 +2,7 @@ import { AxiosError } from "axios";
 import { FormikValues } from "formik";
 import { toast } from "react-toastify";
 
-import { messages, usernameInput } from "@/components/AuthForms/authForms.config";
+import { messages, usernameInput } from "@/components/Auth/auth.config";
 import { formatMessage } from "@/utils/formatMessage";
 
 export const handleUsernameBlur = (formik: FormikValues) => {
