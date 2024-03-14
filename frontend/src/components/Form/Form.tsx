@@ -3,6 +3,7 @@ import React from "react";
 import { Card } from "@/components/Card/Card";
 import { CustomButton } from "@/components/CustomButton/CustomButton";
 import { FormProps } from "@/components/Form/form.types";
+import { Icon } from "@/components/Icon/Icon";
 
 export function Form({
   children,
@@ -15,7 +16,7 @@ export function Form({
   return (
     <Card onSubmit={handleSubmit}>
       <div className="w-[100px] rounded-full p-4 text-2xl bg-gray-100 text-dark-50 dark:text-gray-100 dark:bg-dark-150">
-        {titleIcon}
+        <Icon name={titleIcon} />
       </div>
       <h2 className="text-dark-500 text-2xl dark:text-gray-100">{title}</h2>
       <span className="text-gray-500 dark:text-gray-300">{description}</span>
