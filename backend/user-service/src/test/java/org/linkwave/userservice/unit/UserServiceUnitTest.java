@@ -161,6 +161,7 @@ class UserServiceUnitTest {
                 .isOnline(true)
                 .build();
 
+        final var lastSeen = existingUser.getLastSeen();
         final Long userId = existingUser.getId();
         USER_ROLE.getUsers().add(existingUser);
 
@@ -169,6 +170,7 @@ class UserServiceUnitTest {
                 .name(name)
                 .username(username)
                 .createdAt(createdAt)
+                .lastSeen(lastSeen)
                 .bio("Test")
                 .isOnline(true)
                 .build();

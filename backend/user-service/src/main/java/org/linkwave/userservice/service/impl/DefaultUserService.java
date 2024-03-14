@@ -2,6 +2,7 @@ package org.linkwave.userservice.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.linkwave.shared.auth.DefaultUserDetails;
 import org.linkwave.userservice.dto.UserDto;
 import org.linkwave.userservice.dto.UserRegisterRequest;
 import org.linkwave.userservice.entity.RoleEntity;
@@ -9,7 +10,6 @@ import org.linkwave.userservice.entity.UserEntity;
 import org.linkwave.userservice.exception.ResourceNotFoundException;
 import org.linkwave.userservice.repository.RoleRepository;
 import org.linkwave.userservice.repository.UserRepository;
-import org.linkwave.shared.auth.DefaultUserDetails;
 import org.linkwave.userservice.service.UserService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,8 +20,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,19 +50,18 @@ public class DefaultUserService implements UserService {
     public void register(@NonNull UserRegisterRequest registerRequest) {
         log.debug("-> register()");
 
-        Optional<UserEntity> user = userRepository.findByUsername(registerRequest.getUsername());
+        final Optional<UserEntity> user = userRepository.findByUsername(registerRequest.getUsername());
         if (user.isPresent()) {
             throw new BadCredentialsException("username is already taken");
         }
 
-        RoleEntity defaultRole = roleRepository.findByName(USER.getValue())
+        final RoleEntity defaultRole = roleRepository.findByName(USER.getValue())
                 .orElseThrow(() -> new IllegalStateException("role_user is not found"));
 
-        var newUser = UserEntity.builder()
+        final var newUser = UserEntity.builder()
                 .name(registerRequest.getName())
                 .username(registerRequest.getUsername())
                 .password(passwordEncoder.encode(registerRequest.getPassword()))
-                .lastSeen(Instant.EPOCH.atZone(ZoneId.systemDefault()))
                 .roles(List.of(defaultRole))
                 .build();
 
