@@ -212,21 +212,21 @@ class UserServiceUnitTest {
                 .map(user -> modelMapper.map(user, UserDto.class))
                 .toList();
 
-        when(userRepository.getUsersByUsernameStartsWith(userDetails.username(), searchUsername, offset, limit))
+        when(userRepository.getUsersByUsernameStartsWith(userDetails.id(), searchUsername, offset, limit))
                 .thenReturn(expectedUsers);
 
-        when(userRepository.getUsersCountByUsernameStartsWith(userDetails.username(), searchUsername))
+        when(userRepository.getUsersCountByUsernameStartsWith(userDetails.id(), searchUsername))
                 .thenReturn((long) users.size());
 
-        final Pair<Long, List<UserDto>> result = userService.getUsersByUsername(userDetails, searchUsername, offset, limit);
+        final Pair<Long, List<UserDto>> result = userService.getUsersByUsernameWithoutContacts(userDetails, searchUsername, offset, limit);
 
         assertThat(result).isNotNull();
         assertThat(result.getFirst()).isEqualTo(users.size());
         assertThat(result.getSecond()).isNotEmpty();
         assertThat(result.getSecond()).isEqualTo(expectedUsersDto);
 
-        verify(userRepository, times(1)).getUsersByUsernameStartsWith(userDetails.username(), searchUsername, offset, limit);
-        verify(userRepository, times(1)).getUsersCountByUsernameStartsWith(userDetails.username(), searchUsername);
+        verify(userRepository, times(1)).getUsersByUsernameStartsWith(userDetails.id(), searchUsername, offset, limit);
+        verify(userRepository, times(1)).getUsersCountByUsernameStartsWith(userDetails.id(), searchUsername);
     }
 
     @AfterEach

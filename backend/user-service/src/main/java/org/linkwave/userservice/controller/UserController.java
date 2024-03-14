@@ -60,7 +60,7 @@ public class UserController {
     public List<UserDto> getUsers(@RequestParam String username,
                                   @RequestParam int offset, @RequestParam int limit,
                                   @NonNull HttpServletResponse response) {
-        final Pair<Long, List<UserDto>> result = userService.getUsersByUsername(getDetails(), username, offset, limit);
+        final Pair<Long, List<UserDto>> result = userService.getUsersByUsernameWithoutContacts(getDetails(), username, offset, limit);
         response.setHeader(TOTAL_COUNT.getValue(), String.valueOf(result.getFirst()));
         return result.getSecond();
     }
