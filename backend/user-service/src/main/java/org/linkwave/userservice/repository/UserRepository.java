@@ -18,25 +18,34 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     @Query(
             value = """
                     select count(*)
-                    from users u
-                    where starts_with(u.username, :username) and u.username != :requestUsername
+                    from users
+                    where id != :requestUserId
+                        and id not in (select c.user_id_2 as cid
+                                        from users u
+                                        join contacts c on u.id = c.user_id_1
+                                        where u.id = :requestUserId)
+                        and starts_with(username, :username)
                     """,
             nativeQuery = true
     )
-    long getUsersCountByUsernameStartsWith(String requestUsername,
+    long getUsersCountByUsernameStartsWith(Long requestUserId,
                                            String username);
 
     @Query(
             value = """
-                    select u.*
-                    from users u
-                    where starts_with(u.username, :username) and u.username != :requestUsername
-                    offset :offset
-                    limit :limit
+                    select *
+                    from users
+                    where id != :requestUserId
+                        and id not in (select c.user_id_2 as cid
+                                        from users u
+                                        join contacts c on u.id = c.user_id_1
+                                        where u.id = :requestUserId)
+                        and starts_with(username, :username)
+                    offset :offset limit :limit
                     """,
             nativeQuery = true
     )
-    List<UserEntity> getUsersByUsernameStartsWith(String requestUsername,
+    List<UserEntity> getUsersByUsernameStartsWith(Long requestUserId,
                                                   String username,
                                                   int offset,
                                                   int limit);
