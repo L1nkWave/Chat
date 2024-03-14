@@ -4,12 +4,14 @@ import "./homePageParallax.css";
 
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/dist/ScrollTrigger";
+import { useRouter } from "next/navigation";
 import { MutableRefObject, useLayoutEffect, useRef } from "react";
 
 import { CustomButton } from "@/components/CustomButton/CustomButton";
 import { ParallaxImage } from "@/components/ParallaxImage/ParallaxImage";
 
 export function HomePageParallax() {
+  const router = useRouter();
   const parallaxRef = useRef(null);
   const elements = {
     stroke: useRef(null),
@@ -58,6 +60,10 @@ export function HomePageParallax() {
     elements.stroke,
   ]);
 
+  const handleJoinButtonClick = () => {
+    router.push("/sign-in");
+  };
+
   return (
     <div className="overflow-hidden">
       <div ref={parallaxRef} className="parallax">
@@ -90,7 +96,7 @@ export function HomePageParallax() {
 
         <div ref={elements.centerText} className="parallax-text gap-4 z-10">
           <h1 className="font-bold dark:text-gray-200 text-8xl">Link Wave Chat</h1>
-          <CustomButton className="opacity-0" ref={elements.joinButton}>
+          <CustomButton onClick={handleJoinButtonClick} className="opacity-0" ref={elements.joinButton}>
             Join
           </CustomButton>
         </div>
