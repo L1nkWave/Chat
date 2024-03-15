@@ -1,6 +1,6 @@
 import { configureStore } from "@reduxjs/toolkit";
 
-import { authReducer } from "@/lib/features/auth/authSlice";
+import { authReducer } from "@/lib/features/user/userSlice";
 import { chatReducer } from "@/lib/features/chat/chatSlice";
 import { socketReducer } from "@/lib/features/socket/socketSlice";
 
