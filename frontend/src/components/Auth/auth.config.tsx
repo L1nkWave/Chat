@@ -1,6 +1,6 @@
 import * as yup from "yup";
 
-import {FormParams, InputParams} from "@/components/Auth/auth.types";
+import { FormParams, InputParams } from "@/components/Auth/auth.types";
 
 export const commonValidationSchema = {
   username: yup

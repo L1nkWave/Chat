@@ -10,7 +10,7 @@ import { passwordInput, signInForm, signInValidationSchema, usernameInput } from
 import { axiosErrorHandler, handleUsernameBlur } from "@/components/Auth/auth.utils";
 import { CustomInput } from "@/components/CustomInput/CustomInput";
 import { Form } from "@/components/Form/Form";
-import { setAccessToken } from "@/lib/features/auth/authSlice";
+import { setAccessToken } from "@/lib/features/user/userSlice";
 import { useAppDispatch } from "@/lib/hooks";
 
 export function SignInForm() {

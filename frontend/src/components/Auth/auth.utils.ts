@@ -3,7 +3,7 @@ import { FormikValues } from "formik";
 import { toast } from "react-toastify";
 
 import { messages, usernameInput } from "@/components/Auth/auth.config";
-import { formatMessage } from "@/utils/formatMessage";
+import { formatMessage } from "@/helpers/formatMessage";
 
 export const handleUsernameBlur = (formik: FormikValues) => {
   if (!formik.values.username.startsWith("@")) {
