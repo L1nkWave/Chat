@@ -1,12 +1,22 @@
-export type ContactParams = {
-  id: string;
+export type UserParams = {
+  id: number;
+  bio?: string;
   name: string;
-  avatar: string;
-  active: boolean;
+  online: boolean;
+  lastSeen: number;
+  username: string;
+  createdAt: string;
+  avatarPath?: string;
+};
+
+export type ContactParams = {
+  alias: string;
+  addedAt: string;
+  user: UserParams;
 };
 
 export type ChatParams = {
-  id: string;
+  id: number;
   name: string;
   avatar: string;
   lastMessage: string;
