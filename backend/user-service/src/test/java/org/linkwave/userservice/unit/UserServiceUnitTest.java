@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.linkwave.shared.storage.LocalFileStorageService;
 import org.linkwave.userservice.dto.UserDto;
 import org.linkwave.userservice.dto.UserRegisterRequest;
 import org.linkwave.userservice.entity.RoleEntity;
@@ -61,7 +62,11 @@ class UserServiceUnitTest {
         // prepare user service
         var passwordEncoder = new BCryptPasswordEncoder();
         modelMapper = new ModelMapper();
-        userService = new DefaultUserService(userRepository, roleRepository, passwordEncoder, modelMapper);
+        userService = new DefaultUserService(
+                userRepository, roleRepository,
+                new LocalFileStorageService(),
+                passwordEncoder, modelMapper
+        );
 
         // initialize fields
         username = "zookeeper";
@@ -161,6 +166,7 @@ class UserServiceUnitTest {
                 .isOnline(true)
                 .build();
 
+        final var lastSeen = existingUser.getLastSeen();
         final Long userId = existingUser.getId();
         USER_ROLE.getUsers().add(existingUser);
 
@@ -169,6 +175,7 @@ class UserServiceUnitTest {
                 .name(name)
                 .username(username)
                 .createdAt(createdAt)
+                .lastSeen(lastSeen)
                 .bio("Test")
                 .isOnline(true)
                 .build();
@@ -205,21 +212,21 @@ class UserServiceUnitTest {
                 .map(user -> modelMapper.map(user, UserDto.class))
                 .toList();
 
-        when(userRepository.getUsersByUsernameStartsWith(userDetails.username(), searchUsername, offset, limit))
+        when(userRepository.getUsersByUsernameStartsWith(userDetails.id(), searchUsername, offset, limit))
                 .thenReturn(expectedUsers);
 
-        when(userRepository.getUsersCountByUsernameStartsWith(userDetails.username(), searchUsername))
+        when(userRepository.getUsersCountByUsernameStartsWith(userDetails.id(), searchUsername))
                 .thenReturn((long) users.size());
 
-        final Pair<Long, List<UserDto>> result = userService.getUsersByUsername(userDetails, searchUsername, offset, limit);
+        final Pair<Long, List<UserDto>> result = userService.getUsersByUsernameWithoutContacts(userDetails, searchUsername, offset, limit);
 
         assertThat(result).isNotNull();
         assertThat(result.getFirst()).isEqualTo(users.size());
         assertThat(result.getSecond()).isNotEmpty();
         assertThat(result.getSecond()).isEqualTo(expectedUsersDto);
 
-        verify(userRepository, times(1)).getUsersByUsernameStartsWith(userDetails.username(), searchUsername, offset, limit);
-        verify(userRepository, times(1)).getUsersCountByUsernameStartsWith(userDetails.username(), searchUsername);
+        verify(userRepository, times(1)).getUsersByUsernameStartsWith(userDetails.id(), searchUsername, offset, limit);
+        verify(userRepository, times(1)).getUsersCountByUsernameStartsWith(userDetails.id(), searchUsername);
     }
 
     @AfterEach

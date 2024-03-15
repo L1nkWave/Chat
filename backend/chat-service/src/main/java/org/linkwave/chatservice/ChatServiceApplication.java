@@ -1,8 +1,8 @@
 package org.linkwave.chatservice;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.linkwave.shared.storage.LocalFileStorageService;
 import org.linkwave.shared.storage.FileStorageService;
-import org.linkwave.shared.storage.StorageService;
 import org.modelmapper.ModelMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -37,8 +37,8 @@ public class ChatServiceApplication {
     }
 
     @Bean
-    public StorageService storageService() {
-        return new FileStorageService();
+    public FileStorageService storageService() {
+        return new LocalFileStorageService();
     }
 
 }

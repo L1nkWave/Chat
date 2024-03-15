@@ -8,6 +8,8 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.time.ZonedDateTime.now;
+
 @Entity
 @Table(name = "users")
 @NoArgsConstructor
@@ -36,10 +38,11 @@ public class UserEntity {
 
     @Column(nullable = false)
     @Builder.Default
-    private ZonedDateTime createdAt = ZonedDateTime.now();
+    private ZonedDateTime createdAt = now();
 
     @Column(nullable = false)
-    private ZonedDateTime lastSeen;
+    @Builder.Default
+    private ZonedDateTime lastSeen = now().plusSeconds(1L);
 
     @Column(nullable = false)
     private boolean theme;

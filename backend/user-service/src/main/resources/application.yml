@@ -16,6 +16,11 @@ spring:
   application:
     name: 'user-service'
 
+  servlet:
+    multipart:
+      max-file-size: 32MB
+      max-request-size: 32MB
+
   datasource:
     url: jdbc:postgresql://localhost:5432/lw-users
     username: root
@@ -33,5 +38,4 @@ spring:
         physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
 
 files:
-  avatar:
-    path: 'static\api\v1\users\images'
+  storage-folder: 'D:\Files\storage'

@@ -18,7 +18,7 @@ import org.linkwave.chatservice.common.ResourceNotFoundException;
 import org.linkwave.chatservice.message.Message;
 import org.linkwave.chatservice.message.MessageDto;
 import org.linkwave.chatservice.message.MessageService;
-import org.linkwave.shared.storage.StorageService;
+import org.linkwave.shared.storage.FileStorageService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
@@ -50,7 +50,7 @@ public class ChatServiceImpl implements ChatService {
     private final UserServiceClient userServiceClient;
     private final ChatRepository<Chat> chatRepository;
     private final ModelMapper modelMapper;
-    private final StorageService storageService;
+    private final FileStorageService fileStorageService;
 
     private MessageService messageService;
 
@@ -259,7 +259,7 @@ public class ChatServiceImpl implements ChatService {
     @Override
     public void changeGroupChatAvatar(String chatId, @NonNull MultipartFile avatar) {
         final GroupChat chat = findGroupChat(chatId);
-        final String filename = storageService.storePicture(CHAT_AVATAR_PATH, chatId, avatar);
+        final String filename = fileStorageService.storePicture(CHAT_AVATAR_PATH, chatId, avatar);
         chat.setAvatarPath(filename); // save avatar path
         updateChat(chat);
     }
@@ -272,7 +272,7 @@ public class ChatServiceImpl implements ChatService {
             throw new ResourceNotFoundException();
         }
         final Path avatarPath = Path.of(CHAT_AVATAR_PATH.toString(), chatId, groupChat.getAvatarPath());
-        return storageService.readFileAsBytes(avatarPath);
+        return fileStorageService.readFileAsBytes(avatarPath);
     }
 
     @Transactional
