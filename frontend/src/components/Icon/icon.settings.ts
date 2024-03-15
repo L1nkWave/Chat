@@ -14,4 +14,5 @@ export const iconMapping = {
   "user-outline": Icons.UserOutlineIcon,
   "user-plus-outline": Icons.UserPlusOutlineIcon,
   "curved-arrow": Icons.CurvedArrowIcon,
+  "time-outline": Icons.TimeOutlineIcon,
 };
