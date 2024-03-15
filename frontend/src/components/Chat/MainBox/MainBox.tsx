@@ -3,7 +3,7 @@ import React from "react";
 import { MainBoxProps } from "@/components/Chat/MainBox/mainBox.types";
 
 export function MainBox({ mainBoxVariant }: Readonly<MainBoxProps>) {
-  if (mainBoxVariant) {
+  if (mainBoxVariant !== "empty") {
     return null;
   }
   return (
