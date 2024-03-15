@@ -1,8 +1,8 @@
 import { configureStore } from "@reduxjs/toolkit";
 
-import { authReducer } from "@/lib/features/user/userSlice";
 import { chatReducer } from "@/lib/features/chat/chatSlice";
 import { socketReducer } from "@/lib/features/socket/socketSlice";
+import { authReducer } from "@/lib/features/user/userSlice";
 
 export const makeStore = () =>
   configureStore({

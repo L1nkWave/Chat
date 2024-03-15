@@ -1,6 +1,6 @@
 import { jwtDecode } from "jwt-decode";
 
-import { DecodedToken } from "@/utils/DecodeToken/decodeToken.types";
+import { DecodedToken } from "@/helpers/DecodeToken/decodeToken.types";
 
 export const decodeToken = (token: string) => {
   try {
