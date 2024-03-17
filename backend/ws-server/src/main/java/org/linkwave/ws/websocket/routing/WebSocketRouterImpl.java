@@ -41,8 +41,8 @@ public class WebSocketRouterImpl implements WebSocketRouter {
     public void route(String message, WebSocketSession session) throws InvalidMessageFormatException, InvalidPathException {
         log.debug("-> route()");
 
-        RoutingMessage routingMessage = messageParser.parse(message);
-        Map<String, String> pathVariables = new HashMap<>();
+        final RoutingMessage routingMessage = messageParser.parse(message);
+        final Map<String, String> pathVariables = new HashMap<>();
 
         Entry<String, RouteComponent> matchedRoute = findRouteByPath(routingMessage.path(), pathVariables);
         if (matchedRoute == null) {
@@ -67,12 +67,17 @@ public class WebSocketRouterImpl implements WebSocketRouter {
         final String jsonMessage;
         try {
             boolean isErrorResult = false;
+
+            // handle special return type in route handler
             if (invocationResult instanceof Box<?> box) {
                 isErrorResult = box.hasError();
                 invocationResult = box.hasError() ? box.getErrorValue() : box.getValue();
             }
+
             jsonMessage = mapper.writeValueAsString(invocationResult);
-            if (isErrorResult) {
+
+            // send message only to initiator if it is an error or not for broadcast purpose
+            if (isErrorResult || !broadcastManager.isBroadcast(routeHandler)) {
                 session.sendMessage(new TextMessage(jsonMessage));
                 return;
             }

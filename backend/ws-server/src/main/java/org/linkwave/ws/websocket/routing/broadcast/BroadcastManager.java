@@ -23,4 +23,7 @@ public interface BroadcastManager {
      * @param jsonMessage  serialized message to deliver
      */
     void process(@NonNull Method routeHandler, @NonNull Map<String, String> pathVariables, String jsonMessage);
+
+    boolean isBroadcast(@NonNull Method routeHandler);
+
 }

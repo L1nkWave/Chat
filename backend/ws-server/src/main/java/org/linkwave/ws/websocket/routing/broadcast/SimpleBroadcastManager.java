@@ -37,13 +37,12 @@ public class SimpleBroadcastManager implements BroadcastManager {
                 routeHandler.getName()
         );
 
-        final Broadcast broadcastAnn = routeHandler.getAnnotation(Broadcast.class);
-
-        // broadcast manager determines by itself if it's necessary to broadcast message
-        if (broadcastAnn == null) {
+        // if it's necessary to broadcast message
+        if (!isBroadcast(routeHandler)) {
             return;
         }
 
+        final Broadcast broadcastAnn = routeHandler.getAnnotation(Broadcast.class);
         final String sessionSetKey = resolveKey(broadcastAnn.value(), pathVariables);
 
         // get all chat members sessions ids
@@ -69,6 +68,11 @@ public class SimpleBroadcastManager implements BroadcastManager {
                 chatRepository.shareWithConsumer(instanceId, jsonMessage);
             }
         }
+    }
+
+    @Override
+    public boolean isBroadcast(@NonNull Method routeHandler) {
+        return routeHandler.isAnnotationPresent(Broadcast.class);
     }
 
     @NonNull
