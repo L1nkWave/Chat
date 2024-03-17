@@ -12,6 +12,7 @@ import org.linkwave.chatservice.chat.group.GroupChat;
 import org.linkwave.chatservice.chat.group.GroupChatDetailsDto;
 import org.linkwave.chatservice.chat.group.GroupChatDto;
 import org.linkwave.chatservice.chat.group.NewGroupChatRequest;
+import org.linkwave.chatservice.common.ChatOptionsViolationException;
 import org.linkwave.chatservice.common.PrivacyViolationException;
 import org.linkwave.chatservice.common.RequestInitiator;
 import org.linkwave.chatservice.common.ResourceNotFoundException;
@@ -60,6 +61,7 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Transactional
+    @Override
     public ChatDto createChat(@NonNull RequestInitiator initiator,
                               @NonNull NewChatRequest chatRequest) {
 
@@ -103,6 +105,7 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Transactional
+    @Override
     public GroupChatDto createGroupChat(@NonNull Long initiatorUserId,
                                         @NonNull NewGroupChatRequest chatRequest) {
 
@@ -130,10 +133,12 @@ public class ChatServiceImpl implements ChatService {
         return modelMapper.map(newGroupChat, GroupChatDto.class);
     }
 
+    @Override
     public Chat findChat(String id) {
         return chatRepository.findById(id).orElseThrow(ChatNotFoundException::new);
     }
 
+    @Override
     public GroupChat findGroupChat(String id) {
         return chatRepository.findGroupChatById(id).orElseThrow(ChatNotFoundException::new);
     }
@@ -192,6 +197,7 @@ public class ChatServiceImpl implements ChatService {
         return Pair.of(chatsTotalCount, selectedChats);
     }
 
+    @Override
     public List<String> getUserChats(Long userId) {
         return chatRepository.getUserChatsIds(userId)
                 .stream()
@@ -199,18 +205,22 @@ public class ChatServiceImpl implements ChatService {
                 .toList();
     }
 
+    @Override
     public void updateChat(@NonNull Chat chat) {
         chatRepository.save(chat);
     }
 
+    @Override
     public boolean isMember(Long userId, String chatId) {
         return isMember(userId, findChat(chatId));
     }
 
+    @Override
     public boolean isMember(Long userId, @NonNull Chat chat) {
         return findChatMember(userId, chat).isPresent();
     }
 
+    @Override
     public Optional<ChatMember> findChatMember(Long userId, @NonNull Chat chat) {
         return chat.getMembers()
                 .stream()
@@ -218,6 +228,41 @@ public class ChatServiceImpl implements ChatService {
                 .findAny();
     }
 
+    @Transactional
+    @Override
+    public ChatMember addGroupChatMember(Long userId, String chatId) {
+        final GroupChat groupChat = findGroupChat(chatId);
+        if (isMember(userId, groupChat)) {
+            throw new IllegalArgumentException("You are already a member");
+        }
+
+        // check chat properties
+        if (groupChat.isPrivate()) {
+            throw new PrivacyViolationException("Chat is inaccessible at the moment");
+        }
+
+        if (groupChat.getMembersCount() == groupChat.getMembersLimit()) {
+            throw new ChatOptionsViolationException("All members slots are occupied");
+        }
+
+        // add member
+        final ChatMember newMember = groupChat.addMember(userId);
+        updateChat(groupChat);
+        return newMember;
+    }
+
+    @Transactional
+    @Override
+    public void removeGroupChatMember(Long userId, String chatId) {
+        final GroupChat groupChat = findGroupChat(chatId);
+        if (!isMember(userId, groupChat)) {
+            throw new ResourceNotFoundException("Member not found");
+        }
+        groupChat.removeMember(userId);
+        updateChat(groupChat);
+    }
+
+    @Override
     public GroupChatDetailsDto getGroupChatDetails(@NonNull RequestInitiator initiator, String chatId) {
         final GroupChat chat = findGroupChat(chatId);
         if (!isMember(initiator.userId(), chat)) {

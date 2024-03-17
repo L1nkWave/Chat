@@ -190,6 +190,68 @@
         }
       }
     },
+    "/v1/chats/{id}/group/members": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/id"
+        }
+      ],
+      "post": {
+        "summary": "Add request initiator to members of the group chat",
+        "responses": {
+          "201": {
+            "description": "Successfully added to the group chat members",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMemberDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/chats/65e8b0e4404b9356a273e305/group/join",
+                  "message": "You are already a member",
+                  "status": 400,
+                  "timestamp": 1710509795.022129700
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove request initiator from group chat members",
+        "responses": {
+          "204": {
+            "description": "Successfully removed from members"
+          },
+          "404": {
+            "description": "Request initiator is not a member of the group chat",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/chats/65e8b0e4404b9356a273e305/group/members",
+                  "message": "Member not found",
+                  "status": 404,
+                  "timestamp": 1710510606.279411900
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/chats/{id}/group/avatar": {
       "parameters": [
         {

@@ -111,6 +111,10 @@ public interface ChatService {
      */
     Optional<ChatMember> findChatMember(Long userId, @NonNull Chat chat);
 
+    ChatMember addGroupChatMember(Long userId, String chatId);
+
+    void removeGroupChatMember(Long userId, String chatId);
+
     /**
      * Returns group chat details if initiator has access to it.
      *

@@ -2,24 +2,26 @@ package org.linkwave.ws.websocket.repository;
 
 import java.util.Set;
 
-public interface ChatRepository<T> extends SessionRepository<T> {
-    void addMember(T userId, Set<T> chats);
+public interface ChatRepository<U, C> extends SessionRepository<U> {
+    void addMember(U userId, Set<C> chats);
 
-    default void addMember(T userId, T chatId) {
+    default void addMember(U userId, C chatId) {
         addMember(userId, Set.of(chatId));
     }
 
-    void removeMember(T userId, Set<T> chats);
+    void removeMember(U userId, Set<C> chats);
 
-    default void removeMember(T userId, T chatId) {
+    default void removeMember(U userId, C chatId) {
         removeMember(userId, Set.of(chatId));
     }
 
-    boolean isMember(T chatId, T userId);
+    boolean isMember(C chatId, U userId);
 
-    Set<T> getMembers(T chatId);
+    Set<U> getMembers(C chatId);
 
-    Set<T> getChats(T userId);
+    Set<C> getChats(U userId);
+
+    Set<String> getChatMembersSessions(C chatId);
 
     void shareWithConsumer(String consumerId, String jsonMessage);
 }

@@ -21,8 +21,7 @@ import java.util.List;
 import static org.linkwave.chatservice.common.RequestUtils.requestInitiator;
 import static org.linkwave.chatservice.common.RequestUtils.userDetails;
 import static org.linkwave.shared.utils.Headers.TOTAL_COUNT;
-import static org.springframework.http.HttpStatus.CREATED;
-import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.HttpStatus.*;
 import static org.springframework.http.MediaType.*;
 
 @Slf4j
@@ -70,6 +69,18 @@ public class ChatController {
     public GroupChatDetailsDto getGroupChat(@PathVariable String id,
                                             @NonNull HttpServletRequest request) {
         return chatService.getGroupChatDetails(requestInitiator(request), id);
+    }
+
+    @PostMapping("/{id}/group/members")
+    @ResponseStatus(CREATED)
+    public ChatMember joinGroupChat(@PathVariable String id) {
+        return chatService.addGroupChatMember(userDetails().id(), id);
+    }
+
+    @DeleteMapping("/{id}/group/members")
+    @ResponseStatus(NO_CONTENT)
+    public void leaveGroupChat(@PathVariable String id) {
+        chatService.removeGroupChatMember(userDetails().id(), id);
     }
 
     @PostMapping("/{id}/group/avatar")
