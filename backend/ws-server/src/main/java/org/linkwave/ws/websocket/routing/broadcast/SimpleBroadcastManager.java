@@ -27,7 +27,7 @@ public class SimpleBroadcastManager implements BroadcastManager {
     private String separator;
 
     private final WebSocketMessageBroadcast messageBroadcast;
-    private final ChatRepository<Long> chatRepository;
+    private final ChatRepository<Long, String> chatRepository;
 
     @Override
     public void process(@NonNull Method routeHandler, @NonNull Map<String, String> pathVariables, String jsonMessage) {
@@ -46,8 +46,8 @@ public class SimpleBroadcastManager implements BroadcastManager {
 
         final String sessionSetKey = resolveKey(broadcastAnn.value(), pathVariables);
 
-        // get all chat members' session ids
-        final Set<String> members = chatRepository.getChatMembersSessions(sessionSetKey);
+        // get all chat members sessions ids
+        final Set<String> members = chatRepository.getSessions(sessionSetKey);
         if (members == null || members.isEmpty()) {
             log.warn("-> process(): members not found");
             return;

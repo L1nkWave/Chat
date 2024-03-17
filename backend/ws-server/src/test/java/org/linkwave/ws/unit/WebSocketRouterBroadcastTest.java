@@ -67,7 +67,7 @@ public class WebSocketRouterBroadcastTest {
         // model chatroom with chat repository
         final String chatKey = "chat:1";
         final var chatRepository = mock(ChatRepository.class);
-        when(chatRepository.getChatMembersSessions(chatKey)).thenReturn(
+        when(chatRepository.getSessions(chatKey)).thenReturn(
                 Set.of(
                         SESSIONS.get(0),
                         SESSIONS.get(1),
@@ -155,7 +155,7 @@ public class WebSocketRouterBroadcastTest {
         // prepare route handler
         final Method sendMessage = chatRoutes.getClass().getDeclaredMethod(
                 "sendMessage",
-                long.class,
+                String.class,
                 WebSocketSession.class,
                 String.class
         );
@@ -201,7 +201,7 @@ public class WebSocketRouterBroadcastTest {
 
         @SubRoute("/{id}/send")
         @Broadcast("chat:{id}")
-        Box<OutcomeMessage> sendMessage(@PathVariable long id,
+        Box<OutcomeMessage> sendMessage(@PathVariable String id,
                                         @NonNull WebSocketSession session,
                                         @Payload String message) {
             final var principal = (UserPrincipal) session.getPrincipal();

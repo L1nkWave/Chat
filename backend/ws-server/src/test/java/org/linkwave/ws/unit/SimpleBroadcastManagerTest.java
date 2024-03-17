@@ -34,7 +34,7 @@ public class SimpleBroadcastManagerTest {
     private static final long SESSIONS_COUNT = 10;
 
     @Mock
-    private ChatRepository<Long> chatRepository;
+    private ChatRepository<Long, String> chatRepository;
 
     @Mock
     private WebSocketMessageBroadcast messageBroadcast;
@@ -69,11 +69,12 @@ public class SimpleBroadcastManagerTest {
         final var broadcastKey = "chat:1378";
         final Set<String> sessionIds = generateSessionIds(SESSIONS_COUNT);
 
-        when(chatRepository.getChatMembersSessions(broadcastKey)).thenReturn(sessionIds);
+        when(chatRepository.getSessions(broadcastKey)).thenReturn(sessionIds);
         when(messageBroadcast.share(sessionIds, jsonMessage)).thenReturn(TRUE);
 
         broadcastManager.process(handler, pathVariables, jsonMessage);
 
+        verify(chatRepository, times(1)).getSessions(broadcastKey);
         verify(messageBroadcast, times(1)).share(sessionIds, jsonMessage);
     }
 
@@ -87,11 +88,12 @@ public class SimpleBroadcastManagerTest {
         final var broadcastKey = "chat:1378";
         final Set<String> sessionIds = generateSessionIds(SESSIONS_COUNT);
 
-        when(chatRepository.getChatMembersSessions(broadcastKey)).thenReturn(sessionIds);
+        when(chatRepository.getSessions(broadcastKey)).thenReturn(sessionIds);
         when(messageBroadcast.share(sessionIds, jsonMessage)).thenReturn(FALSE);
 
         broadcastManager.process(handler, pathVariables, jsonMessage);
 
+        verify(chatRepository, times(1)).getSessions(broadcastKey);
         verify(messageBroadcast, times(1)).share(sessionIds, jsonMessage);
         verify(chatRepository, times(1)).shareWithConsumer(any(), any());
     }
@@ -128,11 +130,11 @@ public class SimpleBroadcastManagerTest {
         final var pathVariables = Map.of("id", "1378");
         final var broadcastKey = "chat:1378";
 
-        when(chatRepository.getChatMembersSessions(broadcastKey)).thenReturn(emptySet());
+        when(chatRepository.getSessions(broadcastKey)).thenReturn(emptySet());
 
         broadcastManager.process(handler, pathVariables, jsonMessage);
 
-        verify(chatRepository, times(1)).getChatMembersSessions(broadcastKey);
+        verify(chatRepository, times(1)).getSessions(broadcastKey);
         verify(messageBroadcast, never()).share(any(), any());
     }
 

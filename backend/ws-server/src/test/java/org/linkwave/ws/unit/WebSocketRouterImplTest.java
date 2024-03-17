@@ -81,8 +81,8 @@ public class WebSocketRouterImplTest {
 
         final var chatRoutes = new ChatRoutesT();
         final Class<?> cls = chatRoutes.getClass();
-        final Method routeHandler1 = cls.getDeclaredMethod("sendMessage", long.class, WebSocketSession.class, String.class);
-        final Method routeHandler2 = cls.getDeclaredMethod("updateMessage", long.class, long.class, WebSocketSession.class, IncomeMessage.class);
+        final Method routeHandler1 = cls.getDeclaredMethod("sendMessage", String.class, WebSocketSession.class, String.class);
+        final Method routeHandler2 = cls.getDeclaredMethod("updateMessage", String.class, String.class, WebSocketSession.class, IncomeMessage.class);
 
         makeAccessible(routeHandler1);
         makeAccessible(routeHandler2);
@@ -199,7 +199,7 @@ public class WebSocketRouterImplTest {
     private static class ChatRoutesT {
 
         @SubRoute("/{id}/send")
-        Box<OutcomeMessage> sendMessage(@PathVariable long id,
+        Box<OutcomeMessage> sendMessage(@PathVariable String id,
                                         WebSocketSession session,
                                         @Payload String message) {
             return Box.ok(OutcomeMessage.builder()
@@ -210,8 +210,8 @@ public class WebSocketRouterImplTest {
         }
 
         @SubRoute("/{id}/update_message/{messageId}")
-        Box<String> updateMessage(@PathVariable long id,
-                                  @PathVariable long messageId,
+        Box<String> updateMessage(@PathVariable String id,
+                                  @PathVariable String messageId,
                                   WebSocketSession session,
                                   @Payload IncomeMessage message) {
             return Box.error("just for testing");

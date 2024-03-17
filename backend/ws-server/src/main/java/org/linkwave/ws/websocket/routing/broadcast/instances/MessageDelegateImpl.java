@@ -23,7 +23,7 @@ import static java.util.stream.Collectors.toSet;
 @RequiredArgsConstructor
 public class MessageDelegateImpl implements MessageDelegate {
 
-    private final ChatRepository<Long> chatRepository;
+    private final ChatRepository<Long, String> chatRepository;
     private final WebSocketMessageBroadcast messageBroadcast;
     private final ObjectMapper mapper;
 
@@ -54,20 +54,13 @@ public class MessageDelegateImpl implements MessageDelegate {
             case OFFLINE, ONLINE -> {
 
                 var statusMessage = mapper.readValue(message, StatusMessage.class);
-                Set<Long> userChats;
+                final Set<String> userChats;
 
                 if (action.equals(Action.OFFLINE)) {
-                    Set<Number> chats = new HashSet<>(
-                            (List<Number>) mapper.readValue(message, Map.class).get("chats")
+                    userChats = new HashSet<>(
+                            (List<String>) mapper.readValue(message, Map.class).get("chats")
                     );
-
-                    // recover parametrized type of set after deserialization
-                    userChats = chats.stream()
-                            .map(Number::longValue)
-                            .collect(toSet());
-
                     message = mapper.writeValueAsString(statusMessage); // remove chats property
-                    System.out.println();
                 } else {
                     userChats = chatRepository.getChats(statusMessage.getSenderId());
                 }

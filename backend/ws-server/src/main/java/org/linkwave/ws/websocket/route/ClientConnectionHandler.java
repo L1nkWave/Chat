@@ -35,7 +35,7 @@ public class ClientConnectionHandler implements AfterConnectionEstablished, Afte
     @Value("${server.instances.separator}")
     private String separator;
 
-    private final ChatRepository<Long> chatRepository;
+    private final ChatRepository<Long, String> chatRepository;
     private final ObjectMapper objectMapper;
     private WebSocketMessageBroadcast messageBroadcast;
 
