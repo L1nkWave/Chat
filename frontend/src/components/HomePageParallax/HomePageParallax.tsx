@@ -4,12 +4,14 @@ import "./homePageParallax.css";
 
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/dist/ScrollTrigger";
+import { useRouter } from "next/navigation";
 import { MutableRefObject, useLayoutEffect, useRef } from "react";
 
 import { CustomButton } from "@/components/CustomButton/CustomButton";
 import { ParallaxImage } from "@/components/ParallaxImage/ParallaxImage";
 
 export function HomePageParallax() {
+  const router = useRouter();
   const parallaxRef = useRef(null);
   const elements = {
     stroke: useRef(null),
@@ -34,11 +36,7 @@ export function HomePageParallax() {
           pin: true,
         },
       });
-      const addToTimeline = (
-        target: MutableRefObject<null>,
-        props: gsap.TweenVars,
-        position: number
-      ) => {
+      const addToTimeline = (target: MutableRefObject<null>, props: gsap.TweenVars, position: number) => {
         timeline.to(target.current, props, position);
       };
 
@@ -61,6 +59,10 @@ export function HomePageParallax() {
     elements.middleWave,
     elements.stroke,
   ]);
+
+  const handleJoinButtonClick = () => {
+    router.push("/sign-in");
+  };
 
   return (
     <div className="overflow-hidden">
@@ -90,18 +92,11 @@ export function HomePageParallax() {
           src="/images/HomePageParallax/back-wave.svg"
           alt="back-wave"
         />
-        <ParallaxImage
-          ref={elements.link}
-          src="/images/HomePageParallax/link.svg"
-          className="link"
-          alt="link"
-        />
+        <ParallaxImage ref={elements.link} src="/images/HomePageParallax/link.svg" className="link" alt="link" />
 
         <div ref={elements.centerText} className="parallax-text gap-4 z-10">
-          <h1 className="font-bold dark:text-gray-200 text-8xl">
-            Link Wave Chat
-          </h1>
-          <CustomButton className="opacity-0" ref={elements.joinButton}>
+          <h1 className="font-bold dark:text-gray-200 text-8xl">Link Wave Chat</h1>
+          <CustomButton onClick={handleJoinButtonClick} className="opacity-0" ref={elements.joinButton}>
             Join
           </CustomButton>
         </div>

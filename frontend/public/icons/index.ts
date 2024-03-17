@@ -5,6 +5,7 @@ export { default as LockOutlineIcon } from "./lock-outline.svg";
 export { default as PinOutlineIcon } from "./pin-outline.svg";
 export { default as SettingOutlineIcon } from "./setting-outline.svg";
 export { default as SignOutCircleIcon } from "./sign-out-circle.svg";
+export { default as TimeOutlineIcon } from "./time-outline.svg";
 export { default as UserFillIcon } from "./user-fill.svg";
 export { default as UserOutlineIcon } from "./user-outline.svg";
 export { default as UserPlusOutlineIcon } from "./user-plus-outline.svg";

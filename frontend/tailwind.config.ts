@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
 
-import { colors } from "./src/utils/colors";
+import { COLORS } from "./src/constants/colors";
 
 const config: Config = {
   content: [
@@ -9,7 +9,7 @@ const config: Config = {
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
-    colors,
+    colors: COLORS,
   },
   extend: {
     backgroundImage: {

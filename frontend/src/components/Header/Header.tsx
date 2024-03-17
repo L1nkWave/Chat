@@ -1,6 +1,5 @@
 "use client";
 
-import { CurvedArrowIcon, UserPlusOutlineIcon } from "@public/icons";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/dist/ScrollTrigger";
 import Image from "next/image";
@@ -11,10 +10,7 @@ import { CustomButton } from "@/components/CustomButton/CustomButton";
 import { HeaderProps } from "@/components/Header/header.types";
 import { ThemeToggle } from "@/components/ThemeToggle/ThemeToggle";
 
-export function Header({
-  withoutEffects = false,
-  logoLabel,
-}: Readonly<HeaderProps>) {
+export function Header({ withoutEffects = false, logoLabel }: Readonly<HeaderProps>) {
   const pathname = usePathname();
   const onSignInPage = pathname === "/sign-in";
 
@@ -36,11 +32,7 @@ export function Header({
         },
       });
 
-      tl.fromTo(
-        parallaxRef.current,
-        { opacity: 0, y: 0 },
-        { opacity: 1, y: "+=5%" }
-      );
+      tl.fromTo(parallaxRef.current, { opacity: 0, y: 0 }, { opacity: 1, y: "+=5%" });
     });
 
     return () => ctx.revert();
@@ -59,37 +51,20 @@ export function Header({
     <div className="header">
       <header className="fixed w-full z-10">
         <div className="px-16 flex items-center justify-between p-4 relative">
-          <div
-            ref={parallaxRef}
-            className={`relative ${!withoutEffects ? "opacity-0" : "opacity-1"}`}
-          >
-            <button
-              className="flex items-center"
-              type="button"
-              onClick={handleRedirectHome}
-            >
+          <div ref={parallaxRef} className={`relative ${!withoutEffects ? "opacity-0" : "opacity-1"}`}>
+            <button className="flex items-center" type="button" onClick={handleRedirectHome}>
               <div className="flex rounded-lg contrast-100 relative">
                 <div className="filter absolute top-0 left-0 w-full h-full blur rounded-full items-center" />
-                <Image
-                  width={55}
-                  height={55}
-                  src="/images/logo.svg"
-                  alt="Logo"
-                  className="rounded-2xl"
-                />
+                <Image width={55} height={55} src="/images/logo.svg" alt="Logo" className="rounded-2xl" />
               </div>
-              <h3 className="text-2xl font-bold pl-6 text-dark-400 dark:text-white">
-                {logoLabel}
-              </h3>
+              <h3 className="text-2xl font-bold pl-6 text-dark-400 dark:text-white">{logoLabel}</h3>
             </button>
           </div>
 
           <nav className="flex gap-6 items-center text-sm font-medium text-gray-800">
             <ThemeToggle />
             <CustomButton
-              icon={
-                onSignInPage ? <UserPlusOutlineIcon /> : <CurvedArrowIcon />
-              }
+              icon={onSignInPage ? "user-plus-outline" : "curved-arrow"}
               className="flex gap-2 text-lg"
               variant="transparent"
               onClick={handleRedirectAuth}
