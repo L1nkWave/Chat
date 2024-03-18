@@ -1,5 +1,6 @@
 package org.linkwave.ws.websocket.routing;
 
+import org.linkwave.ws.websocket.routing.args.RouteHandlerArgumentResolver;
 import org.linkwave.ws.websocket.routing.broadcast.BroadcastManager;
 import org.linkwave.ws.websocket.routing.exception.InvalidMessageFormatException;
 import org.linkwave.ws.websocket.routing.exception.InvalidPathException;
@@ -49,13 +50,14 @@ public class WebSocketRouterImpl implements WebSocketRouter {
             throw new InvalidPathException("route not found");
         }
 
-        RouteComponent route = matchedRoute.getValue();
-        Method routeHandler = route.routeHandler();
+        final RouteComponent route = matchedRoute.getValue();
+        final Method routeHandler = route.routeHandler();
+
+        // create message context
+        final var messageContext = new MessageContext(matchedRoute, pathVariables, routingMessage, session);
 
         // prepare arguments for route handler invocation
-        final List<Object> arguments = argumentResolver.resolve(
-                matchedRoute, pathVariables, routingMessage, session
-        );
+        final List<Object> arguments = argumentResolver.resolve(messageContext);
 
         // invoke route handler
         Object invocationResult = invokeMethod(routeHandler, route.beanRoute(), arguments.toArray());

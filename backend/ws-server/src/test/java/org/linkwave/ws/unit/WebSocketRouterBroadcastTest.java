@@ -13,6 +13,7 @@ import org.linkwave.shared.auth.Token;
 import org.linkwave.ws.websocket.jwt.UserPrincipal;
 import org.linkwave.ws.websocket.repository.ChatRepository;
 import org.linkwave.ws.websocket.routing.*;
+import org.linkwave.ws.websocket.routing.args.DefaultRouteHandlerArgumentResolver;
 import org.linkwave.ws.websocket.routing.bpp.Broadcast;
 import org.linkwave.ws.websocket.routing.bpp.SubRoute;
 import org.linkwave.ws.websocket.routing.bpp.WebSocketRoute;
@@ -144,7 +145,9 @@ public class WebSocketRouterBroadcastTest {
         objectMapper.findAndRegisterModules();
 
         // build web socket router
-        final var argumentResolver = new DefaultRouteHandlerArgumentResolver(objectMapper);
+        final var argumentResolver = new DefaultRouteHandlerArgumentResolver(
+                new RoutingAutoConfig().argumentResolverStrategies(objectMapper)
+        );
         final var wsRouter = new WebSocketRouterImpl(
                 new TextMessageParser(), argumentResolver,
                 objectMapper, broadcastManager

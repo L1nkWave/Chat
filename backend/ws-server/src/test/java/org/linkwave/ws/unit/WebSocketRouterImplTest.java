@@ -13,6 +13,7 @@ import org.linkwave.ws.websocket.dto.Action;
 import org.linkwave.ws.websocket.dto.IncomeMessage;
 import org.linkwave.ws.websocket.dto.OutcomeMessage;
 import org.linkwave.ws.websocket.routing.*;
+import org.linkwave.ws.websocket.routing.args.RouteHandlerArgumentResolver;
 import org.linkwave.ws.websocket.routing.bpp.SubRoute;
 import org.linkwave.ws.websocket.routing.bpp.WebSocketRoute;
 import org.linkwave.ws.websocket.routing.broadcast.BroadcastManager;
@@ -112,6 +113,12 @@ public class WebSocketRouterImplTest {
         final String path = "/chat/321/send";
         final String messageWithSimplePayload = format(MESSAGE_TEMPLATE, path, text);
         final var message = new RoutingMessage(path, text);
+        final var ctx = new MessageContext(
+                entry(route, routes.get(route)),
+                Map.of("id", "321"),
+                new RoutingMessage(path, text),
+                session
+        );
 
         // prepare 2nd message
         final String route2 = "/chat/{id}/update_message/{messageId}";
@@ -119,29 +126,26 @@ public class WebSocketRouterImplTest {
         final String payload2 = objectMapper.writeValueAsString(new IncomeMessage(text));
         final String messageWithJsonPayload = format(MESSAGE_TEMPLATE, path2, payload2);
         final RoutingMessage message2 = new RoutingMessage(path2, payload2);
+        final var ctx2 = new MessageContext(
+                entry(route2, routes.get(route2)),
+                Map.of("id", "28712", "messageId", "831942"),
+                message2, session
+        );
 
         // route 1st message
         when(messageParser.parse(messageWithSimplePayload)).thenReturn(message);
-        when(argumentResolver.resolve(
-                entry(route, routes.get(route)),
-                Map.of("id", "321"),
-                message, session
-        )).thenReturn(List.of(321L, session, text));
+        when(argumentResolver.resolve(ctx)).thenReturn(List.of("321", session, text));
 
         assertDoesNotThrow(() -> router.route(messageWithSimplePayload, session));
 
         // route 2nd message
         when(messageParser.parse(messageWithJsonPayload)).thenReturn(message2);
-        when(argumentResolver.resolve(
-                entry(route2, routes.get(route2)),
-                Map.of("id", "28712", "messageId", "831942"),
-                message2, session
-        )).thenReturn(List.of(28712, 831942L, session, new IncomeMessage(text)));
+        when(argumentResolver.resolve(ctx2)).thenReturn(List.of("28712", "831942", session, new IncomeMessage(text)));
 
         assertDoesNotThrow(() -> router.route(messageWithJsonPayload, session));
 
         verify(messageParser, times(2)).parse(any());
-        verify(argumentResolver, times(2)).resolve(any(), any(), any(), any());
+        verify(argumentResolver, times(2)).resolve(any(MessageContext.class));
     }
 
     @SneakyThrows
@@ -167,17 +171,17 @@ public class WebSocketRouterImplTest {
         final String message = "path=%s".formatted(path);
         final Entry<String, RouteComponent> matchedRoute = entry(route, routes.get(route));
         final var pathVariables = Map.of("id", "77");
-        final var routingMessage = new RoutingMessage(path, null);
 
+        final var routingMessage = new RoutingMessage(path, null);
         when(messageParser.parse(message)).thenReturn(routingMessage);
 
-        when(argumentResolver.resolve(matchedRoute, pathVariables, routingMessage, session))
-                .thenThrow(InvalidMessageFormatException.class);
+        final var context = new MessageContext(matchedRoute, pathVariables, routingMessage, session);
+        when(argumentResolver.resolve(context)).thenThrow(InvalidMessageFormatException.class);
 
         assertThrows(InvalidMessageFormatException.class, () -> router.route(message, session));
 
         verify(messageParser, times(1)).parse(message);
-        verify(argumentResolver, times(1)).resolve(matchedRoute, pathVariables, routingMessage, session);
+        verify(argumentResolver, times(1)).resolve(context);
     }
 
     @NonNull
