@@ -123,7 +123,7 @@ public class WebSocketRouterImplTest {
         // prepare 2nd message
         final String route2 = "/chat/{id}/update_message/{messageId}";
         final String path2 = "/chat/28712/update_message/831942";
-        final String payload2 = objectMapper.writeValueAsString(new IncomeMessage(text));
+        final String payload2 = objectMapper.writeValueAsString(new IncomeMessage("", text));
         final String messageWithJsonPayload = format(MESSAGE_TEMPLATE, path2, payload2);
         final RoutingMessage message2 = new RoutingMessage(path2, payload2);
         final var ctx2 = new MessageContext(
@@ -140,7 +140,7 @@ public class WebSocketRouterImplTest {
 
         // route 2nd message
         when(messageParser.parse(messageWithJsonPayload)).thenReturn(message2);
-        when(argumentResolver.resolve(ctx2)).thenReturn(List.of("28712", "831942", session, new IncomeMessage(text)));
+        when(argumentResolver.resolve(ctx2)).thenReturn(List.of("28712", "831942", session, new IncomeMessage("", text)));
 
         assertDoesNotThrow(() -> router.route(messageWithJsonPayload, session));
 
