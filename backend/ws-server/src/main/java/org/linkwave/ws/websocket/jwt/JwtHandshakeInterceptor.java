@@ -104,7 +104,6 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
                 .path("/ws-gate")
                 .error(error)
                 .action(Action.ERROR)
-                .timestamp(ZonedDateTime.now())
                 .build());
 
         // temporary solution to write json into response header and body
