@@ -88,7 +88,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ChatDto"
+                  "$ref": "#/components/schemas/NewChatDto"
                 }
               }
             }
@@ -102,9 +102,55 @@
                 },
                 "example": {
                   "path": "/api/v1/chats",
-                  "message": "chat already exists",
+                  "message": "Chat already exists",
                   "status": 400,
                   "timestamp": 1709746791.324618600
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chats/{id}/exists": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/id"
+        },
+        {
+          "$ref": "#/components/parameters/recipientId"
+        }
+      ],
+      "get": {
+        "summary": "Check if duo chat exists between request initiator and recipient",
+        "responses": {
+          "204": {
+            "description": "Duo chat exists"
+          },
+          "404": {
+            "description": "Duo chat does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "example 1": {
+                    "value": {
+                      "path": "/api/v1/chats/65fca80ea94fa31e8a26f98/group/member",
+                      "message": "Requested chat not found",
+                      "status": 404,
+                      "timestamp": 1711102257.635504100
+                    }
+                  },
+                  "example 2": {
+                    "value": {
+                      "path": "/api/v1/chats/65fca80ea94fa31e8a26f98/group/member",
+                      "message": "Membership is not confirmed",
+                      "status": 404,
+                      "timestamp": 1711102257.635504100
+                    }
+                  }
                 }
               }
             }
@@ -183,6 +229,49 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GroupChatDetailsDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chats/{id}/group/member": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/id"
+        }
+      ],
+      "get": {
+        "summary": "Check if request initiator is a member of group chat",
+        "responses": {
+          "204": {
+            "description": "Membership is confirmed"
+          },
+          "404": {
+            "description": "Membership is not confirmed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "example 1": {
+                    "value": {
+                      "path": "/api/v1/chats/65fca80ea94fa31e8a26f98/group/member",
+                      "message": "Requested chat not found",
+                      "status": 404,
+                      "timestamp": 1711102257.635504100
+                    }
+                  },
+                  "example 2": {
+                    "value": {
+                      "path": "/api/v1/chats/65fca80ea94fa31e8a26f98/group/member",
+                      "message": "Membership is not confirmed",
+                      "status": 404,
+                      "timestamp": 1711102257.635504100
+                    }
+                  }
                 }
               }
             }
@@ -572,6 +661,23 @@
           }
         }
       },
+      "NewChatDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": false
+          },
+          "createdAt": {
+            "type": "number",
+            "nullable": false
+          }
+        },
+        "example": {
+          "id": "65ed725dc636007bd4027c80",
+          "createdAt": 1710060125.916620300
+        }
+      },
       "ChatDto": {
         "type": "object",
         "properties": {
@@ -608,6 +714,28 @@
             "readers": [],
             "reactions": []
           }
+        }
+      },
+      "NewGroupChatDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": false
+          },
+          "name": {
+            "type": "string",
+            "nullable": false
+          },
+          "createdAt": {
+            "type": "number",
+            "nullable": false
+          }
+        },
+        "example": {
+          "id": "65e8b0e4404b9356a273e305",
+          "name": "My group chat",
+          "createdAt": 1709748452.204932100
         }
       },
       "GroupChatDto": {
@@ -1034,6 +1162,15 @@
         },
         "description": "The number of items are needed to retrieve",
         "example": 3
+      },
+      "recipientId": {
+        "in": "query",
+        "name": "recipient ID",
+        "schema": {
+          "type": "integer"
+        },
+        "description": "User ID",
+        "example": 26
       }
     }
   }
