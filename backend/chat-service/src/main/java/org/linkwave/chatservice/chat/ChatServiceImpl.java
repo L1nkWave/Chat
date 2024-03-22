@@ -1,10 +1,13 @@
 package org.linkwave.chatservice.chat;
 
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.chatservice.api.users.UserDto;
 import org.linkwave.chatservice.api.users.UserServiceClient;
+import org.linkwave.chatservice.api.ws.LoadChatRequest;
+import org.linkwave.chatservice.api.ws.WSServiceClient;
 import org.linkwave.chatservice.chat.duo.Chat;
 import org.linkwave.chatservice.chat.duo.ChatDto;
 import org.linkwave.chatservice.chat.duo.NewChatRequest;
@@ -45,16 +48,10 @@ public class ChatServiceImpl implements ChatService {
     public static final int DEFAULT_BATCH_SIZE = 50;
 
     private final UserServiceClient userServiceClient;
+    private final WSServiceClient wsServiceClient;
     private final ChatRepository<Chat> chatRepository;
     private final ModelMapper modelMapper;
     private final FileStorageService fileStorageService;
-
-    private MessageService messageService;
-
-    @Autowired
-    public void setMessageService(@Lazy MessageService messageService) {
-        this.messageService = messageService;
-    }
 
     @Transactional
     @Override
@@ -91,14 +88,21 @@ public class ChatServiceImpl implements ChatService {
 
         chatRepository.save(newChat);
 
+        // load chat to ws server
+        try {
+            wsServiceClient.loadNewChat(initiator.bearer(), new LoadChatRequest(newChat.getId(), recipientId));
+        } catch (FeignException e) {
+            log.debug("-> createChat(): chat[{}] not loaded", newChat.getId());
+        }
         return modelMapper.map(newChat, ChatDto.class);
     }
 
     @Transactional
     @Override
-    public GroupChatDto createGroupChat(@NonNull Long initiatorUserId,
+    public GroupChatDto createGroupChat(@NonNull RequestInitiator initiator,
                                         @NonNull NewGroupChatRequest chatRequest) {
 
+        final Long initiatorUserId = initiator.userId();
         final var now = Instant.now();
         final List<ChatMember> members = List.of(new ChatMember(initiatorUserId, ADMIN, now));
 
@@ -114,6 +118,12 @@ public class ChatServiceImpl implements ChatService {
 
         chatRepository.save(newGroupChat);
 
+        // load chat to ws server
+        try {
+            wsServiceClient.loadNewGroupChat(initiator.bearer(), newGroupChat.getId());
+        } catch (FeignException e) {
+            log.debug("-> createGroupChat(): chat[{}] not loaded", newGroupChat.getId());
+        }
         return modelMapper.map(newGroupChat, GroupChatDto.class);
     }
 
