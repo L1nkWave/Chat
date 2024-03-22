@@ -41,7 +41,7 @@ public class ChatRoutes {
                                            @Payload IncomeMessage message,
                                            @NonNull WebSocketSession session,
                                            @NonNull UserPrincipal principal,
-                                           String path) {
+                                           @NonNull String path) {
 
         final Long userId = principal.token().userId();
         log.debug("-> sendMessage(): chatId={}, userId={}, msg={}", id, userId, message);
@@ -56,7 +56,7 @@ public class ChatRoutes {
             messageDto = chatClient.saveTextMessage(append(principal.rawAccessToken()), id, newTextMessage);
 
             // send a bind message to initiator
-            final var bindMessage = new BindMessage(message.tmpMessageId(), messageDto.getId());
+            final var bindMessage = new BindMessage(id, message.tmpMessageId(), messageDto.getId());
             session.sendMessage(new TextMessage(objectMapper.writeValueAsString(bindMessage)));
 
         } catch (ApiErrorException e) {
