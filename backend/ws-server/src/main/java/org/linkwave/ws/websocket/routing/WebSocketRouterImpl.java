@@ -73,7 +73,12 @@ public class WebSocketRouterImpl implements WebSocketRouter {
             // handle special return type in route handler
             if (invocationResult instanceof Box<?> box) {
                 isErrorResult = box.hasError();
-                invocationResult = box.hasError() ? box.getErrorValue() : box.getValue();
+                invocationResult = isErrorResult ? box.getErrorValue() : box.getValue();
+            }
+
+            // if value or error inside the box is null
+            if (invocationResult == null) {
+                return;
             }
 
             jsonMessage = mapper.writeValueAsString(invocationResult);
