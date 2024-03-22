@@ -74,4 +74,33 @@ public class ChatRoutes {
                 .build());
     }
 
+
+    @SubRoute(value = "/{id}/{recipientId}/add", disabled = true)
+    public Box<Void> addChat(@PathVariable String id,
+                             @PathVariable Long recipientId,
+                             @NonNull UserPrincipal principal,
+                             @NonNull String path) {
+
+        final Long userId = principal.token().userId();
+        log.debug("-> addChat(): chatId={}, userId={}", id, userId);
+
+        if (chatRepository.isMember(id, userId) &&
+            chatRepository.isMember(id, recipientId)) {
+            return ok(null);
+        }
+
+        try {
+            chatClient.isMember(append(principal.rawAccessToken()), id, recipientId);
+
+            chatRepository.addMember(userId, id);
+            chatRepository.addMember(recipientId, id);
+            log.debug("-> addChat(): chat graph updated");
+
+            return ok(null);
+        } catch (ApiErrorException e) {
+            return error(ErrorMessage.create("Membership is not confirmed", path));
+        }
+
+    }
+
 }

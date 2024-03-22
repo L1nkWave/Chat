@@ -30,7 +30,7 @@ public class GroupChatRoutes {
     private final ChatRepository<Long, String> chatRepository;
     private final ChatServiceClient chatClient;
 
-    @SubRoute(value = "/create")
+    @SubRoute(value = "/create", disabled = true)
     public Box<GroupChatDto> createChat(@NonNull UserPrincipal principal,
                                         @Payload NewGroupChat body,
                                         @NonNull String path) {
@@ -49,6 +49,29 @@ public class GroupChatRoutes {
         chatRepository.addMember(userId, groupChat.getId());
 
         return ok(groupChat);
+    }
+
+    @SubRoute(value = "/{id}/add", disabled = true)
+    public Box<Void> addChat(@PathVariable String id,
+                             @NonNull UserPrincipal principal,
+                             @NonNull String path) {
+
+        final Long userId = principal.token().userId();
+        log.debug("-> addChat(): chatId={}, userId={}", id, userId);
+
+        if (chatRepository.isMember(id, userId)) {
+            return Box.ok(null);
+        }
+
+        try {
+            chatClient.isGroupChatMember(append(principal.rawAccessToken()), id);
+            chatRepository.addMember(userId, id);
+            log.debug("-> addChat(): chat graph updated");
+
+            return Box.ok(null);
+        } catch (ApiErrorException e) {
+            return Box.error(ErrorMessage.create("Membership is not confirmed", path));
+        }
     }
 
     @SubRoute("/{id}/join")

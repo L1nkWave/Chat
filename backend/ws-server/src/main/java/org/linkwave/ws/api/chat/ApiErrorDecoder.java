@@ -18,8 +18,14 @@ public class ApiErrorDecoder implements ErrorDecoder {
     @SneakyThrows
     @Override
     public Exception decode(String s, @NonNull Response response) {
-        final var apiError = objectMapper.readValue(response.body().asInputStream(), ApiError.class);
-        return new ApiErrorException(apiError.message());
+        final String message;
+        if (response.body() == null) {
+            message = "";
+        } else {
+            final var apiError = objectMapper.readValue(response.body().asInputStream(), ApiError.class);
+            message = apiError.message();
+        }
+        return new ApiErrorException(message);
     }
 
 }
