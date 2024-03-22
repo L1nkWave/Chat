@@ -33,9 +33,9 @@ public class PathVariableResolverStrategy implements ArgumentResolverStrategy {
         }
 
         try {
-            if (paramType.equals(int.class)) {
+            if (paramType.equals(int.class) || paramType.equals(Integer.class)) {
                 return Integer.parseInt(varValue);
-            } else if (paramType.equals(long.class)) {
+            } else if (paramType.equals(long.class) || paramType.equals(Long.class)) {
                 return Long.parseLong(varValue);
             } else if (paramType.equals(String.class)) {
                 return varValue;
