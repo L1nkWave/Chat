@@ -18,11 +18,8 @@ import org.linkwave.chatservice.common.RequestInitiator;
 import org.linkwave.chatservice.common.ResourceNotFoundException;
 import org.linkwave.chatservice.message.Message;
 import org.linkwave.chatservice.message.MessageDto;
-import org.linkwave.chatservice.message.MessageService;
 import org.linkwave.shared.storage.FileStorageService;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.data.util.Pair;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -38,7 +35,6 @@ import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 import static org.linkwave.chatservice.chat.ChatRole.ADMIN;
 import static org.linkwave.chatservice.common.ListUtils.iterateChunks;
-import static org.linkwave.chatservice.message.Action.CREATED;
 
 @Slf4j
 @Service
@@ -87,19 +83,13 @@ public class ChatServiceImpl implements ChatService {
                 new ChatMember(recipientId, ADMIN, now)
         );
 
+        // build & save chat
         final Chat newChat = Chat.builder()
                 .members(chatMembers)
                 .createdAt(now)
                 .build();
 
-        // create message that describes chat creation event
-        final Message message = messageService.createMessage(initiator.userId(), now, CREATED);
-        newChat.getMessages().add(message);
-        newChat.setLastMessage(message);
-
         chatRepository.save(newChat);
-        message.setChat(newChat);
-        messageService.updateMessage(message);
 
         return modelMapper.map(newChat, ChatDto.class);
     }
@@ -112,6 +102,7 @@ public class ChatServiceImpl implements ChatService {
         final var now = Instant.now();
         final List<ChatMember> members = List.of(new ChatMember(initiatorUserId, ADMIN, now));
 
+        // build & save chat
         final GroupChat newGroupChat = GroupChat.builder()
                 .name(chatRequest.getName())
                 .description(chatRequest.getDescription())
@@ -121,14 +112,7 @@ public class ChatServiceImpl implements ChatService {
                 .createdAt(now)
                 .build();
 
-        // create message that describes chat creation event
-        final Message message = messageService.createMessage(initiatorUserId, now, CREATED);
-        newGroupChat.getMessages().add(message);
-        newGroupChat.setLastMessage(message);
-
         chatRepository.save(newGroupChat);
-        message.setChat(newGroupChat);
-        messageService.updateMessage(message);
 
         return modelMapper.map(newGroupChat, GroupChatDto.class);
     }
@@ -159,6 +143,10 @@ public class ChatServiceImpl implements ChatService {
 
                     final ChatDto chatDto = modelMapper.map(chat, cls);
                     final Message lastMessage = chat.getLastMessage();
+                    if (lastMessage == null) {
+                        return chatDto;
+                    }
+
                     final MessageDto messageDto = lastMessage.convert(modelMapper);
 
                     // save author ID for filling user data in the future
@@ -184,7 +172,11 @@ public class ChatServiceImpl implements ChatService {
         );
 
         selectedChats.forEach(chat -> {
-            final MessageAuthorDto author = chat.getLastMessage().getAuthor();
+            final MessageDto lastMessage = chat.getLastMessage();
+            if (lastMessage == null) {
+                return;
+            }
+            final MessageAuthorDto author = lastMessage.getAuthor();
             final UserDto user = usersMap.get(author.getId());
             if (user != null) { // if user is found, add user details
                 author.setUsername(user.getUsername());
