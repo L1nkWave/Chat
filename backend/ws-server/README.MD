@@ -1,44 +1,6 @@
 ## Web-socket routes documentation
 
-### 1. Create a group chat
-
-Message structure:
-
-```
-path=/chat/group/create
-
-{
-  "name": "Dark side",
-  "description": null,
-  "isPrivate": false
-}
-```
-
-Response:
-
-```json
-{
-  "id": "65f9866179e9dc3991b6ee4d",
-  "createdAt": 1710851681.104280700,
-  "name": "Dark side",
-  "avatarPath": null
-}
-```
-
-Otherwise:
-
-```json
-{
-  "action": "ERROR",
-  "timestamp": 1710625976.329068800,
-  "error": "Requested chat not found",
-  "path": null
-}
-```
-
-<br/>
-
-### 2. Join in the group chat
+### 1. Join in the group chat
 
 Message structure:
 
@@ -52,16 +14,14 @@ Response message structure:
 {
   "action": "JOIN",
   "timestamp": 1710622097.792737500,
-  "messageId": null,
   "chatId": "65f605253b9b7c0d6dab5546",
-  "senderId": 34,
-  "text": null
+  "senderId": 34
 }
 ```
 
 <br/>
 
-### 3. Leave from the group chat
+### 2. Leave from the group chat
 
 Message structure:
 
@@ -77,15 +37,15 @@ In other case you will receive message with `ERROR` action:
   "action": "ERROR",
   "timestamp": 1710622280.309209600,
   "error": "You are not member of chat",
-  "path": null
+  "path": "/chat/group/65fca83ea94fa31e8a726f9956/leave"
 }
 ```
 
 <br/>
 
-### 4. Send a text-message to the group chat
+### 3. Send a text-message to the group chat
 
-Message structure:
+Message structure is below. It is recommended to use UUID for temporary message id on the client.
 
 ```
 path=/chat/65f605253b9b7c0d6dab5546/send
@@ -100,6 +60,7 @@ At first, you receive the bind message:
 
 ```json
 {
+  "chatId": "65f605253b9b7c0d6dab5546",
   "tmpMessageId": "3ba88cab-8ca5-48e7-aff4-ba689fccee70",
   "messageId": "65f607523b9b7c0d6dab5547"
 }
@@ -126,7 +87,7 @@ you will get message with `ERROR` action:
   "action": "ERROR",
   "timestamp": 1710622677.980591300,
   "error": "You are not member of chat",
-  "path": null
+  "path": "/chat/65fca83ea94fa31e8a726f99/send"
 }
 ```
 
