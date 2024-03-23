@@ -9,7 +9,5 @@ public interface SessionRepository<T> {
 
     void removeSession(T userId, String sessionId);
 
-    Set<String> getChatMembersSessions(T chatId);
-
-    Set<String> getChatMembersSessions(String customChatKey);
+    Set<String> getSessions(String customKey);
 }

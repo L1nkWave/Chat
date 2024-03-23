@@ -17,6 +17,9 @@ public interface ChatRepository<T extends Chat> extends MongoRepository<T, Strin
             {
                 'members._id': {
                     $all: [?0, ?1]
+                },
+                '_class': {
+                    $eq: 'org.linkwave.chatservice.chat.duo.Chat'
                 }
             }
             """)
@@ -32,7 +35,19 @@ public interface ChatRepository<T extends Chat> extends MongoRepository<T, Strin
                                 $eq: ?0
                             }
                         }
-                    }
+                    },
+                    $or: [
+                      {
+                        '_class': {
+                          $eq: 'org.linkwave.chatservice.chat.group.GroupChat'
+                        }
+                      },
+                      {
+                        lastMessage: {
+                          $exists: true
+                        }
+                      }
+                    ]
                 }
             }
             """,
@@ -44,15 +59,27 @@ public interface ChatRepository<T extends Chat> extends MongoRepository<T, Strin
 
     @Query(
             value = """
-                    db.chats.find({
+                    {
                       'members': {
                         $elemMatch: {
                           _id: {
                             $eq: ?0
                           }
                         }
-                      }
-                    }).count()
+                      },
+                      $or: [
+                          {
+                            '_class': {
+                              $eq: 'org.linkwave.chatservice.chat.group.GroupChat'
+                            }
+                          },
+                          {
+                            lastMessage: {
+                              $exists: true
+                            }
+                          }
+                      ]
+                    }
                     """,
             count = true)
     long getUserChatsTotalCount(Long userId);

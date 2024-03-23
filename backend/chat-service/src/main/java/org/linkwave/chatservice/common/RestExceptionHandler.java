@@ -67,7 +67,10 @@ public class RestExceptionHandler {
     }
 
     @ResponseStatus(FORBIDDEN)
-    @ExceptionHandler(PrivacyViolationException.class)
+    @ExceptionHandler({
+            PrivacyViolationException.class,
+            ChatOptionsViolationException.class
+    })
     public ApiError handleForbiddenAccess(@NonNull RuntimeException e, @NonNull HttpServletRequest request) {
         return ApiError.builder()
                 .message(e.getMessage())

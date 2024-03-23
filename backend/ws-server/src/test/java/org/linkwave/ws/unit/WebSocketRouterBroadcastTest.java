@@ -13,6 +13,7 @@ import org.linkwave.shared.auth.Token;
 import org.linkwave.ws.websocket.jwt.UserPrincipal;
 import org.linkwave.ws.websocket.repository.ChatRepository;
 import org.linkwave.ws.websocket.routing.*;
+import org.linkwave.ws.websocket.routing.args.DefaultRouteHandlerArgumentResolver;
 import org.linkwave.ws.websocket.routing.bpp.Broadcast;
 import org.linkwave.ws.websocket.routing.bpp.SubRoute;
 import org.linkwave.ws.websocket.routing.bpp.WebSocketRoute;
@@ -67,7 +68,7 @@ public class WebSocketRouterBroadcastTest {
         // model chatroom with chat repository
         final String chatKey = "chat:1";
         final var chatRepository = mock(ChatRepository.class);
-        when(chatRepository.getChatMembersSessions(chatKey)).thenReturn(
+        when(chatRepository.getSessions(chatKey)).thenReturn(
                 Set.of(
                         SESSIONS.get(0),
                         SESSIONS.get(1),
@@ -144,7 +145,9 @@ public class WebSocketRouterBroadcastTest {
         objectMapper.findAndRegisterModules();
 
         // build web socket router
-        final var argumentResolver = new DefaultRouteHandlerArgumentResolver(objectMapper);
+        final var argumentResolver = new DefaultRouteHandlerArgumentResolver(
+                new RoutingAutoConfig().argumentResolverStrategies(objectMapper)
+        );
         final var wsRouter = new WebSocketRouterImpl(
                 new TextMessageParser(), argumentResolver,
                 objectMapper, broadcastManager
@@ -155,7 +158,7 @@ public class WebSocketRouterBroadcastTest {
         // prepare route handler
         final Method sendMessage = chatRoutes.getClass().getDeclaredMethod(
                 "sendMessage",
-                long.class,
+                String.class,
                 WebSocketSession.class,
                 String.class
         );
@@ -201,7 +204,7 @@ public class WebSocketRouterBroadcastTest {
 
         @SubRoute("/{id}/send")
         @Broadcast("chat:{id}")
-        Box<OutcomeMessage> sendMessage(@PathVariable long id,
+        Box<OutcomeMessage> sendMessage(@PathVariable String id,
                                         @NonNull WebSocketSession session,
                                         @Payload String message) {
             final var principal = (UserPrincipal) session.getPrincipal();

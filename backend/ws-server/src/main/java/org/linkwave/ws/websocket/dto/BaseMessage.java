@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
-import java.time.ZonedDateTime;
+import java.time.Instant;
 
 @NoArgsConstructor
 @Getter
@@ -17,6 +17,6 @@ public class BaseMessage {
     private Action action;
 
     @Builder.Default
-    private ZonedDateTime timestamp = ZonedDateTime.now();
+    private Instant timestamp = Instant.now();
 
 }

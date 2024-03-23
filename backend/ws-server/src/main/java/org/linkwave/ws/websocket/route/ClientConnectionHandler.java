@@ -1,5 +1,12 @@
 package org.linkwave.ws.websocket.route;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import feign.FeignException;
+import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import org.linkwave.ws.api.chat.ApiErrorException;
+import org.linkwave.ws.api.chat.ChatServiceClient;
 import org.linkwave.ws.websocket.dto.Action;
 import org.linkwave.ws.websocket.dto.StatusMessage;
 import org.linkwave.ws.websocket.jwt.UserPrincipal;
@@ -7,10 +14,6 @@ import org.linkwave.ws.websocket.repository.ChatRepository;
 import org.linkwave.ws.websocket.routing.broadcast.WebSocketMessageBroadcast;
 import org.linkwave.ws.websocket.session.callback.AfterConnectionClosed;
 import org.linkwave.ws.websocket.session.callback.AfterConnectionEstablished;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
@@ -18,11 +21,14 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketSession;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toSet;
+import static org.linkwave.shared.utils.Bearers.append;
 
 @Slf4j
 @Component
@@ -35,7 +41,8 @@ public class ClientConnectionHandler implements AfterConnectionEstablished, Afte
     @Value("${server.instances.separator}")
     private String separator;
 
-    private final ChatRepository<Long> chatRepository;
+    private final ChatServiceClient chatClient;
+    private final ChatRepository<Long, String> chatRepository;
     private final ObjectMapper objectMapper;
     private WebSocketMessageBroadcast messageBroadcast;
 
@@ -47,11 +54,19 @@ public class ClientConnectionHandler implements AfterConnectionEstablished, Afte
 
         log.debug("-> user:[{}] connected, SSID={}", principal.getName(), sessionId);
 
-        final Set<Long> predefinedChats = Set.of(11L, 777L);
+        // fetch users chats
+        final Set<String> chats;
+        try {
+            final List<String> chatsIds = chatClient.getUserChats(append(principal.rawAccessToken()));
+            chats = new HashSet<>(chatsIds);
+        } catch (FeignException | ApiErrorException e) {
+            log.error("-> afterConnected(): cannot fetch chats, cause=[{}]", e.getMessage());
+            throw new IllegalStateException("Chats cannot be resolved", e);
+        }
 
         // notify & add connected user to predefined chats
-        chatRepository.addMember(userId, predefinedChats);
-        notifyChatMembersWith(Action.ONLINE, predefinedChats, userId);
+        chatRepository.addMember(userId, chats);
+        notifyChatMembersWith(Action.ONLINE, chats, userId);
         chatRepository.saveSession(userId, sessionId);
     }
 
@@ -69,7 +84,7 @@ public class ClientConnectionHandler implements AfterConnectionEstablished, Afte
 
     @SuppressWarnings("unchecked")
     @SneakyThrows
-    private void notifyChatMembersWith(Action action, @NonNull Set<Long> chats, Long userId) {
+    private void notifyChatMembersWith(Action action, @NonNull Set<String> chats, Long userId) {
 
         String jsonMessage = objectMapper.writeValueAsString(
                 StatusMessage.builder()

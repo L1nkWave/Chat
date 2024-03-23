@@ -14,11 +14,10 @@ import org.springframework.security.web.authentication.AuthenticationConverter;
 
 import java.security.interfaces.RSAPublicKey;
 
+import static org.linkwave.shared.utils.Bearers.*;
+
 @RequiredArgsConstructor
 public class BearerAuthenticationConverter implements AuthenticationConverter {
-
-    public static final int TOKEN_START_POSITION = 7;
-    public static final String BEARER_PREFIX = "Bearer ";
 
     private final Algorithm algorithm;
 
@@ -36,7 +35,7 @@ public class BearerAuthenticationConverter implements AuthenticationConverter {
 
         try {
             final var verifier = JWT.require(algorithm).build();
-            final var decodedJWT = verifier.verify(authHeader.substring(TOKEN_START_POSITION));
+            final var decodedJWT = verifier.verify(extract(authHeader));
 
             final var authorities = decodedJWT.getClaim("authorities")
                     .asList(String.class)

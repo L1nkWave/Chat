@@ -1,10 +1,13 @@
 package org.linkwave.chatservice.chat;
 
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.chatservice.api.users.UserDto;
 import org.linkwave.chatservice.api.users.UserServiceClient;
+import org.linkwave.chatservice.api.ws.LoadChatRequest;
+import org.linkwave.chatservice.api.ws.WSServiceClient;
 import org.linkwave.chatservice.chat.duo.Chat;
 import org.linkwave.chatservice.chat.duo.ChatDto;
 import org.linkwave.chatservice.chat.duo.NewChatRequest;
@@ -12,16 +15,14 @@ import org.linkwave.chatservice.chat.group.GroupChat;
 import org.linkwave.chatservice.chat.group.GroupChatDetailsDto;
 import org.linkwave.chatservice.chat.group.GroupChatDto;
 import org.linkwave.chatservice.chat.group.NewGroupChatRequest;
+import org.linkwave.chatservice.common.ChatOptionsViolationException;
 import org.linkwave.chatservice.common.PrivacyViolationException;
 import org.linkwave.chatservice.common.RequestInitiator;
 import org.linkwave.chatservice.common.ResourceNotFoundException;
 import org.linkwave.chatservice.message.Message;
 import org.linkwave.chatservice.message.MessageDto;
-import org.linkwave.chatservice.message.MessageService;
 import org.linkwave.shared.storage.FileStorageService;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.data.util.Pair;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -37,7 +38,6 @@ import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 import static org.linkwave.chatservice.chat.ChatRole.ADMIN;
 import static org.linkwave.chatservice.common.ListUtils.iterateChunks;
-import static org.linkwave.chatservice.message.Action.CREATED;
 
 @Slf4j
 @Service
@@ -48,18 +48,13 @@ public class ChatServiceImpl implements ChatService {
     public static final int DEFAULT_BATCH_SIZE = 50;
 
     private final UserServiceClient userServiceClient;
+    private final WSServiceClient wsServiceClient;
     private final ChatRepository<Chat> chatRepository;
     private final ModelMapper modelMapper;
     private final FileStorageService fileStorageService;
 
-    private MessageService messageService;
-
-    @Autowired
-    public void setMessageService(@Lazy MessageService messageService) {
-        this.messageService = messageService;
-    }
-
     @Transactional
+    @Override
     public ChatDto createChat(@NonNull RequestInitiator initiator,
                               @NonNull NewChatRequest chatRequest) {
 
@@ -85,30 +80,33 @@ public class ChatServiceImpl implements ChatService {
                 new ChatMember(recipientId, ADMIN, now)
         );
 
+        // build & save chat
         final Chat newChat = Chat.builder()
                 .members(chatMembers)
                 .createdAt(now)
                 .build();
 
-        // create message that describes chat creation event
-        final Message message = messageService.createMessage(initiator.userId(), now, CREATED);
-        newChat.getMessages().add(message);
-        newChat.setLastMessage(message);
-
         chatRepository.save(newChat);
-        message.setChat(newChat);
-        messageService.updateMessage(message);
 
+        // load chat to ws server
+        try {
+            wsServiceClient.loadNewChat(initiator.bearer(), new LoadChatRequest(newChat.getId(), recipientId));
+        } catch (FeignException e) {
+            log.debug("-> createChat(): chat[{}] not loaded", newChat.getId());
+        }
         return modelMapper.map(newChat, ChatDto.class);
     }
 
     @Transactional
-    public GroupChatDto createGroupChat(@NonNull Long initiatorUserId,
+    @Override
+    public GroupChatDto createGroupChat(@NonNull RequestInitiator initiator,
                                         @NonNull NewGroupChatRequest chatRequest) {
 
+        final Long initiatorUserId = initiator.userId();
         final var now = Instant.now();
         final List<ChatMember> members = List.of(new ChatMember(initiatorUserId, ADMIN, now));
 
+        // build & save chat
         final GroupChat newGroupChat = GroupChat.builder()
                 .name(chatRequest.getName())
                 .description(chatRequest.getDescription())
@@ -118,22 +116,23 @@ public class ChatServiceImpl implements ChatService {
                 .createdAt(now)
                 .build();
 
-        // create message that describes chat creation event
-        final Message message = messageService.createMessage(initiatorUserId, now, CREATED);
-        newGroupChat.getMessages().add(message);
-        newGroupChat.setLastMessage(message);
-
         chatRepository.save(newGroupChat);
-        message.setChat(newGroupChat);
-        messageService.updateMessage(message);
 
+        // load chat to ws server
+        try {
+            wsServiceClient.loadNewGroupChat(initiator.bearer(), newGroupChat.getId());
+        } catch (FeignException e) {
+            log.debug("-> createGroupChat(): chat[{}] not loaded", newGroupChat.getId());
+        }
         return modelMapper.map(newGroupChat, GroupChatDto.class);
     }
 
+    @Override
     public Chat findChat(String id) {
         return chatRepository.findById(id).orElseThrow(ChatNotFoundException::new);
     }
 
+    @Override
     public GroupChat findGroupChat(String id) {
         return chatRepository.findGroupChatById(id).orElseThrow(ChatNotFoundException::new);
     }
@@ -154,6 +153,10 @@ public class ChatServiceImpl implements ChatService {
 
                     final ChatDto chatDto = modelMapper.map(chat, cls);
                     final Message lastMessage = chat.getLastMessage();
+                    if (lastMessage == null) {
+                        return chatDto;
+                    }
+
                     final MessageDto messageDto = lastMessage.convert(modelMapper);
 
                     // save author ID for filling user data in the future
@@ -179,7 +182,11 @@ public class ChatServiceImpl implements ChatService {
         );
 
         selectedChats.forEach(chat -> {
-            final MessageAuthorDto author = chat.getLastMessage().getAuthor();
+            final MessageDto lastMessage = chat.getLastMessage();
+            if (lastMessage == null) {
+                return;
+            }
+            final MessageAuthorDto author = lastMessage.getAuthor();
             final UserDto user = usersMap.get(author.getId());
             if (user != null) { // if user is found, add user details
                 author.setUsername(user.getUsername());
@@ -192,6 +199,7 @@ public class ChatServiceImpl implements ChatService {
         return Pair.of(chatsTotalCount, selectedChats);
     }
 
+    @Override
     public List<String> getUserChats(Long userId) {
         return chatRepository.getUserChatsIds(userId)
                 .stream()
@@ -199,18 +207,22 @@ public class ChatServiceImpl implements ChatService {
                 .toList();
     }
 
+    @Override
     public void updateChat(@NonNull Chat chat) {
         chatRepository.save(chat);
     }
 
+    @Override
     public boolean isMember(Long userId, String chatId) {
         return isMember(userId, findChat(chatId));
     }
 
+    @Override
     public boolean isMember(Long userId, @NonNull Chat chat) {
         return findChatMember(userId, chat).isPresent();
     }
 
+    @Override
     public Optional<ChatMember> findChatMember(Long userId, @NonNull Chat chat) {
         return chat.getMembers()
                 .stream()
@@ -218,6 +230,41 @@ public class ChatServiceImpl implements ChatService {
                 .findAny();
     }
 
+    @Transactional
+    @Override
+    public ChatMember addGroupChatMember(Long userId, String chatId) {
+        final GroupChat groupChat = findGroupChat(chatId);
+        if (isMember(userId, groupChat)) {
+            throw new IllegalArgumentException("You are already a member");
+        }
+
+        // check chat properties
+        if (groupChat.isPrivate()) {
+            throw new PrivacyViolationException("Chat is inaccessible at the moment");
+        }
+
+        if (groupChat.getMembersCount() == groupChat.getMembersLimit()) {
+            throw new ChatOptionsViolationException("All members slots are occupied");
+        }
+
+        // add member
+        final ChatMember newMember = groupChat.addMember(userId);
+        updateChat(groupChat);
+        return newMember;
+    }
+
+    @Transactional
+    @Override
+    public void removeGroupChatMember(Long userId, String chatId) {
+        final GroupChat groupChat = findGroupChat(chatId);
+        if (!isMember(userId, groupChat)) {
+            throw new ResourceNotFoundException("Member not found");
+        }
+        groupChat.removeMember(userId);
+        updateChat(groupChat);
+    }
+
+    @Override
     public GroupChatDetailsDto getGroupChatDetails(@NonNull RequestInitiator initiator, String chatId) {
         final GroupChat chat = findGroupChat(chatId);
         if (!isMember(initiator.userId(), chat)) {

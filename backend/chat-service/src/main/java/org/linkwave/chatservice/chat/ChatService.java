@@ -30,11 +30,11 @@ public interface ChatService {
     /**
      * Create group chat with initiator as admin of the chat.
      *
-     * @param initiatorUserId ID of the request initiator
+     * @param initiator identified user that made the request
      * @param chatRequest necessary properties for new group chat
      * @return dto representation of the created group chat
      */
-    GroupChatDto createGroupChat(@NonNull Long initiatorUserId, @NonNull NewGroupChatRequest chatRequest);
+    GroupChatDto createGroupChat(@NonNull RequestInitiator initiator, @NonNull NewGroupChatRequest chatRequest);
 
     /**
      * Inter-service method to find a duo chat by specified ID.
@@ -110,6 +110,10 @@ public interface ChatService {
      * otherwise - it is empty
      */
     Optional<ChatMember> findChatMember(Long userId, @NonNull Chat chat);
+
+    ChatMember addGroupChatMember(Long userId, String chatId);
+
+    void removeGroupChatMember(Long userId, String chatId);
 
     /**
      * Returns group chat details if initiator has access to it.

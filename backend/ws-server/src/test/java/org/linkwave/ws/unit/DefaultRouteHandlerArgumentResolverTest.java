@@ -5,15 +5,23 @@ import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.linkwave.ws.websocket.routing.*;
+import org.linkwave.ws.websocket.jwt.UserPrincipal;
+import org.linkwave.ws.websocket.routing.Payload;
+import org.linkwave.ws.websocket.routing.RouteComponent;
+import org.linkwave.ws.websocket.routing.RoutingAutoConfig;
+import org.linkwave.ws.websocket.routing.RoutingMessage;
+import org.linkwave.ws.websocket.routing.args.DefaultRouteHandlerArgumentResolver;
+import org.linkwave.ws.websocket.routing.args.RouteHandlerArgumentResolver;
 import org.linkwave.ws.websocket.routing.bpp.SubRoute;
 import org.linkwave.ws.websocket.routing.exception.InvalidMessageFormatException;
 import org.linkwave.ws.websocket.routing.exception.InvalidPathException;
 import org.linkwave.ws.websocket.routing.exception.RoutingException;
+import org.springframework.data.util.Pair;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.lang.reflect.Method;
+import java.security.Principal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +31,7 @@ import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.util.Arrays.asList;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.linkwave.ws.unit.SessionTestUtils.createSession;
 import static org.mockito.Mockito.mock;
 
 public class DefaultRouteHandlerArgumentResolverTest {
@@ -31,7 +40,8 @@ public class DefaultRouteHandlerArgumentResolverTest {
 
     @BeforeEach
     void setUp() {
-        argumentResolver = new DefaultRouteHandlerArgumentResolver(new ObjectMapper());
+        final var argResolverStrategies = new RoutingAutoConfig().argumentResolverStrategies(new ObjectMapper());
+        argumentResolver = new DefaultRouteHandlerArgumentResolver(argResolverStrategies);
     }
 
     @SneakyThrows
@@ -69,6 +79,44 @@ public class DefaultRouteHandlerArgumentResolverTest {
         });
 
         final List<Object> actualArguments = argumentResolver.resolve(handler, pathVariables, routingMessage, session);
+
+        assertThat(actualArguments).hasSize(expectedArguments.size());
+        assertThat(actualArguments).isEqualTo(expectedArguments);
+    }
+
+    @SneakyThrows
+    @Test
+    @DisplayName("Should resolve path handler argument")
+    void shouldResolvePathHandlerArgument() {
+        final String route = "/echo", path = "/echo";
+        final var handler = findRouteHandler(route, "echoPath");
+        final var routingMessage = new RoutingMessage(path, null);
+
+        final List<Object> expectedArguments = asList(new Object[]{path});
+
+        final List<Object> actualArguments = argumentResolver.resolve(
+                handler, emptyMap(), routingMessage, createSession().getSecond()
+        );
+
+        assertThat(actualArguments).hasSize(expectedArguments.size());
+        assertThat(actualArguments).isEqualTo(expectedArguments);
+    }
+
+    @SneakyThrows
+    @Test
+    @DisplayName("Should resolve principal handler argument")
+    void shouldResolvePrincipalHandlerArgument() {
+        final String route = "/echo", path = "/echo";
+        final var handler = findRouteHandler(route, "echoPrincipal");
+        final var routingMessage = new RoutingMessage(path, null);
+        final Pair<UserPrincipal, WebSocketSession> sessionPair = createSession();
+        final var principal = sessionPair.getFirst();
+
+        final List<Object> expectedArguments = asList(new Object[]{principal, principal});
+
+        final List<Object> actualArguments = argumentResolver.resolve(
+                handler, emptyMap(), routingMessage, sessionPair.getSecond()
+        );
 
         assertThat(actualArguments).hasSize(expectedArguments.size());
         assertThat(actualArguments).isEqualTo(expectedArguments);
@@ -158,6 +206,16 @@ public class DefaultRouteHandlerArgumentResolverTest {
 
         @SubRoute("/send")
         void send() {
+        }
+
+        @SubRoute("/echo")
+        void echoPath(String path) {
+
+        }
+
+        @SubRoute("/echo")
+        void echoPrincipal(UserPrincipal userPrincipal, Principal principal) {
+
         }
 
         @SubRoute("/chat/{id}/send")
