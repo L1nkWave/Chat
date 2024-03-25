@@ -1,9 +1,9 @@
 package org.linkwave.ws.websocket.routing.broadcast;
 
-import org.linkwave.ws.websocket.repository.ChatRepository;
-import org.linkwave.ws.websocket.routing.bpp.Broadcast;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.linkwave.ws.websocket.repository.ChatRepository;
+import org.linkwave.ws.websocket.routing.bpp.Broadcast;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -14,6 +14,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static java.lang.String.format;
+import static org.linkwave.ws.utils.RouteUtils.getPathVariable;
+import static org.linkwave.ws.utils.RouteUtils.isPathVariable;
 
 @Slf4j
 @Component
@@ -79,12 +81,12 @@ public class SimpleBroadcastManager implements BroadcastManager {
     private String resolveKey(@NonNull String keyPattern, @NonNull Map<String, String> pathVariables) {
 
         // parse broadcast value pattern
-        String[] components = keyPattern.trim().split(KEY_SEPARATOR);
-        var keyBuilder = new StringBuilder();
+        final String[] components = keyPattern.trim().split(KEY_SEPARATOR);
+        final var keyBuilder = new StringBuilder();
 
         for (String part : components) {
-            if (part.startsWith("{") && part.endsWith("}")) {
-                final String pathVarName = part.substring(1, part.length() - 1);
+            if (isPathVariable(part)) {
+                final String pathVarName = getPathVariable(part);
                 final String pathVarValue = pathVariables.get(pathVarName);
                 if (pathVarValue == null) {
                     throw new IllegalStateException(format("Path variable \"%s\" not found", pathVarName));
@@ -93,7 +95,7 @@ public class SimpleBroadcastManager implements BroadcastManager {
             } else {
                 keyBuilder.append(part);
             }
-            keyBuilder.append(":");
+            keyBuilder.append(KEY_SEPARATOR);
         }
 
         // remove redundant ":" at the end
