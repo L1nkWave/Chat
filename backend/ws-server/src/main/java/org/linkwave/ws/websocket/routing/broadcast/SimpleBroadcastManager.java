@@ -9,6 +9,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Set;
@@ -16,6 +17,7 @@ import java.util.Set;
 import static java.lang.String.format;
 import static org.linkwave.ws.utils.RouteUtils.getPathVariable;
 import static org.linkwave.ws.utils.RouteUtils.isPathVariable;
+import static org.springframework.util.ReflectionUtils.*;
 
 @Slf4j
 @Component
@@ -32,7 +34,8 @@ public class SimpleBroadcastManager implements BroadcastManager {
     private final ChatRepository<Long, String> chatRepository;
 
     @Override
-    public void process(@NonNull Method routeHandler, @NonNull Map<String, String> pathVariables, String jsonMessage) {
+    public void process(@NonNull Method routeHandler, @NonNull Map<String, String> pathVariables,
+                        @NonNull Object message, @NonNull String serializedMessage) {
 
         log.debug("-> process(): routeHandler=[{}.{}]",
                 routeHandler.getDeclaringClass().getSimpleName(),
@@ -45,7 +48,10 @@ public class SimpleBroadcastManager implements BroadcastManager {
         }
 
         final Broadcast broadcastAnn = routeHandler.getAnnotation(Broadcast.class);
-        final String sessionSetKey = resolveKey(broadcastAnn.value(), pathVariables);
+        final String sessionSetKey = resolveKey(broadcastAnn.value(), pathVariables,
+                broadcastAnn.analyzeMessage()
+                        ? message
+                        : null);
 
         // get all chat members sessions ids
         final Set<String> members = chatRepository.getSessions(sessionSetKey);
@@ -56,7 +62,7 @@ public class SimpleBroadcastManager implements BroadcastManager {
 
         boolean isSharedCompletely;
         try {
-            isSharedCompletely = messageBroadcast.share(members, jsonMessage);
+            isSharedCompletely = messageBroadcast.share(members, serializedMessage);
         } catch (IOException e) {
             log.error("-> process(): {}", e.getMessage());
             isSharedCompletely = false;
@@ -67,7 +73,7 @@ public class SimpleBroadcastManager implements BroadcastManager {
 
             for (String instanceId : instances.split(separator)) {
                 // here we should pass message with session id too
-                chatRepository.shareWithConsumer(instanceId, jsonMessage);
+                chatRepository.shareWithConsumer(instanceId, serializedMessage);
             }
         }
     }
@@ -78,7 +84,7 @@ public class SimpleBroadcastManager implements BroadcastManager {
     }
 
     @NonNull
-    private String resolveKey(@NonNull String keyPattern, @NonNull Map<String, String> pathVariables) {
+    private String resolveKey(@NonNull String keyPattern, @NonNull Map<String, String> pathVariables, Object message) {
 
         // parse broadcast value pattern
         final String[] components = keyPattern.trim().split(KEY_SEPARATOR);
@@ -87,10 +93,22 @@ public class SimpleBroadcastManager implements BroadcastManager {
         for (String part : components) {
             if (isPathVariable(part)) {
                 final String pathVarName = getPathVariable(part);
-                final String pathVarValue = pathVariables.get(pathVarName);
+                String pathVarValue = pathVariables.get(pathVarName);
+
+                if (pathVarValue == null && message != null) {
+                    // try to resolve path variable value from message
+                    final Field field = findField(message.getClass(), pathVarName);
+                    if (field != null) {
+                        makeAccessible(field);
+                        final Object fieldValue = getField(field, message);
+                        pathVarValue = fieldValue == null ? null : fieldValue.toString();
+                    }
+                }
+
                 if (pathVarValue == null) {
                     throw new IllegalStateException(format("Path variable \"%s\" not found", pathVarName));
                 }
+
                 keyBuilder.append(pathVarValue);
             } else {
                 keyBuilder.append(part);

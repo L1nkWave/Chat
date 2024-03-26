@@ -12,6 +12,10 @@ public class Box<T> {
     private T value;
     private Object errorValue;
 
+    public boolean isEmpty() {
+        return value == null && !hasError();
+    }
+
     public boolean hasError() {
         return errorValue != null;
     }
@@ -19,6 +23,11 @@ public class Box<T> {
     @NonNull
     public static <T> Box<T> ok(T value) {
         return new Box<>(value, null);
+    }
+
+    @NonNull
+    public static <T> Box<T> ok() {
+        return new Box<>(null, null);
     }
 
     @NonNull
