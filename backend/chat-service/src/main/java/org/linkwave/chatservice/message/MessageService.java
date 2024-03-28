@@ -15,5 +15,9 @@ public interface MessageService {
 
     void updateMessage(@NonNull Message message);
 
+    Message getMessage(String id);
+
     List<Message> getChatMessages(Long userId, String chatId);
+
+    int readMessages(Long memberId, String chatId, String messageId);
 }
