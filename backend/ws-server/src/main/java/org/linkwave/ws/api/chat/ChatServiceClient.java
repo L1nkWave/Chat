@@ -5,6 +5,8 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 
@@ -43,6 +45,12 @@ public interface ChatServiceClient {
     void leaveGroupChat(
             @RequestHeader(AUTHORIZATION) String authHeader,
             @PathVariable String chatId
+    );
+
+    @GetMapping("/members/batch")
+    Map<String, Set<ChatMemberDto>> getChatsMembers(
+            @RequestHeader(AUTHORIZATION) String authHeader,
+            @RequestParam List<String> ids
     );
 
     @GetMapping("/{chatId}/group/member")

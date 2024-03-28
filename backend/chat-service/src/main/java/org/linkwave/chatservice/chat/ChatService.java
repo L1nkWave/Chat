@@ -80,6 +80,8 @@ public interface ChatService {
      */
     void updateChat(@NonNull Chat chat);
 
+    Map<String, List<ChatMember>> getChatsMembers(Long userId, List<String> chatId);
+
     /**
      * Used to get to know if user is a member of specific chat.
      * Works for both {@link Chat} and {@link GroupChat}.
