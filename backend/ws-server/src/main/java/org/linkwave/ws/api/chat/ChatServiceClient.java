@@ -1,6 +1,6 @@
 package org.linkwave.ws.api.chat;
 
-import org.linkwave.ws.websocket.dto.client.NewGroupChat;
+import org.linkwave.ws.websocket.dto.NewGroupChat;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 

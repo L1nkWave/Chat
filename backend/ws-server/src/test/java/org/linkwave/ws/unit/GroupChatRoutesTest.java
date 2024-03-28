@@ -9,7 +9,7 @@ import org.linkwave.ws.api.chat.GroupChatDto;
 import org.linkwave.ws.websocket.dto.Action;
 import org.linkwave.ws.websocket.dto.ChatMessage;
 import org.linkwave.ws.websocket.dto.ErrorMessage;
-import org.linkwave.ws.websocket.dto.client.NewGroupChat;
+import org.linkwave.ws.websocket.dto.NewGroupChat;
 import org.linkwave.ws.websocket.jwt.UserPrincipal;
 import org.linkwave.ws.websocket.repository.ChatRepository;
 import org.linkwave.ws.websocket.route.GroupChatRoutes;
