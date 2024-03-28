@@ -1,24 +1,48 @@
 package org.linkwave.ws.websocket.repository;
 
 import lombok.RequiredArgsConstructor;
-import org.linkwave.ws.utils.RedisTemplateUtils;
+import lombok.extern.slf4j.Slf4j;
+import org.linkwave.ws.api.chat.ChatMemberDto;
+import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Repository;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.lang.Boolean.TRUE;
 import static java.lang.String.valueOf;
 import static java.util.Collections.emptySet;
+import static org.linkwave.ws.utils.RedisTemplateUtils.executeInTxn;
 
+@Slf4j
 @Repository
 @RequiredArgsConstructor
 public class RedisChatRepository implements ChatRepository<Long, String> {
 
     private final RedisTemplate<String, String> redisTemplate;
+
+    @Override
+    public void loadChats(Map<String, Set<ChatMemberDto>> chatsMembers) {
+        executeInTxn(redisTemplate, ops -> {
+                    final var setOps = ops.opsForSet();
+                    final var hashOps = ops.opsForHash();
+                    chatsMembers.forEach((chatId, members) -> {
+                        var membersIds = members.stream().map(ChatMemberDto::getId).toList();
+                        final String chatKey = chatKey(chatId);
+
+                        // fill chat with members
+                        setOps.add(chatKey, membersIds.stream().map(String::valueOf).toArray(String[]::new));
+
+                        // add chat to user chats
+                        membersIds.forEach(memberId -> hashOps.put(userChatsKey(memberId), chatId, "0"));
+                    });
+                }
+        );
+    }
 
     @Override
     public void addMember(Long userId, @NonNull Set<String> chats) {
