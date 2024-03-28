@@ -62,7 +62,7 @@ public class MessageDelegateImpl implements MessageDelegate {
                     );
                     message = mapper.writeValueAsString(statusMessage); // remove chats property
                 } else {
-                    userChats = chatRepository.getChats(statusMessage.getSenderId());
+                    userChats = chatRepository.getUserChats(statusMessage.getSenderId());
                 }
 
                 // collect members from user's chats

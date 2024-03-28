@@ -66,4 +66,11 @@ public interface ChatServiceClient {
             @RequestParam Long recipientId
     );
 
+    @PostMapping("/{chatId}/messages/readers")
+    List<String> readMessages(
+            @RequestHeader(AUTHORIZATION) String authHeader,
+            @PathVariable String chatId,
+            @RequestParam("to") String lastReadMessageId
+    );
+
 }
