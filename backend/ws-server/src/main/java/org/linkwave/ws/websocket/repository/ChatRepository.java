@@ -1,8 +1,13 @@
 package org.linkwave.ws.websocket.repository;
 
+import org.linkwave.ws.api.chat.ChatMemberDto;
+
+import java.util.Map;
 import java.util.Set;
 
 public interface ChatRepository<U, C> extends SessionRepository<U> {
+    void loadChats(Map<C, Set<ChatMemberDto>> chatsMembers);
+
     void addMember(U userId, Set<C> chats);
 
     default void addMember(U userId, C chatId) {
@@ -19,9 +24,17 @@ public interface ChatRepository<U, C> extends SessionRepository<U> {
 
     Set<U> getMembers(C chatId);
 
-    Set<C> getChats(U userId);
+    Set<C> getUserChats(U userId);
+
+    boolean chatExists(String chatId);
 
     Set<String> getChatMembersSessions(C chatId);
+
+    Integer getUnreadMessages(C chatId, U userId);
+
+    void changeUnreadMessages(C chatId, Set<U> membersIds, Integer delta);
+
+    void changeUnreadMessages(C chatId, U userId, Integer delta);
 
     void shareWithConsumer(String consumerId, String jsonMessage);
 }

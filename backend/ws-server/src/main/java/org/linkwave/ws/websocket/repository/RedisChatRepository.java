@@ -47,8 +47,8 @@ public class RedisChatRepository implements ChatRepository<Long, String> {
     @Override
     public void addMember(Long userId, @NonNull Set<String> chats) {
         if (!chats.isEmpty()) {
-            RedisTemplateUtils.executeInTxn(redisTemplate, ops -> chats.forEach(chatId -> {
-                ops.opsForSet().add(userChatsKey(userId), valueOf(chatId));
+            executeInTxn(redisTemplate, ops -> chats.forEach(chatId -> {
+                ops.opsForHash().put(userChatsKey(userId), chatId, 0);
                 ops.opsForSet().add(chatKey(chatId), valueOf(userId));
             }));
         }
@@ -56,8 +56,8 @@ public class RedisChatRepository implements ChatRepository<Long, String> {
 
     @Override
     public void removeMember(Long userId, Set<String> chats) {
-        RedisTemplateUtils.executeInTxn(redisTemplate, ops -> chats.forEach(chatId -> {
-            ops.opsForSet().remove(userChatsKey(userId), valueOf(chatId));
+        executeInTxn(redisTemplate, ops -> chats.forEach(chatId -> {
+            ops.opsForHash().delete(userChatsKey(userId), chatId);
             ops.opsForSet().remove(chatKey(chatId), valueOf(userId));
         }));
     }
@@ -74,6 +74,35 @@ public class RedisChatRepository implements ChatRepository<Long, String> {
                 .map(this::getUserSessions)
                 .flatMap(Set::stream)
                 .collect(Collectors.toSet());
+    }
+
+    @Override
+    public void changeUnreadMessages(String chatId, Set<Long> membersIds, Integer delta) {
+        executeInTxn(
+                redisTemplate,
+                ops -> {
+                    final var hashOps = ops.opsForHash();
+                    membersIds.forEach(id -> hashOps.increment(userChatsKey(id), chatId, delta));
+                }
+        );
+    }
+
+    @Override
+    public void changeUnreadMessages(String chatId, Long userId, Integer delta) {
+        executeInTxn(
+                redisTemplate,
+                ops -> {
+                    final var hashOps = ops.opsForHash();
+                    hashOps.increment(userChatsKey(userId), chatId, delta);
+                }
+        );
+    }
+
+    @Override
+    public Integer getUnreadMessages(String chatId, Long userId) {
+        final var hashOps = redisTemplate.opsForHash();
+        final var result = hashOps.get(userChatsKey(userId), chatId);
+        return result == null ? 0 : Integer.parseInt(result.toString());
     }
 
     @Override
@@ -101,9 +130,17 @@ public class RedisChatRepository implements ChatRepository<Long, String> {
     }
 
     @Override
-    public Set<String> getChats(Long userId) {
-        Set<String> chats = redisTemplate.opsForSet().members(userChatsKey(userId));
-        return chats == null ? emptySet() : chats;
+    public Set<String> getUserChats(Long userId) {
+        final HashOperations<String, String, Integer> hashOps = redisTemplate.opsForHash();
+        final String userChatsKey = userChatsKey(userId);
+        return TRUE.equals(redisTemplate.hasKey(userChatsKey))
+                ? hashOps.keys(userChatsKey)
+                : emptySet();
+    }
+
+    @Override
+    public boolean chatExists(String chatId) {
+        return TRUE.equals(redisTemplate.hasKey(chatKey(chatId)));
     }
 
     @Override
@@ -113,20 +150,7 @@ public class RedisChatRepository implements ChatRepository<Long, String> {
 
     @Override
     public void removeSession(Long userId, String sessionId) {
-        final int sessions = getUserSessions(userId).size();
-        final Set<String> chats = sessions < 2 ? getChats(userId) : null;
-
-        RedisTemplateUtils.executeInTxn(redisTemplate, ops -> {
-            ops.opsForSet().remove(userKey(userId), sessionId);
-            if (chats != null) { // need to remove user completely from redis
-
-                // can't use implemented transactional method removeMember(...) here
-                chats.forEach(chatId -> {
-                    ops.opsForSet().remove(userChatsKey(userId), valueOf(chatId));
-                    ops.opsForSet().remove(chatKey(chatId), valueOf(userId));
-                });
-            }
-        });
+        executeInTxn(redisTemplate, ops -> ops.opsForSet().remove(userKey(userId), sessionId));
     }
 
     @Override
