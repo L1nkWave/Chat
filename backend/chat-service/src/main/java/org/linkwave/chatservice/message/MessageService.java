@@ -19,5 +19,5 @@ public interface MessageService {
 
     List<Message> getChatMessages(Long userId, String chatId);
 
-    int readMessages(Long memberId, String chatId, String messageId);
+    List<String> readMessages(Long memberId, String chatId, String messageId);
 }

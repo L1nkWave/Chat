@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 
 import static java.util.Comparator.comparing;
@@ -113,7 +114,7 @@ public class MessageServiceImpl implements MessageService {
 
     @Transactional
     @Override
-    public int readMessages(Long memberId, String chatId, String lastReadMessageId) {
+    public List<String> readMessages(Long memberId, String chatId, String lastReadMessageId) {
 
         log.debug("-> readMessages(): user[{}] reads chat[{}]", memberId, chatId);
 
@@ -143,7 +144,7 @@ public class MessageServiceImpl implements MessageService {
         if (optionalCursor.isPresent()) {
             final ChatMessageCursor cursor = optionalCursor.get();
             if (cursor.getMessageId().equals(lastReadMessageId)) {
-                return 0;
+                return Collections.emptyList();
             }
 
             // find unread messages
@@ -180,12 +181,11 @@ public class MessageServiceImpl implements MessageService {
                 .peek(_message -> _message.setRead(true))
                 .toList();
 
-        final int readMessagesCount = readMessages.size();
         messageRepository.saveAll(readMessages);
         userService.save(user);
 
-        log.debug("-> readMessages(): user[{}] read {} messages in chat[{}]", memberId, readMessagesCount, chatId);
-        return readMessagesCount;
+        log.debug("-> readMessages(): user[{}] read {} messages in chat[{}]", memberId, readMessages.size(), chatId);
+        return readMessages.stream().map(Message::getId).toList();
     }
 
 }
