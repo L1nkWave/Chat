@@ -14,7 +14,6 @@ import java.time.Instant;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class BaseMessage {
 
-    private String id;
     private Action action;
 
     @Builder.Default
