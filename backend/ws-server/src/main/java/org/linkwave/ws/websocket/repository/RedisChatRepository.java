@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 import static java.lang.Boolean.TRUE;
 import static java.lang.String.valueOf;
 import static java.util.Collections.emptySet;
+import static java.util.stream.Collectors.toMap;
 import static org.linkwave.ws.utils.RedisTemplateUtils.executeInTxn;
 
 @Slf4j
@@ -103,6 +104,16 @@ public class RedisChatRepository implements ChatRepository<Long, String> {
         final var hashOps = redisTemplate.opsForHash();
         final var result = hashOps.get(userChatsKey(userId), chatId);
         return result == null ? 0 : Integer.parseInt(result.toString());
+    }
+
+    @Override
+    public Map<String, Integer> getUnreadMessages(Long userId) {
+        final String userChatsKey = userChatsKey(userId);
+        final var entries = redisTemplate.opsForHash().entries(userChatsKey);
+        return entries.entrySet()
+                .stream()
+                .map(e -> Map.entry(e.getKey().toString(), Integer.parseInt(e.getValue().toString())))
+                .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     @Override

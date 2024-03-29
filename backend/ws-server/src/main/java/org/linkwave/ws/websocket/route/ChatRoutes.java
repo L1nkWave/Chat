@@ -83,9 +83,12 @@ public class ChatRoutes {
                 .build());
     }
 
-    @SubRoute(value = "/{chatId}/unread_messages", disabled = true)
-    public void getUnreadMessages(@NonNull UserPrincipal principal,
-                                  @PathVariable String chatId) {
+    @SubRoute("/unread_messages")
+    public UnreadMessages getUnreadMessages(@NonNull UserPrincipal principal) {
+        final Long userId = principal.token().userId();
+        return UnreadMessages.builder()
+                .chats(chatRepository.getUnreadMessages(userId))
+                .build();
     }
 
     @SubRoute("/{chatId}/read/{messageId}")
