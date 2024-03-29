@@ -4,7 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.shared.auth.DefaultUserDetails;
-import org.linkwave.ws.websocket.repository.ChatRepository;
+import org.linkwave.ws.repository.ChatRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 

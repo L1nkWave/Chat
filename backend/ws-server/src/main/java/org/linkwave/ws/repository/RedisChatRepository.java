@@ -1,4 +1,4 @@
-package org.linkwave.ws.websocket.repository;
+package org.linkwave.ws.repository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,4 +1,4 @@
-package org.linkwave.ws.websocket.repository;
+package org.linkwave.ws.repository;
 
 import org.linkwave.ws.api.chat.ChatMemberDto;
 

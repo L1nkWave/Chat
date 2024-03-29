@@ -2,7 +2,7 @@ package org.linkwave.ws.websocket.routing.broadcast;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.linkwave.ws.websocket.repository.ChatRepository;
+import org.linkwave.ws.repository.ChatRepository;
 import org.linkwave.ws.websocket.routing.bpp.Broadcast;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;

@@ -10,7 +10,7 @@ import org.linkwave.ws.api.chat.MessageDto;
 import org.linkwave.ws.api.chat.NewTextMessage;
 import org.linkwave.ws.websocket.dto.*;
 import org.linkwave.ws.websocket.jwt.UserPrincipal;
-import org.linkwave.ws.websocket.repository.ChatRepository;
+import org.linkwave.ws.repository.ChatRepository;
 import org.linkwave.ws.websocket.routing.Box;
 import org.linkwave.ws.websocket.routing.Payload;
 import org.linkwave.ws.websocket.routing.bpp.Broadcast;

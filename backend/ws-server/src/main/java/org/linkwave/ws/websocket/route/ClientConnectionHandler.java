@@ -10,7 +10,7 @@ import org.linkwave.ws.api.chat.ChatServiceClient;
 import org.linkwave.ws.websocket.dto.Action;
 import org.linkwave.ws.websocket.dto.StatusMessage;
 import org.linkwave.ws.websocket.jwt.UserPrincipal;
-import org.linkwave.ws.websocket.repository.ChatRepository;
+import org.linkwave.ws.repository.ChatRepository;
 import org.linkwave.ws.websocket.routing.broadcast.WebSocketMessageBroadcast;
 import org.linkwave.ws.websocket.session.callback.AfterConnectionClosed;
 import org.linkwave.ws.websocket.session.callback.AfterConnectionEstablished;

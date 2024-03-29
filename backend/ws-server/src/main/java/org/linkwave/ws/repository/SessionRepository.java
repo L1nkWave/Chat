@@ -1,4 +1,4 @@
-package org.linkwave.ws.websocket.repository;
+package org.linkwave.ws.repository;
 
 import java.util.Set;
 
