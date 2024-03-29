@@ -19,10 +19,11 @@ public interface BroadcastManager {
     String KEY_SEPARATOR = ":";
 
     /**
-     * @param routeHandler object with corresponding route
-     * @param jsonMessage  serialized message to deliver
+     * @param routeHandler      object with corresponding route
+     * @param serializedMessage text message to deliver
      */
-    void process(@NonNull Method routeHandler, @NonNull Map<String, String> pathVariables, String jsonMessage);
+    void process(@NonNull Method routeHandler, @NonNull Map<String, String> pathVariables,
+                 @NonNull Object message, @NonNull String serializedMessage);
 
     boolean isBroadcast(@NonNull Method routeHandler);
 

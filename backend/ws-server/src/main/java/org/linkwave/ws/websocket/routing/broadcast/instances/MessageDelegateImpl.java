@@ -4,7 +4,7 @@ import org.linkwave.ws.websocket.dto.Action;
 import org.linkwave.ws.websocket.dto.BaseMessage;
 import org.linkwave.ws.websocket.dto.OutcomeMessage;
 import org.linkwave.ws.websocket.dto.StatusMessage;
-import org.linkwave.ws.websocket.repository.ChatRepository;
+import org.linkwave.ws.repository.ChatRepository;
 import org.linkwave.ws.websocket.routing.broadcast.WebSocketMessageBroadcast;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -62,7 +62,7 @@ public class MessageDelegateImpl implements MessageDelegate {
                     );
                     message = mapper.writeValueAsString(statusMessage); // remove chats property
                 } else {
-                    userChats = chatRepository.getChats(statusMessage.getSenderId());
+                    userChats = chatRepository.getUserChats(statusMessage.getSenderId());
                 }
 
                 // collect members from user's chats

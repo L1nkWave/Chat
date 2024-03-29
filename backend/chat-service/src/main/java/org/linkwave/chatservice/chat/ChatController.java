@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.linkwave.chatservice.common.DtoViews.New;
 import static org.linkwave.chatservice.common.RequestUtils.requestInitiator;
@@ -96,6 +97,11 @@ public class ChatController {
         if (!chatService.isMember(userDetails().id(), chatService.findGroupChat(id))) {
             throw new ResourceNotFoundException("Membership is not confirmed");
         }
+    }
+
+    @GetMapping("/members/batch")
+    public Map<String, List<ChatMember>> getChatsMembers(@RequestParam List<String> ids) {
+        return chatService.getChatsMembers(userDetails().id(), ids);
     }
 
     @PostMapping("/{id}/group/members")

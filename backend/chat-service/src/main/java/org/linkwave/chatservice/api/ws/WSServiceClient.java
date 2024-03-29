@@ -12,13 +12,13 @@ import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 public interface WSServiceClient {
 
     @PostMapping
-    boolean loadNewChat(
+    void loadNewChat(
             @RequestHeader(AUTHORIZATION) String authHeader,
             @RequestBody LoadChatRequest loadChatRequest
     );
 
     @PostMapping("/group/{chatId}")
-    boolean loadNewGroupChat(
+    void loadNewGroupChat(
             @RequestHeader(AUTHORIZATION) String authHeader,
             @PathVariable String chatId
     );

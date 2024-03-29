@@ -7,8 +7,8 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @Getter
 @SuperBuilder
-public class OutcomeMessage extends IdentifiedMessage {
+public class IdentifiedMessage extends ChatMessage {
 
-    private String text;
+    private String id;
 
 }

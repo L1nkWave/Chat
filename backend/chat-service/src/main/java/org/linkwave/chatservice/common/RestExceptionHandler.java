@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.linkwave.chatservice.api.ApiResponseClientErrorException;
 import org.linkwave.chatservice.api.ServiceErrorException;
 import org.linkwave.chatservice.chat.ChatNotFoundException;
+import org.linkwave.chatservice.message.MessageNotFoundException;
 import org.linkwave.shared.dto.ApiError;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -56,7 +57,11 @@ public class RestExceptionHandler {
     }
 
     @ResponseStatus(NOT_FOUND)
-    @ExceptionHandler({ChatNotFoundException.class, ResourceNotFoundException.class})
+    @ExceptionHandler({
+            ChatNotFoundException.class,
+            MessageNotFoundException.class,
+            ResourceNotFoundException.class
+    })
     public ApiError handleNotFoundResourceError(@NonNull RuntimeException e, @NonNull HttpServletRequest request) {
         return ApiError.builder()
                 .message(e.getMessage())

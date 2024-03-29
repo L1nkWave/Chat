@@ -18,6 +18,7 @@
   "paths": {
     "/v1/chats": {
       "get": {
+        "tags": ["Chat"],
         "summary": "Retrieve a portion of user chats",
         "parameters": [
           {
@@ -72,6 +73,7 @@
         }
       },
       "post": {
+        "tags": ["Chat"],
         "summary": "Create duo chat",
         "requestBody": {
           "content": {
@@ -122,6 +124,7 @@
         }
       ],
       "get": {
+        "tags": ["Chat"],
         "summary": "Check if duo chat exists between request initiator and recipient",
         "responses": {
           "204": {
@@ -160,6 +163,7 @@
     },
     "/v1/chats/ids": {
       "get": {
+        "tags": ["Chat"],
         "summary": "Get ids of all user chats",
         "responses": {
           "200": {
@@ -190,6 +194,7 @@
     },
     "/v1/chats/group": {
       "post": {
+        "tags": ["Chat"],
         "summary": "Create group chat",
         "requestBody": {
           "content": {
@@ -221,6 +226,7 @@
         }
       ],
       "get": {
+        "tags": ["Chat"],
         "summary": "Get group chat details by ID",
         "responses": {
           "200": {
@@ -243,6 +249,7 @@
         }
       ],
       "get": {
+        "tags": ["Chat"],
         "summary": "Check if request initiator is a member of group chat",
         "responses": {
           "204": {
@@ -286,6 +293,7 @@
         }
       ],
       "post": {
+        "tags": ["Chat"],
         "summary": "Add request initiator to members of the group chat",
         "responses": {
           "201": {
@@ -317,6 +325,7 @@
         }
       },
       "delete": {
+        "tags": ["Chat"],
         "summary": "Remove request initiator from group chat members",
         "responses": {
           "204": {
@@ -348,6 +357,7 @@
         }
       ],
       "get": {
+        "tags": ["Chat"],
         "summary": "Retrieve the group chat avatar",
         "responses": {
           "200": {
@@ -379,6 +389,7 @@
         }
       },
       "post": {
+        "tags": ["Chat"],
         "summary": "Multipart request to upload group chat avatar",
         "requestBody": {
           "content": {
@@ -446,6 +457,7 @@
         }
       },
       "delete": {
+        "tags": ["Chat"],
         "summary": "Delete uploaded group chat avatar",
         "responses": {
           "200": {
@@ -477,6 +489,7 @@
         }
       ],
       "get": {
+        "tags": ["Message"],
         "summary": "Get all chat messages",
         "responses": {
           "200": {
@@ -485,43 +498,25 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": {
-                    "anyOf": [
-                      {
-                        "$ref": "#/components/schemas/MessageDto"
-                      },
-                      {
-                        "$ref": "#/components/schemas/TextMessageDto"
-                      }
-                    ]
-                  },
                   "example": [
                     {
-                      "id": "65e8c005099364735d754ecd",
+                      "id": "6605608b9df240538d763690",
                       "action": "MESSAGE",
-                      "createdAt": 1709752325.297000000,
+                      "createdAt": 1709751569.410000000,
                       "authorId": 1,
-                      "readers": [],
                       "reactions": [],
-                      "text": "hello world!",
+                      "text": "Hi everyone!",
                       "editedAt": null,
-                      "edited": false
+                      "edited": false,
+                      "read": true
                     },
                     {
                       "id": "65e8bd1188860555a2bbfa5f",
                       "action": "JOIN",
                       "createdAt": 1709751569.410000000,
                       "authorId": 1,
-                      "readers": [],
-                      "reactions": []
-                    },
-                    {
-                      "id": "65e8b0e4404b9356a273e304",
-                      "action": "CREATED",
-                      "createdAt": 1709748452.204000000,
-                      "authorId": 1,
-                      "readers": [],
-                      "reactions": []
+                      "reactions": [],
+                      "read": true
                     }
                   ]
                 }
@@ -531,6 +526,7 @@
         }
       },
       "post": {
+        "tags": ["Message"],
         "summary": "Save a message that only consists of action as content",
         "parameters": [
           {
@@ -590,6 +586,7 @@
         }
       ],
       "post": {
+        "tags": ["Message"],
         "summary": "Save a text message to the chat",
         "requestBody": {
           "content": {
@@ -623,6 +620,80 @@
                   "message": "do not have permissions to access the resource",
                   "status": 403,
                   "timestamp": 1709752263.3128679
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chats/{id}/messages/readers": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/id"
+        },
+        {
+          "in": "query",
+          "name": "to",
+          "description": "ID of the last read message in the chat",
+          "schema": {
+            "type": "string",
+            "nullable": false
+          },
+          "example": "66054ae5199e5654c9a15799"
+        }
+      ],
+      "post": {
+        "tags": ["Message"],
+        "summary": "Read a range of chat messages",
+        "responses": {
+          "200": {
+            "description": "Returns ids of read messages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "nullable": false
+                },
+                "example": [
+                  "660687eb0f2b5c2763c23a60",
+                  "660687eb0f2b5c2763c23a61",
+                  "660687eb0f2b5c2763c23a62"
+                ]
+              }
+            }
+          },
+          "403": {
+            "description": "Chat membership is not confirmed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/chats/messages/660147887cd54a553aae1db5/readers",
+                  "message": "Do not have permissions to access the resource",
+                  "status": 403,
+                  "timestamp": 1711360639.479022400
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Requested message not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/chats/messages/660147887cd5a553aae1db5/readers",
+                  "message": "Requested message not found",
+                  "status": 404,
+                  "timestamp": 1711360639.479022400
                 }
               }
             }
@@ -695,7 +766,7 @@
             "nullable": false
           },
           "lastMessage": {
-            "$ref": "#/components/schemas/MessageDto"
+            "$ref": "#/components/schemas/TextMessageDto"
           }
         },
         "example": {
@@ -703,16 +774,18 @@
           "type": "DUO",
           "createdAt": 1710060125.916620300,
           "lastMessage": {
-            "id": "65ed725dc636007bd4027c7f",
-            "action": "CREATED",
-            "createdAt": 1710060125.916620300,
+            "id": "66055236cb761a59d173d978",
+            "action": "MESSAGE",
+            "createdAt": 1711624758.135000000,
             "author": {
               "id": 1,
-              "username": null,
-              "name": null
+              "username": "@mathewmcc",
+              "name": "Matthew McConaughey"
             },
-            "readers": [],
-            "reactions": []
+            "reactions": [],
+            "text": "Hi everyone!",
+            "edited": false,
+            "isRead": false
           }
         }
       },
@@ -763,7 +836,7 @@
             "nullable": false
           },
           "lastMessage": {
-            "$ref": "#/components/schemas/MessageDto"
+            "$ref": "#/components/schemas/TextMessageDto"
           }
         },
         "example": {
@@ -773,16 +846,18 @@
           "avatarPath": null,
           "createdAt": 1709748452.204932100,
           "lastMessage": {
-            "id": "65e8b0e4404b9356a273e304",
-            "action": "CREATED",
-            "createdAt": 1709748452.204932100,
+            "id": "66055236cb761a59d173d978",
+            "action": "MESSAGE",
+            "createdAt": 1711624758.135000000,
             "author": {
               "id": 1,
-              "username": null,
-              "name": null
+              "username": "@mathewmcc",
+              "name": "Matthew McConaughey"
             },
-            "readers": [],
-            "reactions": []
+            "reactions": [],
+            "text": "Hi everyone!",
+            "edited": false,
+            "isRead": false
           }
         }
       },
@@ -936,11 +1011,8 @@
           "author": {
             "$ref": "#/components/schemas/MessageAuthorDto"
           },
-          "readers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MessageReader"
-            }
+          "read": {
+            "type": "boolean"
           },
           "reactions": {
             "type": "array",
@@ -950,16 +1022,16 @@
           }
         },
         "example": {
-          "id": "65e837055f5dba18fffd2db3",
-          "action": "CREATED",
-          "createdAt": 1709717096.333000000,
+          "id": "66055236cb761a59d173d978",
+          "action": "MESSAGE",
+          "createdAt": 1711624758.135000000,
           "author": {
             "id": 1,
-            "username": "mathew",
+            "username": "@mathewmcc",
             "name": "Matthew McConaughey"
           },
-          "readers": [],
-          "reactions": []
+          "reactions": [],
+          "read": false
         }
       },
       "TextMessageDto": {
@@ -977,9 +1049,8 @@
             "type": "number",
             "nullable": false
           },
-          "authorId": {
-            "type": "integer",
-            "nullable": false
+          "author": {
+            "$ref": "#/components/schemas/MessageAuthorDto"
           },
           "text": {
             "type": "string",
@@ -993,11 +1064,9 @@
             "type": "number",
             "nullable": true
           },
-          "readers": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MessageReader"
-            }
+          "isRead": {
+            "type": "boolean",
+            "nullable": false
           },
           "reactions": {
             "type": "array",
@@ -1007,15 +1076,18 @@
           }
         },
         "example": {
-          "id": "65e837055f5dba18fffd2db3",
+          "id": "66055236cb761a59d173d978",
           "action": "MESSAGE",
-          "createdAt": 1709717096.333000000,
-          "authorId": 1,
-          "text": "hello world!",
-          "editedAt": null,
+          "createdAt": 1711624758.135000000,
+          "author": {
+            "id": 1,
+            "username": "@mathewmcc",
+            "name": "Matthew McConaughey"
+          },
+          "reactions": [],
+          "text": "Hi everyone!",
           "edited": false,
-          "readers": [],
-          "reactions": []
+          "isRead": true
         }
       },
       "MessageAuthorDto": {
@@ -1038,23 +1110,6 @@
           "id": 1,
           "username": "mathew",
           "name": "Matthew McConaughey"
-        }
-      },
-      "MessageReader": {
-        "type": "object",
-        "properties": {
-          "memberId": {
-            "type": "integer",
-            "nullable": false
-          },
-          "readAt": {
-            "type": "number",
-            "nullable": false
-          }
-        },
-        "example": {
-          "memberId": 1,
-          "readAt": 1709717096.333000000
         }
       },
       "MessageReaction": {
@@ -1122,7 +1177,8 @@
     "parameters": {
       "id": {
         "in": "path",
-        "name": "resource identification",
+        "name": "id",
+        "description": "resource identification",
         "schema": {
           "type": "string",
           "nullable": false

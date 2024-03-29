@@ -1,10 +1,12 @@
 package org.linkwave.ws.api.chat;
 
-import org.linkwave.ws.websocket.dto.client.NewGroupChat;
+import org.linkwave.ws.websocket.dto.NewGroupChat;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 
@@ -45,6 +47,12 @@ public interface ChatServiceClient {
             @PathVariable String chatId
     );
 
+    @GetMapping("/members/batch")
+    Map<String, Set<ChatMemberDto>> getChatsMembers(
+            @RequestHeader(AUTHORIZATION) String authHeader,
+            @RequestParam List<String> ids
+    );
+
     @GetMapping("/{chatId}/group/member")
     void isGroupChatMember(
             @RequestHeader(AUTHORIZATION) String authHeader,
@@ -56,6 +64,13 @@ public interface ChatServiceClient {
             @RequestHeader(AUTHORIZATION) String authHeader,
             @PathVariable String chatId,
             @RequestParam Long recipientId
+    );
+
+    @PostMapping("/{chatId}/messages/readers")
+    List<String> readMessages(
+            @RequestHeader(AUTHORIZATION) String authHeader,
+            @PathVariable String chatId,
+            @RequestParam("to") String lastReadMessageId
     );
 
 }

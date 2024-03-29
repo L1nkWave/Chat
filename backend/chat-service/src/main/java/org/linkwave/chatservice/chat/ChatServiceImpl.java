@@ -21,6 +21,7 @@ import org.linkwave.chatservice.common.RequestInitiator;
 import org.linkwave.chatservice.common.ResourceNotFoundException;
 import org.linkwave.chatservice.message.Message;
 import org.linkwave.chatservice.message.MessageDto;
+import org.linkwave.chatservice.user.UserService;
 import org.linkwave.shared.storage.FileStorageService;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.util.Pair;
@@ -52,6 +53,7 @@ public class ChatServiceImpl implements ChatService {
     private final ChatRepository<Chat> chatRepository;
     private final ModelMapper modelMapper;
     private final FileStorageService fileStorageService;
+    private final UserService userService;
 
     @Transactional
     @Override
@@ -74,6 +76,11 @@ public class ChatServiceImpl implements ChatService {
             throw new BadCredentialsException("Chat already exists");
         }
 
+        // create users if needed
+        userService.createUserIfNeed(initiator.userId());
+        userService.createUserIfNeed(recipientId);
+
+        // create members
         final var now = Instant.now();
         final List<ChatMember> chatMembers = List.of(
                 new ChatMember(initiator.userId(), ADMIN, now),
@@ -103,6 +110,8 @@ public class ChatServiceImpl implements ChatService {
                                         @NonNull NewGroupChatRequest chatRequest) {
 
         final Long initiatorUserId = initiator.userId();
+        userService.createUserIfNeed(initiatorUserId);
+
         final var now = Instant.now();
         final List<ChatMember> members = List.of(new ChatMember(initiatorUserId, ADMIN, now));
 
@@ -213,6 +222,14 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
+    public Map<String, List<ChatMember>> getChatsMembers(Long userId, List<String> chatId) {
+        return chatRepository.findAllById(chatId)
+                .stream()
+                .filter(chat -> isMember(userId, chat))
+                .collect(toMap(Chat::getId, Chat::getMembers));
+    }
+
+    @Override
     public boolean isMember(Long userId, String chatId) {
         return isMember(userId, findChat(chatId));
     }
@@ -233,6 +250,9 @@ public class ChatServiceImpl implements ChatService {
     @Transactional
     @Override
     public ChatMember addGroupChatMember(Long userId, String chatId) {
+
+        userService.createUserIfNeed(userId);
+
         final GroupChat groupChat = findGroupChat(chatId);
         if (isMember(userId, groupChat)) {
             throw new IllegalArgumentException("You are already a member");
