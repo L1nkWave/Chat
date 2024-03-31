@@ -5,11 +5,11 @@ import { ScrollTrigger } from "gsap/dist/ScrollTrigger";
 import React, { useEffect, useRef, useState } from "react";
 
 import { HomeContainerProps } from "@/components/HomeContainer/homeContainer.types";
-import { colors } from "@/utils/colors";
+import { COLORS } from "@/constants/colors";
 
 export function HomeContainer({ children }: Readonly<HomeContainerProps>) {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [background, setBackground] = useState(`${colors.blue["100"]}70`);
+  const [background, setBackground] = useState(`${COLORS.blue["100"]}70`);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -21,7 +21,7 @@ export function HomeContainer({ children }: Readonly<HomeContainerProps>) {
           end: "5000 top",
           scrub: true,
           onUpdate: self => {
-            const newColor = gsap.utils.interpolate(`${colors.blue["100"]}65`, colors.blue["700"], self.progress);
+            const newColor = gsap.utils.interpolate(`${COLORS.blue["100"]}65`, COLORS.blue["700"], self.progress);
             setBackground(newColor);
           },
         },

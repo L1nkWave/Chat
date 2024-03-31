@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 
 import { getContacts } from "@/api/http/users/users";
 import { ContactParams } from "@/api/http/users/users.types";
@@ -43,9 +44,8 @@ export function Chat() {
         });
 
         setContacts(fetchedContacts);
-        console.log(fetchedContacts);
       } catch (error) {
-        console.error("Error fetching contacts:", error);
+        toast.error("Error fetching contacts");
       }
     };
 
@@ -62,17 +62,13 @@ export function Chat() {
       return router.push("/sign-in");
     }
 
-    webSocket.addEventListener("open", event => {
+    webSocket.onopen = event => {
       console.log("WebSocket connection opened:", event);
-    });
+    };
 
-    webSocket.addEventListener("message", event => {
+    webSocket.onmessage = event => {
       console.log("WebSocket connection message:", event);
-    });
-
-    webSocket.addEventListener("close", event => {
-      console.log("WebSocket connection closed:", event);
-    });
+    };
 
     return () => {
       if (!webSocket) return;
