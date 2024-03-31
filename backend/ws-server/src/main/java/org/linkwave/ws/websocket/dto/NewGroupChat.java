@@ -1,4 +1,4 @@
-package org.linkwave.ws.websocket.dto.client;
+package org.linkwave.ws.websocket.dto;
 
 import lombok.*;
 

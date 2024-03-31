@@ -14,6 +14,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface ChatService {
@@ -79,6 +80,8 @@ public interface ChatService {
      * @param chat the chat that is necessary to update
      */
     void updateChat(@NonNull Chat chat);
+
+    Map<String, List<ChatMember>> getChatsMembers(Long userId, List<String> chatId);
 
     /**
      * Used to get to know if user is a member of specific chat.

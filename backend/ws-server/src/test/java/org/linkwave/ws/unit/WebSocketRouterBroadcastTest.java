@@ -11,7 +11,7 @@ import org.linkwave.ws.websocket.dto.Action;
 import org.linkwave.ws.websocket.dto.OutcomeMessage;
 import org.linkwave.shared.auth.Token;
 import org.linkwave.ws.websocket.jwt.UserPrincipal;
-import org.linkwave.ws.websocket.repository.ChatRepository;
+import org.linkwave.ws.repository.ChatRepository;
 import org.linkwave.ws.websocket.routing.*;
 import org.linkwave.ws.websocket.routing.args.DefaultRouteHandlerArgumentResolver;
 import org.linkwave.ws.websocket.routing.bpp.Broadcast;

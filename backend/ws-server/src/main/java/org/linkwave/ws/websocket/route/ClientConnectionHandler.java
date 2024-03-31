@@ -10,7 +10,7 @@ import org.linkwave.ws.api.chat.ChatServiceClient;
 import org.linkwave.ws.websocket.dto.Action;
 import org.linkwave.ws.websocket.dto.StatusMessage;
 import org.linkwave.ws.websocket.jwt.UserPrincipal;
-import org.linkwave.ws.websocket.repository.ChatRepository;
+import org.linkwave.ws.repository.ChatRepository;
 import org.linkwave.ws.websocket.routing.broadcast.WebSocketMessageBroadcast;
 import org.linkwave.ws.websocket.session.callback.AfterConnectionClosed;
 import org.linkwave.ws.websocket.session.callback.AfterConnectionEstablished;
@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.toSet;
 import static org.linkwave.shared.utils.Bearers.append;
 
@@ -55,17 +56,28 @@ public class ClientConnectionHandler implements AfterConnectionEstablished, Afte
         log.debug("-> user:[{}] connected, SSID={}", principal.getName(), sessionId);
 
         // fetch users chats
+        final String bearer = append(principal.rawAccessToken());
         final Set<String> chats;
         try {
-            final List<String> chatsIds = chatClient.getUserChats(append(principal.rawAccessToken()));
+            final List<String> chatsIds = chatClient.getUserChats(bearer);
             chats = new HashSet<>(chatsIds);
         } catch (FeignException | ApiErrorException e) {
             log.error("-> afterConnected(): cannot fetch chats, cause=[{}]", e.getMessage());
             throw new IllegalStateException("Chats cannot be resolved", e);
         }
 
+        // find chats that have not loaded yet
+        final List<String> nonExistingChats = chats.stream()
+                .filter(not(chatRepository::chatExists))
+                .toList();
+
+        // load chats with all members
+        if (!nonExistingChats.isEmpty()) {
+            final var chatsMembers = chatClient.getChatsMembers(bearer, nonExistingChats);
+            chatRepository.loadChats(chatsMembers);
+        }
+
         // notify & add connected user to predefined chats
-        chatRepository.addMember(userId, chats);
         notifyChatMembersWith(Action.ONLINE, chats, userId);
         chatRepository.saveSession(userId, sessionId);
     }
@@ -78,7 +90,7 @@ public class ClientConnectionHandler implements AfterConnectionEstablished, Afte
 
         log.debug("-> user:[{}] disconnected, SSID={}", principal.getName(), sessionId);
 
-        notifyChatMembersWith(Action.OFFLINE, chatRepository.getChats(userId), userId);
+        notifyChatMembersWith(Action.OFFLINE, chatRepository.getUserChats(userId), userId);
         chatRepository.removeSession(userId, sessionId);
     }
 

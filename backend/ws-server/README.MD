@@ -1,6 +1,6 @@
 ## Web-socket routes documentation
 
-### 1. Join in the group chat
+### Join in the group chat
 
 Message structure:
 
@@ -8,7 +8,7 @@ Message structure:
 path=/chat/group/{chatId}/join
 ```
 
-Response message structure:
+Response message example:
 
 ```json
 {
@@ -21,7 +21,7 @@ Response message structure:
 
 <br/>
 
-### 2. Leave from the group chat
+### Leave from the group chat
 
 Message structure:
 
@@ -43,12 +43,12 @@ In other case you will receive message with `ERROR` action:
 
 <br/>
 
-### 3. Send a text-message to the group chat
+### Send a text-message to the chat (`DUO` / `GROUP`)
 
 Message structure is below. It is recommended to use UUID for temporary message id on the client.
 
 ```
-path=/chat/65f605253b9b7c0d6dab5546/send
+path=/chat/{chatId}/send
 
 {
   "tmpMessageId": "3ba88cab-8ca5-48e7-aff4-ba689fccee70",
@@ -72,7 +72,7 @@ And then every member of the destination chat will receive your message:
 {
   "action": "MESSAGE",
   "timestamp": 1710622546.515123400,
-  "messageId": "65f607523b9b7c0d6dab5547",
+  "id": "65f607523b9b7c0d6dab5547",
   "chatId": "65f605253b9b7c0d6dab5546",
   "senderId": 34,
   "text": "Hi everyone!"
@@ -88,6 +88,56 @@ you will get message with `ERROR` action:
   "timestamp": 1710622677.980591300,
   "error": "You are not member of chat",
   "path": "/chat/65fca83ea94fa31e8a726f99/send"
+}
+```
+
+<br/>
+
+### Read messages (`DUO` / `GROUP`)
+
+Message structure:
+
+```
+path=/chat/{chatId}/read/{messageId}
+```
+
+Response message example:
+```json
+{
+  "action": "READ",
+  "timestamp": 1711664377.341578700,
+  "senderId": 34,
+  "chatId": "66054151e162397346b28554",
+  "messages": [
+    "6605e97a576f710ba44a3dd7",
+    "6605ea09576f710ba44a3dd8",
+    "6605ea0e576f710ba44a3dd9",
+    "6605ea0e576f710ba44a3dda",
+    "6605ea0f576f710ba44a3ddb"
+  ]
+}
+```
+
+<br/>
+
+### Get unread messages (`DUO` / `GROUP`)
+
+Message structure:
+
+```
+path=/chat/unread_messages
+```
+
+Response message example:
+
+```json
+{
+  "action": "UNREAD_MESSAGES",
+  "timestamp": 1711704048.542412300,
+  "chats": {
+    "66054151e162397346b28554": 3,
+    "6605584bb6c9df73337beba3": 0
+  }
 }
 ```
 

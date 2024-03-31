@@ -1,6 +1,7 @@
 package org.linkwave.chatservice.message;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.querydsl.core.annotations.QueryEntity;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.linkwave.chatservice.chat.duo.Chat;
@@ -14,6 +15,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+@QueryEntity
 @Document("messages")
 @NoArgsConstructor
 @Data
@@ -34,8 +36,7 @@ public class Message implements DtoConverter<MessageDto> {
 
     private Long authorId;
 
-    @Builder.Default
-    private List<MessageReader> readers = new ArrayList<>();
+    private boolean isRead;
 
     @Builder.Default
     private List<MessageReaction> reactions = new ArrayList<>();
