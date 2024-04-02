@@ -60,6 +60,7 @@ At first, you receive the bind message:
 
 ```json
 {
+  "action": "BIND",
   "chatId": "65f605253b9b7c0d6dab5546",
   "tmpMessageId": "3ba88cab-8ca5-48e7-aff4-ba689fccee70",
   "messageId": "65f607523b9b7c0d6dab5547"

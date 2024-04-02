@@ -69,7 +69,7 @@ public class ChatRoutes {
         chatRepository.changeUnreadMessages(id, members, 1);
 
         // send a bind message to initiator
-        final var bindMessage = new BindMessage(id, message.tmpMessageId(), messageId);
+        final var bindMessage = new BindMessage(Action.BIND, id, message.tmpMessageId(), messageId);
         session.sendMessage(new TextMessage(objectMapper.writeValueAsString(bindMessage)));
 
         // build outcome message
