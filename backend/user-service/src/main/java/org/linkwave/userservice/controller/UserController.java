@@ -44,6 +44,11 @@ public class UserController {
         return userService.getUser(id);
     }
 
+    @PatchMapping("/{id}/online")
+    public void updateUserStatus(@PathVariable Long id, @RequestParam Boolean value) {
+        userService.setUserStatus(id, value);
+    }
+
     @GetMapping
     public List<UserDto> getUsers(@RequestParam String username,
                                   @RequestParam int offset, @RequestParam int limit,

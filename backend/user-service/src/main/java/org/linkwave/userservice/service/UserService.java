@@ -17,6 +17,8 @@ public interface UserService {
 
     UserDto getUser(Long id);
 
+    void setUserStatus(Long id, @NonNull Boolean isOnline);
+
     /**
      * Performs users global searching and ignores users which initiator is familiar with.
      *

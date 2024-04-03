@@ -78,6 +78,13 @@ public class DefaultUserService implements UserService {
         return modelMapper.map(findById(id), UserDto.class);
     }
 
+    @Transactional
+    @Override
+    public void setUserStatus(Long id, @NonNull Boolean isOnline) {
+        final UserEntity user = findById(id);
+        user.setOnline(isOnline);
+    }
+
     @Override
     public Pair<Long, List<UserDto>> getUsersByUsernameWithoutContacts(
             @NonNull DefaultUserDetails userDetails,
