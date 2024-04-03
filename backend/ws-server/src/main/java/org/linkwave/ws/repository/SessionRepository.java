@@ -9,5 +9,7 @@ public interface SessionRepository<T> {
 
     void removeSession(T userId, String sessionId);
 
+    boolean hasSessions(T userId);
+
     Set<String> getSessions(String customKey);
 }

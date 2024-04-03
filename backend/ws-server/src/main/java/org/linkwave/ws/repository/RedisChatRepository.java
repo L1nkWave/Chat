@@ -165,6 +165,11 @@ public class RedisChatRepository implements ChatRepository<Long, String> {
     }
 
     @Override
+    public boolean hasSessions(Long userId) {
+        return Boolean.TRUE.equals(redisTemplate.hasKey(userKey(userId)));
+    }
+
+    @Override
     public void shareWithConsumer(String consumerId, String jsonMessage) {
         redisTemplate.convertAndSend(consumerId, jsonMessage);
     }
