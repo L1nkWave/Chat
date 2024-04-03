@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.file.Path;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -83,6 +84,7 @@ public class DefaultUserService implements UserService {
     public void setUserStatus(Long id, @NonNull Boolean isOnline) {
         final UserEntity user = findById(id);
         user.setOnline(isOnline);
+        user.setLastSeen(ZonedDateTime.now());
     }
 
     @Override
