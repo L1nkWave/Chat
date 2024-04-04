@@ -20,14 +20,20 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.List;
 
 import static jakarta.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
+import static org.springframework.http.HttpMethod.PATCH;
 import static org.springframework.http.HttpMethod.POST;
 
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final RequestMatcher registrationRequestMatcher = new AntPathRequestMatcher("/api/v1/users/register", POST.name());
+    private final List<RequestMatcher> matchersWhiteList = List.of(
+            new AntPathRequestMatcher("/api/v1/users/register", POST.name()),
+            new AntPathRequestMatcher("/api/v1/users/{id}/online", PATCH.name())
+    );
+
     private final RequestMatcher requestMatcher = new AntPathRequestMatcher("/api/v*/users/**");
     private final AuthenticationConverter authenticationConverter;
     private final ObjectMapper objectMapper;
@@ -37,7 +43,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
 
-        if (registrationRequestMatcher.matches(request) || !requestMatcher.matches(request)) {
+        final boolean isWhiteListMatched = matchersWhiteList.stream().anyMatch(matcher -> matcher.matches(request));
+        if (isWhiteListMatched || !requestMatcher.matches(request)) {
             filterChain.doFilter(request, response);
             return;
         }

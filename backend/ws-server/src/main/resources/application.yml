@@ -14,6 +14,11 @@ spring:
       host: 'localhost'
       port: 6379
 
+  cloud:
+    openfeign:
+      okhttp:
+        enabled: true
+
 eureka:
   client:
     service-url:
