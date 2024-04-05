@@ -4,10 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.linkwave.ws.api.chat.ApiErrorException;
-import org.linkwave.ws.api.chat.ChatServiceClient;
-import org.linkwave.ws.api.chat.MessageDto;
-import org.linkwave.ws.api.chat.NewTextMessage;
+import org.linkwave.ws.api.chat.*;
 import org.linkwave.ws.websocket.dto.*;
 import org.linkwave.ws.websocket.jwt.UserPrincipal;
 import org.linkwave.ws.repository.ChatRepository;
@@ -80,6 +77,34 @@ public class ChatRoutes {
                 .senderId(userId)
                 .text(message.text())
                 .timestamp(messageDto.getCreatedAt())
+                .build());
+    }
+
+    @SubRoute("/edit_text_message/{messageId}")
+    @Broadcast(value = "chat:{chatId}", analyzeMessage = true)
+    public Box<OutcomeMessage> editTextMessage(@PathVariable String messageId,
+                                               @Payload String text,
+                                               @NonNull UserPrincipal principal,
+                                               @NonNull String path) {
+
+        final UpdatedTextMessage updatedMessage;
+        try {
+            updatedMessage = chatClient.editTextMessage(
+                    append(principal.rawAccessToken()),
+                    messageId,
+                    new NewTextMessage(text)
+            );
+        } catch (ApiErrorException e) {
+            return error(ErrorMessage.create(e.getMessage(), path));
+        }
+
+        return ok(OutcomeMessage.builder()
+                .action(Action.UPD_MESSAGE)
+                .id(updatedMessage.getMessageId())
+                .chatId(updatedMessage.getChatId())
+                .text(updatedMessage.getText())
+                .timestamp(updatedMessage.getEditedAt())
+                .senderId(principal.token().userId())
                 .build());
     }
 

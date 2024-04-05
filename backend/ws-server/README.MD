@@ -94,6 +94,54 @@ you will get message with `ERROR` action:
 
 <br/>
 
+### Edit text-message (`DUO` / `GROUP`)
+
+Message structure:
+
+```
+path=/chat/edit_text_message/{messageId}
+
+[text]
+```
+
+Response message example:
+```json
+{
+  "action": "UPD_MESSAGE",
+  "timestamp": 1710622677.980591300,
+  "senderId": 1,
+  "chatId": "66054151e162397346b28554",
+  "id": "66068a1a0f2b5c2763c23a67",
+  "text": "update message from websockets"
+}
+```
+
+Possible errors:
+
+- Message not found
+
+```json
+{
+  "action": "ERROR",
+  "timestamp": 1710622677.980591300,
+  "error": "Requested message not found",
+  "path": "/chat/edit_text_message/66068a1a0f2b5c2763c23a7"
+}
+```
+
+- Not a member of chat or not a message sender
+
+```json
+{
+  "action": "ERROR",
+  "timestamp": 1710622677.980591300,
+  "error": "Do not have permissions to modify the message",
+  "path": "/chat/edit_text_message/66068a1a0f2b5c2763c23a67"
+}
+```
+
+<br/>
+
 ### Read messages (`DUO` / `GROUP`)
 
 Message structure:
