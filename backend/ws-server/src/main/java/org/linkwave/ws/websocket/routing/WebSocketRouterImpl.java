@@ -4,6 +4,7 @@ import org.linkwave.ws.websocket.routing.args.RouteHandlerArgumentResolver;
 import org.linkwave.ws.websocket.routing.broadcast.BroadcastManager;
 import org.linkwave.ws.websocket.routing.exception.InvalidMessageFormatException;
 import org.linkwave.ws.websocket.routing.exception.InvalidPathException;
+import org.linkwave.ws.websocket.routing.exception.RoutingException;
 import org.linkwave.ws.websocket.routing.parser.MessageParser;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -57,7 +58,12 @@ public class WebSocketRouterImpl implements WebSocketRouter {
         final List<Object> arguments = argumentResolver.resolve(messageContext);
 
         // invoke route handler
-        Object invocationResult = invokeMethod(routeHandler, route.beanRoute(), arguments.toArray());
+        Object invocationResult;
+        try {
+            invocationResult = invokeMethod(routeHandler, route.beanRoute(), arguments.toArray());
+        } catch (Exception e) {
+            throw new RoutingException("An error occurred while routing message", e);
+        }
 
         if (invocationResult == null) {
             return;

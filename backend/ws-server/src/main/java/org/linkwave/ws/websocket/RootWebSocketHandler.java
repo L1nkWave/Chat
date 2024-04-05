@@ -8,6 +8,7 @@ import org.linkwave.ws.websocket.dto.ErrorMessage;
 import org.linkwave.ws.websocket.routing.WebSocketRouter;
 import org.linkwave.ws.websocket.routing.exception.InvalidMessageFormatException;
 import org.linkwave.ws.websocket.routing.exception.InvalidPathException;
+import org.linkwave.ws.websocket.routing.exception.RoutingException;
 import org.linkwave.ws.websocket.session.SessionManager;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -57,7 +58,7 @@ public class RootWebSocketHandler extends AbstractWebSocketHandler {
 
         try {
             router.route(message.getPayload(), session);
-        } catch (InvalidMessageFormatException | InvalidPathException e) {
+        } catch (RoutingException | InvalidMessageFormatException | InvalidPathException e) {
             log.error("-> handleTextMessage(): {}", e.getMessage());
             session.sendMessage(createErrorMessage(e.getMessage()));
         }
