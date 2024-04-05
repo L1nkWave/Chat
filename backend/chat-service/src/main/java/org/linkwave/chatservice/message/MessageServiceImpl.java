@@ -7,8 +7,10 @@ import org.linkwave.chatservice.chat.duo.Chat;
 import org.linkwave.chatservice.common.PrivacyViolationException;
 import org.linkwave.chatservice.common.ResourceNotFoundException;
 import org.linkwave.chatservice.common.UnacceptableRequestDataException;
+import org.linkwave.chatservice.message.text.EditTextMessage;
 import org.linkwave.chatservice.message.text.NewTextMessage;
 import org.linkwave.chatservice.message.text.TextMessage;
+import org.linkwave.chatservice.message.text.UpdatedTextMessage;
 import org.linkwave.chatservice.user.User;
 import org.linkwave.chatservice.user.UserService;
 import org.modelmapper.ModelMapper;
@@ -35,8 +37,7 @@ public class MessageServiceImpl implements MessageService {
     private final MessageRepository messageRepository;
     private final ModelMapper modelMapper;
 
-    @Override
-    public Message createMessage(Long senderId, Instant creationTime, Action action) {
+    private Message createMessage(Long senderId, Instant creationTime, Action action) {
         final Message message = Message.builder()
                 .action(action)
                 .authorId(senderId)
@@ -89,6 +90,48 @@ public class MessageServiceImpl implements MessageService {
         chatService.updateChat(chat);
 
         return modelMapper.map(message, MessageDto.class);
+    }
+
+    @Override
+    public boolean isMessageSender(@NonNull Message message, Long memberId) {
+        return message.getAuthorId().equals(memberId);
+    }
+
+    @Transactional
+    @Override
+    public UpdatedTextMessage editTextMessage(Long senderId, String messageId,
+                                              @NonNull EditTextMessage editTextMessage) {
+        log.debug("-> editTextMessage(): sId={} msgId={}", senderId, messageId);
+        final Message message = getMessage(messageId);
+        checkPermissions(senderId, message);
+
+        final Chat chat = message.getChat();
+        if (message instanceof TextMessage textMessage) {
+            textMessage.setText(editTextMessage.getText());
+            textMessage.setEditedAt(Instant.now());
+            textMessage.setEdited(true);
+            updateMessage(textMessage);
+
+            return UpdatedTextMessage.builder()
+                    .messageId(textMessage.getId())
+                    .chatId(chat.getId())
+                    .text(textMessage.getText())
+                    .editedAt(textMessage.getEditedAt())
+                    .isEdited(textMessage.isEdited())
+                    .build();
+        } else {
+            log.debug("-> editTextMessage(): not text message sId={} msgId={}", senderId, messageId);
+            throw new MessageNotFoundException();
+        }
+    }
+
+    private void checkPermissions(Long userId, @NonNull Message message) {
+        final Chat chat = message.getChat();
+        if (chatService.isMember(userId, chat) &&
+            (isMessageSender(message, userId) || chatService.isAdmin(userId, chat))) {
+            return;
+        }
+        throw new PrivacyViolationException("Do not have permissions to modify the message");
     }
 
     @Override
