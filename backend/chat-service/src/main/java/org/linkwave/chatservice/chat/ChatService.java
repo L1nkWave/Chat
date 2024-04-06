@@ -114,6 +114,8 @@ public interface ChatService {
      */
     Optional<ChatMember> findChatMember(Long userId, @NonNull Chat chat);
 
+    boolean isAdmin(Long memberId, @NonNull Chat chat);
+
     ChatMember addGroupChatMember(Long userId, String chatId);
 
     void removeGroupChatMember(Long userId, String chatId);

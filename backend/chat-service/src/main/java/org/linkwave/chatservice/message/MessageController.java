@@ -4,7 +4,9 @@ import com.fasterxml.jackson.annotation.JsonView;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.linkwave.chatservice.common.DtoViews.New;
+import org.linkwave.chatservice.message.text.EditTextMessage;
 import org.linkwave.chatservice.message.text.NewTextMessage;
+import org.linkwave.chatservice.message.text.UpdatedTextMessage;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -42,7 +44,13 @@ public class MessageController {
         return ok(messageService.getChatMessages(userDetails().id(), chatId));
     }
 
-    @PostMapping("/{chatId}/messages/readers")
+    @PatchMapping("/messages/{id}/text")
+    public UpdatedTextMessage editTextMessage(@PathVariable String id,
+                                              @Valid @RequestBody EditTextMessage editMessage) {
+        return messageService.editTextMessage(userDetails().id(), id, editMessage);
+    }
+
+    @PatchMapping("/{chatId}/messages/readers")
     public List<String> readMessages(@PathVariable String chatId,
                                      @RequestParam("to") String lastReadMessageId) {
         return messageService.readMessages(userDetails().id(), chatId, lastReadMessageId);

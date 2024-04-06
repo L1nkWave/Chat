@@ -66,6 +66,13 @@ public interface ChatServiceClient {
             @RequestParam Long recipientId
     );
 
+    @PatchMapping("/messages/{messageId}/text")
+    UpdatedTextMessage editTextMessage(
+            @RequestHeader(AUTHORIZATION) String authHeader,
+            @PathVariable String messageId,
+            @RequestBody NewTextMessage message
+    );
+
     @PostMapping("/{chatId}/messages/readers")
     List<String> readMessages(
             @RequestHeader(AUTHORIZATION) String authHeader,

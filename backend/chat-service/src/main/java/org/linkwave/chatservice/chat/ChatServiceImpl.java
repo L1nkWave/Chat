@@ -240,6 +240,12 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
+    public boolean isAdmin(Long memberId, @NonNull Chat chat) {
+        final Optional<ChatMember> chatMember = findChatMember(memberId, chat);
+        return chatMember.isPresent() && chatMember.get().getRole().equals(ADMIN);
+    }
+
+    @Override
     public Optional<ChatMember> findChatMember(Long userId, @NonNull Chat chat) {
         return chat.getMembers()
                 .stream()
