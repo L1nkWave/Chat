@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
@@ -86,19 +85,17 @@ export function Chat() {
     dispatch(setCurrentInteractiveList("chats"));
   };
 
-  if (webSocket?.readyState === WebSocket.CLOSED) {
-    return (
-      <div className="w-full h-full">
-        <Image
-          width={400}
-          height={500}
-          className="w-full rounded-lg"
-          src="/images/ChatPage/backend-fall.gif"
-          alt="Backend is currently unstable, please wait."
-        />
-      </div>
-    );
-  }
+  // return (
+  //   <div className="w-full h-full">
+  //     <Image
+  //       width={400}
+  //       height={500}
+  //       className="w-full rounded-lg"
+  //       src="/images/ChatPage/backend-fall.gif"
+  //       alt="Backend is currently unstable, please wait."
+  //     />
+  //   </div>
+  // );
 
   return (
     <div className="w-screen flex px-64">

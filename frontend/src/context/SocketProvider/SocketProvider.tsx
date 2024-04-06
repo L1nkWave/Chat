@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { PropsWithChildren, useCallback, useEffect } from "react";
 
+import { refreshToken } from "@/api/http/auth/auth";
 import { connectToSocket } from "@/api/socket";
 import { RECONNECT_TIMEOUT } from "@/context/SocketProvider/socketProvider.config";
 import { setSocket } from "@/lib/features/socket/socketSlice";
@@ -27,8 +28,14 @@ export function SocketProvider({ children }: Readonly<PropsWithChildren>) {
       }, RECONNECT_TIMEOUT);
     };
 
-    newSocket.onerror = () => {
+    newSocket.onerror = async () => {
       newSocket.close();
+      try {
+        const newTokens = await refreshToken();
+        dispatch(setSocket(connectToSocket(newTokens.accessToken)));
+      } catch (error) {
+        route.push("/sign-in");
+      }
     };
 
     dispatch(setSocket(newSocket));
