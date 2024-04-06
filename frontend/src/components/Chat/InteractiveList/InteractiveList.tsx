@@ -1,9 +1,9 @@
 import React from "react";
 
 import { Avatar } from "@/components/Avatar/Avatar";
-import { ChatList } from "@/components/Chat/InteractiveList/ChatList/chatList";
-import { ContactList } from "@/components/Chat/InteractiveList/ContactList/contactList";
 import { InteractiveListProps } from "@/components/Chat/InteractiveList/interactiveList.types";
+import { ChatList } from "@/components/Chat/InteractiveList/variants/ChatList/chatList";
+import { ContactList } from "@/components/Chat/InteractiveList/variants/ContactList/contactList";
 import { CustomButton } from "@/components/CustomButton/CustomButton";
 import { Status } from "@/components/Status/Status";
 

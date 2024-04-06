@@ -13,7 +13,3 @@ export const sendChatMessage = (socket: WebSocket, message: string, chatType: Ch
     ${message}
   `);
 };
-
-export const disconnectFromSocket = (socket: WebSocket) => {
-  socket.close();
-};
