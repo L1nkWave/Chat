@@ -10,6 +10,7 @@ import org.linkwave.chatservice.message.text.UpdatedTextMessage;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 
 import static org.linkwave.chatservice.common.RequestUtils.userDetails;
@@ -51,9 +52,9 @@ public class MessageController {
     }
 
     @PatchMapping("/{chatId}/messages/readers")
-    public List<String> readMessages(@PathVariable String chatId,
-                                     @RequestParam("to") String lastReadMessageId) {
-        return messageService.readMessages(userDetails().id(), chatId, lastReadMessageId);
+    public ReadMessages readMessages(@PathVariable String chatId,
+                                     @RequestParam("to") Instant timestamp) {
+        return messageService.readMessages(userDetails().id(), chatId, timestamp);
     }
 
 }

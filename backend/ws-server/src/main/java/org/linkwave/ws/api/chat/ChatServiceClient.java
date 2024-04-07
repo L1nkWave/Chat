@@ -4,6 +4,7 @@ import org.linkwave.ws.websocket.dto.NewGroupChat;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -73,11 +74,11 @@ public interface ChatServiceClient {
             @RequestBody NewTextMessage message
     );
 
-    @PostMapping("/{chatId}/messages/readers")
-    List<String> readMessages(
+    @PatchMapping("/{chatId}/messages/readers")
+    ReadMessages readMessages(
             @RequestHeader(AUTHORIZATION) String authHeader,
             @PathVariable String chatId,
-            @RequestParam("to") String lastReadMessageId
+            @RequestParam("to") Instant timestamp
     );
 
 }

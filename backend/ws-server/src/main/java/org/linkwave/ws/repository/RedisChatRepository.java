@@ -3,12 +3,14 @@ package org.linkwave.ws.repository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.ws.api.chat.ChatMemberDto;
+import org.modelmapper.internal.Pair;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -100,6 +102,31 @@ public class RedisChatRepository implements ChatRepository<Long, String> {
     }
 
     @Override
+    public void changeUnreadMessages(String chatId, Long userId, Integer delta, Instant lastReadMessage) {
+        executeInTxn(
+                redisTemplate,
+                ops -> {
+                    final String key = userChatsKey(userId);
+                    final var hashOps = ops.opsForHash();
+                    hashOps.increment(key, chatId, delta);
+                    hashOps.put(key, messageCursorKey(chatId), lastReadMessage.toString());
+                }
+        );
+    }
+
+    @Override
+    public Map<Long, Instant> getLastReadMessages(String chatId) {
+        final Set<Long> members = getMembers(chatId);
+        final String cursorKey = messageCursorKey(chatId);
+        final var hashOps = redisTemplate.opsForHash();
+
+        return members.stream()
+                .map(userId -> Pair.of(userId, hashOps.get(userChatsKey(userId), cursorKey)))
+                .filter(pair -> pair.getRight() != null)
+                .collect(toMap(Pair::getLeft, pair -> Instant.parse(pair.getRight().toString())));
+    }
+
+    @Override
     public Integer getUnreadMessages(String chatId, Long userId) {
         final var hashOps = redisTemplate.opsForHash();
         final var result = hashOps.get(userChatsKey(userId), chatId);
@@ -112,6 +139,7 @@ public class RedisChatRepository implements ChatRepository<Long, String> {
         final var entries = redisTemplate.opsForHash().entries(userChatsKey);
         return entries.entrySet()
                 .stream()
+                .filter(e -> !e.getKey().toString().startsWith("c"))
                 .map(e -> Map.entry(e.getKey().toString(), Integer.parseInt(e.getValue().toString())))
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
@@ -184,6 +212,10 @@ public class RedisChatRepository implements ChatRepository<Long, String> {
 
     private String userChatsKey(Long userId) {
         return "user:%d:chats".formatted(userId);
+    }
+
+    private String messageCursorKey(String chatId) {
+        return "c-%s".formatted(chatId);
     }
 
     private Set<Long> convertSet(@Nullable Set<String> stringSet) {

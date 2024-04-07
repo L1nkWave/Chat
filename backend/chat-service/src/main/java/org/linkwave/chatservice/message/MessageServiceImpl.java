@@ -157,23 +157,18 @@ public class MessageServiceImpl implements MessageService {
 
     @Transactional
     @Override
-    public List<String> readMessages(Long memberId, String chatId, String lastReadMessageId) {
+    public ReadMessages readMessages(Long memberId, String chatId, Instant lastReadMessageTimestamp) {
 
         log.debug("-> readMessages(): user[{}] reads chat[{}]", memberId, chatId);
 
         final User user = userService.getUser(memberId).orElseThrow(ResourceNotFoundException::new);
-
-        final Message lastReadMessage = getMessage(lastReadMessageId);
-        final Instant lastReadMessageCreation = lastReadMessage.getCreatedAt();
-        if (!lastReadMessage.getChat().getId().equals(chatId)) { // not chat message
-            throw new MessageNotFoundException();
-        }
-        if (!chatService.isMember(memberId, lastReadMessage.getChat())) {
+        final Chat chat = chatService.findChat(chatId);
+        if (!chatService.isMember(memberId, chat)) {
             throw new PrivacyViolationException();
         }
 
         // find chat message cursor
-        final var optionalCursor = user.getChatMessageCursors()
+        var optionalCursor = user.getChatMessageCursors()
                 .stream()
                 .filter(cursor -> cursor.getChatId().equals(chatId))
                 .findAny();
@@ -181,42 +176,43 @@ public class MessageServiceImpl implements MessageService {
         // prepare for querydsl
         final var qMessage = new org.linkwave.chatservice.message.QMessage("message");
         final var isChatMessageAndNotOwn = qMessage.chat.id.eq(chatId).and(qMessage.authorId.ne(memberId));
+        final var beforeLastReadMessage = isChatMessageAndNotOwn.andAnyOf(
+                qMessage.createdAt.before(lastReadMessageTimestamp),
+                qMessage.createdAt.eq(lastReadMessageTimestamp)
+        );
 
         final Iterable<Message> unreadMessages;
 
         if (optionalCursor.isPresent()) {
             final ChatMessageCursor cursor = optionalCursor.get();
-            if (cursor.getMessageId().equals(lastReadMessageId)) {
-                return Collections.emptyList();
+            if (cursor.getTimestamp().equals(lastReadMessageTimestamp)) {
+                return ReadMessages.builder().cursor(cursor).build();
             }
 
-            // find unread messages
+            // find unread messages in range (from, to]
             unreadMessages = messageRepository.findAll(
-                    isChatMessageAndNotOwn
-                            .and(qMessage.createdAt.between(
-                                    cursor.getMessageCreation(), lastReadMessageCreation
-                            ))
+                    beforeLastReadMessage.and(
+                            qMessage.createdAt.after(cursor.getTimestamp())
+                    )
             );
 
             // update read message cursor
-            cursor.setMessageId(lastReadMessageId);
-            cursor.setMessageCreation(lastReadMessageCreation);
+            cursor.setTimestamp(lastReadMessageTimestamp);
         } else {
             // create read message cursor for chat
-            final var newCursor = ChatMessageCursor.builder()
+            optionalCursor = Optional.of(ChatMessageCursor.builder()
                     .chatId(chatId)
-                    .messageId(lastReadMessageId)
-                    .messageCreation(lastReadMessageCreation)
-                    .build();
+                    .timestamp(lastReadMessageTimestamp)
+                    .build());
 
-            user.addChatMessageCursor(newCursor);
+            addMessageCursor(user, optionalCursor.get());
 
             // find unread messages starting from the first
-            unreadMessages = messageRepository.findAll(
-                    isChatMessageAndNotOwn
-                            .and(qMessage.createdAt.before(lastReadMessageCreation.plusMillis(1L)))
-            );
+            unreadMessages = messageRepository.findAll(beforeLastReadMessage);
         }
+
+        // convert iterable to list
+        final List<Message> unreadMessagesList = stream(unreadMessages.spliterator(), false).toList();
 
         // mark unread messages as read
         final List<Message> readMessages = stream(unreadMessages.spliterator(), false)
@@ -227,8 +223,12 @@ public class MessageServiceImpl implements MessageService {
         messageRepository.saveAll(readMessages);
         userService.save(user);
 
-        log.debug("-> readMessages(): user[{}] read {} messages in chat[{}]", memberId, readMessages.size(), chatId);
-        return readMessages.stream().map(Message::getId).toList();
+        log.debug("-> readMessages(): user[{}] read {} messages in chat[{}]", memberId, unreadMessagesList.size(), chatId);
+        return ReadMessages.builder()
+                .cursor(optionalCursor.get())
+                .readCount(unreadMessagesList.size())
+                .unreadMessages(readMessages.stream().map(Message::getId).toList())
+                .build();
     }
 
 }

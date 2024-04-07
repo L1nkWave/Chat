@@ -1,13 +1,10 @@
-package org.linkwave.chatservice.message;
+package org.linkwave.ws.api.chat;
 
 import lombok.*;
 
 import java.time.Instant;
 
-@NoArgsConstructor
-@AllArgsConstructor
-@Data
-@Builder
+@Getter
 public class ChatMessageCursor {
 
     private String chatId;

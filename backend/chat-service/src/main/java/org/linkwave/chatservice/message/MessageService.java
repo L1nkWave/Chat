@@ -5,6 +5,7 @@ import org.linkwave.chatservice.message.text.NewTextMessage;
 import org.linkwave.chatservice.message.text.UpdatedTextMessage;
 import org.springframework.lang.NonNull;
 
+import java.time.Instant;
 import java.util.List;
 
 public interface MessageService {
@@ -22,5 +23,5 @@ public interface MessageService {
 
     List<Message> getChatMessages(Long userId, String chatId);
 
-    List<String> readMessages(Long memberId, String chatId, String messageId);
+    ReadMessages readMessages(Long memberId, String chatId, Instant lastReadMessageTimestamp);
 }
