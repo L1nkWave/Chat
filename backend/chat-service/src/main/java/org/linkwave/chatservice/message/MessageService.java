@@ -3,6 +3,7 @@ package org.linkwave.chatservice.message;
 import org.linkwave.chatservice.message.text.EditTextMessage;
 import org.linkwave.chatservice.message.text.NewTextMessage;
 import org.linkwave.chatservice.message.text.UpdatedTextMessage;
+import org.linkwave.chatservice.user.User;
 import org.springframework.lang.NonNull;
 
 import java.time.Instant;
@@ -24,4 +25,8 @@ public interface MessageService {
     List<Message> getChatMessages(Long userId, String chatId);
 
     ReadMessages readMessages(Long memberId, String chatId, Instant lastReadMessageTimestamp);
+
+    void addMessageCursor(@NonNull User user, @NonNull ChatMessageCursor cursor);
+
+    void removeMessageCursor(@NonNull User user, String chatId);
 }

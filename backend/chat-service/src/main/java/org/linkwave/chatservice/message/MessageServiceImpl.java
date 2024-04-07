@@ -19,8 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static java.util.Comparator.comparing;
 import static java.util.function.Predicate.not;
@@ -229,6 +229,16 @@ public class MessageServiceImpl implements MessageService {
                 .readCount(unreadMessagesList.size())
                 .unreadMessages(readMessages.stream().map(Message::getId).toList())
                 .build();
+    }
+
+    @Override
+    public void addMessageCursor(@NonNull User user, @NonNull ChatMessageCursor cursor) {
+        user.addChatMessageCursor(cursor);
+    }
+
+    @Override
+    public void removeMessageCursor(@NonNull User user, String chatId) {
+        user.removeChatMessageCursor(chatId);
     }
 
 }
