@@ -112,6 +112,12 @@ public class MessageServiceImpl implements MessageService {
             textMessage.setEdited(true);
             updateMessage(textMessage);
 
+            // update last message if needed
+            if (message.equals(chat.getLastMessage())) {
+                chat.setLastMessage(message);
+                chatService.updateChat(chat);
+            }
+
             return UpdatedTextMessage.builder()
                     .messageId(textMessage.getId())
                     .chatId(chat.getId())
