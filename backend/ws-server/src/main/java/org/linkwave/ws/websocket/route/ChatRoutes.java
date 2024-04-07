@@ -36,8 +36,8 @@ public class ChatRoutes {
     private final ObjectMapper objectMapper;
 
     @SneakyThrows
+    @Broadcast
     @SubRoute("/{id}/send")
-    @Broadcast("chat:{id}")
     public Box<OutcomeMessage> sendMessage(@PathVariable String id,
                                            @Payload IncomeMessage message,
                                            @NonNull WebSocketSession session,
@@ -151,8 +151,8 @@ public class ChatRoutes {
                 .build();
     }
 
+    @Broadcast
     @SubRoute("/{id}/read")
-    @Broadcast("chat:{id}")
     public Box<ReadMessage> readMessages(@PathVariable String id,
                                          @Payload LastReadMessage message,
                                          @NonNull UserPrincipal principal,

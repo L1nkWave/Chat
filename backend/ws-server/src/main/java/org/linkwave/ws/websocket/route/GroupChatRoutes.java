@@ -74,8 +74,8 @@ public class GroupChatRoutes {
         }
     }
 
+    @Broadcast
     @SubRoute("/{id}/join")
-    @Broadcast("chat:{id}")
     public Box<ChatMessage> join(@PathVariable String id,
                                  @NonNull UserPrincipal principal,
                                  @NonNull String path) {
@@ -104,8 +104,8 @@ public class GroupChatRoutes {
                 .build());
     }
 
+    @Broadcast
     @SubRoute("/{id}/leave")
-    @Broadcast("chat:{id}")
     public Box<ChatMessage> leaveChat(@PathVariable String id,
                                       @NonNull UserPrincipal principal,
                                       @NonNull String path) {
