@@ -31,4 +31,8 @@ public class User {
         chatMessageCursors.add(cursor);
     }
 
+    public boolean removeChatMessageCursor(String chatId) {
+        return chatMessageCursors.removeIf(cursor -> cursor.getChatId().equals(chatId));
+    }
+
 }
