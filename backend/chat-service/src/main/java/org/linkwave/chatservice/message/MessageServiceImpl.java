@@ -125,6 +125,32 @@ public class MessageServiceImpl implements MessageService {
         }
     }
 
+    @Transactional
+    @Override
+    public RemovedMessage removeMessage(Long senderId, String messageId) {
+        final Message message = getMessage(messageId);
+        checkPermissions(senderId, message);
+
+        final Chat chat = message.getChat();
+        final Message lastMessage = chat.getLastMessage();
+        if (message.equals(lastMessage)) {
+            chat.setLastMessage(Message.builder()
+                    .action(REMOVE)
+                    .authorId(lastMessage.getAuthorId())
+                    .createdAt(lastMessage.getCreatedAt())
+                    .build());
+            chatService.updateChat(chat);
+        }
+
+        messageRepository.delete(message);
+
+        return RemovedMessage.builder()
+                .chatId(chat.getId())
+                .messageId(messageId)
+                .createdAt(message.getCreatedAt())
+                .build();
+    }
+
     private void checkPermissions(Long userId, @NonNull Message message) {
         final Chat chat = message.getChat();
         if (chatService.isMember(userId, chat) &&
@@ -215,7 +241,7 @@ public class MessageServiceImpl implements MessageService {
         final List<Message> unreadMessagesList = stream(unreadMessages.spliterator(), false).toList();
 
         // mark unread messages as read
-        final List<Message> readMessages = stream(unreadMessages.spliterator(), false)
+        final List<Message> readMessages = unreadMessagesList.stream()
                 .filter(not(Message::isRead))
                 .peek(_message -> _message.setRead(true))
                 .toList();

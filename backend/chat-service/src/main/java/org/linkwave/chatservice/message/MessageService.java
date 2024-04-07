@@ -16,6 +16,8 @@ public interface MessageService {
 
     UpdatedTextMessage editTextMessage(Long senderId, String messageId, @NonNull EditTextMessage editTextMessage);
 
+    RemovedMessage removeMessage(Long senderId, String messageId);
+
     void updateMessage(@NonNull Message message);
 
     Message getMessage(String id);
