@@ -142,12 +142,38 @@ Possible errors:
 
 <br/>
 
+### Remove message (`DUO` / `GROUP`)
+
+Message structure:
+
+```
+path=/chat/remove_message/{messageId}
+```
+
+Response message example:
+
+```json
+{
+  "action": "REMOVE",
+  "timestamp": 1712406700.330034700,
+  "senderId": 1,
+  "chatId": "66054151e162397346b28554",
+  "id": "6611400eed7de1513ca11699"
+}
+```
+
+<br/>
+
 ### Read messages (`DUO` / `GROUP`)
 
 Message structure:
 
 ```
-path=/chat/{chatId}/read/{messageId}
+path=/chat/{chatId}/read
+
+{
+    "timestamp": 1712405998.170949000
+}
 ```
 
 Response message example:
@@ -164,6 +190,19 @@ Response message example:
     "6605ea0e576f710ba44a3dda",
     "6605ea0f576f710ba44a3ddb"
   ]
+}
+```
+
+Possible errors:
+
+- Invalid chat ID
+
+```json
+{
+  "action": "ERROR",
+  "timestamp": 1711664377.341578700,
+  "error": "You are not member of chat",
+  "path": "/chat/6611450ced7de1513ca1169d/read"
 }
 ```
 
