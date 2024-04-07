@@ -14,11 +14,11 @@ import java.util.Set;
 public interface WebSocketMessageBroadcast {
 
     /**
-     * @param sessionIds ids of connected clients that are needed to be delivered message to
-     * @param json       serialized object (message) that should be delivered
+     * @param sessionIds        ids of connected clients that are needed to be delivered message to
+     * @param serializedMessage serialized object (message) that should be delivered
      * @return true      if all users received message (all session are present in current instance)
      * @throws IOException when message sending is failed to at least one session
      */
-    boolean share(@NonNull Set<String> sessionIds, String json) throws IOException;
+    boolean share(@NonNull Set<String> sessionIds, String serializedMessage) throws IOException;
 
 }
