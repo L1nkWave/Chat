@@ -86,7 +86,7 @@ public class WebSocketRouterBroadcastTest {
     @NonNull
     private SessionManager buildSessionManager() {
 
-        var sessionManager = new DefaultSessionManager(emptyList(), emptyList());
+        var sessionManager = new DefaultSessionManager(emptyList(), emptyList(), 10L);
 
         Class<?> superCls = sessionManager.getClass().getSuperclass();
         List<Field> fields = Arrays.stream(superCls.getDeclaredFields())
