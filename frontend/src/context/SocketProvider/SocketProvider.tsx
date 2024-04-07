@@ -29,12 +29,12 @@ export function SocketProvider({ children }: Readonly<PropsWithChildren>) {
     };
 
     newSocket.onerror = async () => {
-      newSocket.close();
       try {
         const newTokens = await refreshToken();
         dispatch(setSocket(connectToSocket(newTokens.accessToken)));
       } catch (error) {
         route.push("/sign-in");
+        dispatch(setSocket(null));
       }
     };
 
@@ -50,5 +50,5 @@ export function SocketProvider({ children }: Readonly<PropsWithChildren>) {
     };
   }, [accessToken, route, dispatch, socketCreation]);
 
-  return <div>{children}</div>;
+  return <>{children}</>;
 }

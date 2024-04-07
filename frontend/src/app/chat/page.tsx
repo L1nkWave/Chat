@@ -6,7 +6,7 @@ import { SocketProvider } from "@/context/SocketProvider/SocketProvider";
 
 export default function ChatPage() {
   return (
-    <Container showHeader={false}>
+    <Container className="p-0" showHeader={false}>
       <SocketProvider>
         <Chat />
       </SocketProvider>

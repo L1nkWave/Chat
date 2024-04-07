@@ -26,6 +26,7 @@ export async function signIn(username: string, password: string) {
   };
 
   const { data } = await instance.post<AuthTypes>("auth/login", body);
+  console.log(data);
   return data;
 }
 

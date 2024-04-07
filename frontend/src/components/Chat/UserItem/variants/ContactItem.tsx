@@ -13,7 +13,12 @@ export function ContactItem({ contact }: Readonly<ContactItemProps>) {
       </div>
       <div className="flex flex-col ml-4 justify-center items-start">
         <span className="text-lg">{contact.user.name}</span>
-        <LastSeen online={contact.user.online} lastSeen={contact.user.lastSeen} />
+        <LastSeen
+          className="text-sm font-medium"
+          iconSize={20}
+          online={contact.user.online}
+          lastSeen={contact.user.lastSeen}
+        />
       </div>
     </div>
   );

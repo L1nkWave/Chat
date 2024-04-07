@@ -1,8 +1,13 @@
 export { default as ChatPlusOutlineIcon } from "./chat-plus-outline.svg";
 export { default as FormOutlineIcon } from "./form-outline.svg";
 export { default as GroupOutlineIcon } from "./group-outline.svg";
+export { default as LeftAngleIcon } from "./left-angle.svg";
+export { default as LinkOutlineIcon } from "./link-outline.svg";
+export { default as ListOutlineIcon } from "./list-outline.svg";
 export { default as LockOutlineIcon } from "./lock-outline.svg";
+export { default as PenWithMessageIcon } from "./pen-with-message.svg";
 export { default as PinOutlineIcon } from "./pin-outline.svg";
+export { default as RemoveCircleOutlineIcon } from "./remove-circle-outline.svg";
 export { default as SettingOutlineIcon } from "./setting-outline.svg";
 export { default as SignOutCircleIcon } from "./sign-out-circle.svg";
 export { default as TimeOutlineIcon } from "./time-outline.svg";

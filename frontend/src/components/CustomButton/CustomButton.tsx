@@ -17,6 +17,9 @@ export const CustomButton = forwardRef(
       case "square":
         style = BUTTON_VARIANT_STYLES.square;
         break;
+      case "outline":
+        style = BUTTON_VARIANT_STYLES.outline;
+        break;
       default:
         style = BUTTON_VARIANT_STYLES.primary;
         break;

@@ -17,7 +17,7 @@ export function InteractiveList({ interactiveListVariant, contacts, chats }: Rea
   }
 
   return (
-    <div className="h-screen flex flex-col w-[55%]">
+    <div className="h-screen flex flex-col min-w-72 w-[55%]">
       <div className="h-screen flex flex-col">{interactiveList}</div>
       {interactiveListVariant === "chats" && (
         <div className="bg-dark-400 px-8 py-4 left-0 bottom-0 w-full flex justify-between items-center h-auto">

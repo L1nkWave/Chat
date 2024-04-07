@@ -12,7 +12,7 @@ export function Icon({ name, iconSize, ...props }: Readonly<IconProps>) {
   const SelectedIcon = iconMapping[name];
 
   return (
-    <span style={{ width: iconSize ?? DEFAULT_ICON_SIZE }} {...props}>
+    <span className="flex" style={{ width: iconSize ?? DEFAULT_ICON_SIZE }} {...props}>
       <SelectedIcon />
     </span>
   );

@@ -52,6 +52,7 @@ export function Chat() {
     if (!accessToken) {
       return router.push("/sign-in");
     }
+
     if (!webSocket) {
       return () => {};
     }
@@ -61,20 +62,7 @@ export function Chat() {
       return router.push("/sign-in");
     }
 
-    webSocket.onopen = event => {
-      console.log("WebSocket connection opened:", event);
-    };
-
-    webSocket.onmessage = event => {
-      console.log("WebSocket connection message:", event);
-    };
-
-    return () => {
-      if (!webSocket) return;
-      webSocket.removeEventListener("open", () => {});
-      webSocket.removeEventListener("message", () => {});
-      webSocket.removeEventListener("close", () => {});
-    };
+    return () => {};
   }, [accessToken, router, webSocket]);
 
   const handleContactsClick = () => {
