@@ -151,34 +151,46 @@ public class ChatRoutes {
                 .build();
     }
 
-    @SubRoute("/{chatId}/read/{messageId}")
-    @Broadcast("chat:{chatId}")
-    public Box<ReadMessage> readMessages(@PathVariable String chatId,
-                                         @PathVariable String messageId,
+    @SubRoute("/{id}/read")
+    @Broadcast("chat:{id}")
+    public Box<ReadMessage> readMessages(@PathVariable String id,
+                                         @Payload LastReadMessage message,
                                          @NonNull UserPrincipal principal,
                                          @NonNull String path) {
 
         final Long userId = principal.token().userId();
 
-        // if all message are read
-        if (chatRepository.getUnreadMessages(chatId, userId) == 0) {
-            return ok();
+        if (!chatRepository.isMember(id, userId)) {
+            return error(ErrorMessage.create("You are not member of chat", path));
         }
 
-        final List<String> readMessagesIds;
+        final ReadMessages readMessages;
         try {
-            readMessagesIds = chatClient.readMessages(append(principal.rawAccessToken()), chatId, messageId);
+            readMessages = chatClient.readMessages(
+                    append(principal.rawAccessToken()),
+                    id,
+                    message.getTimestamp()
+            );
         } catch (ApiErrorException e) {
             return error(ErrorMessage.create(e.getMessage(), path));
         }
 
-        // subtract unread messages
-        if (!readMessagesIds.isEmpty()) {
-            chatRepository.changeUnreadMessages(chatId, userId, -readMessagesIds.size());
+        // subtract unread messages keeping counter gte 0
+        final int unreadMessages = chatRepository.getUnreadMessages(id, userId);
+        final int minCount = Math.min(unreadMessages, readMessages.getReadCount());
+        if (minCount > 0) {
+            chatRepository.changeUnreadMessages(
+                    id, userId,
+                    -minCount,
+                    readMessages.getCursor().getTimestamp()
+            );
+        }
+
+        if (!readMessages.getUnreadMessages().isEmpty()) {
             return ok(ReadMessage.builder()
                     .senderId(userId)
-                    .chatId(chatId)
-                    .messages(readMessagesIds)
+                    .chatId(id)
+                    .messages(readMessages.getUnreadMessages())
                     .build());
         }
         return ok();
