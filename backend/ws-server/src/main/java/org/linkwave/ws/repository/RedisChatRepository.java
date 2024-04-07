@@ -49,7 +49,7 @@ public class RedisChatRepository implements ChatRepository<Long, String> {
     public void addMember(Long userId, @NonNull Set<String> chats) {
         if (!chats.isEmpty()) {
             executeInTxn(redisTemplate, ops -> chats.forEach(chatId -> {
-                ops.opsForHash().put(userChatsKey(userId), chatId, 0);
+                ops.opsForHash().put(userChatsKey(userId), chatId, "0");
                 ops.opsForSet().add(chatKey(chatId), valueOf(userId));
             }));
         }
