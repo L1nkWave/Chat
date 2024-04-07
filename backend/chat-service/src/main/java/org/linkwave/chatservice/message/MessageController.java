@@ -51,6 +51,11 @@ public class MessageController {
         return messageService.editTextMessage(userDetails().id(), id, editMessage);
     }
 
+    @DeleteMapping("/messages/{id}")
+    public RemovedMessage removeMessage(@PathVariable String id) {
+        return messageService.removeMessage(userDetails().id(), id);
+    }
+
     @PatchMapping("/{chatId}/messages/readers")
     public ReadMessages readMessages(@PathVariable String chatId,
                                      @RequestParam("to") Instant timestamp) {

@@ -5,9 +5,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.ws.api.chat.*;
+import org.linkwave.ws.repository.ChatRepository;
 import org.linkwave.ws.websocket.dto.*;
 import org.linkwave.ws.websocket.jwt.UserPrincipal;
-import org.linkwave.ws.repository.ChatRepository;
 import org.linkwave.ws.websocket.routing.Box;
 import org.linkwave.ws.websocket.routing.Payload;
 import org.linkwave.ws.websocket.routing.bpp.Broadcast;
@@ -18,9 +18,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
-import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import static java.util.stream.Collectors.toSet;
 import static org.linkwave.shared.utils.Bearers.append;
 import static org.linkwave.ws.websocket.routing.Box.error;
 import static org.linkwave.ws.websocket.routing.Box.ok;
@@ -104,6 +105,40 @@ public class ChatRoutes {
                 .chatId(updatedMessage.getChatId())
                 .text(updatedMessage.getText())
                 .timestamp(updatedMessage.getEditedAt())
+                .senderId(principal.token().userId())
+                .build());
+    }
+
+    @SubRoute("/remove_message/{messageId}")
+    @Broadcast(value = "chat:{chatId}", analyzeMessage = true)
+    public Box<IdentifiedMessage> removeMessage(@PathVariable String messageId,
+                                                @NonNull UserPrincipal principal,
+                                                @NonNull String path) {
+
+        final RemovedMessage removedMessage;
+        try {
+            removedMessage = chatClient.removeMessage(append(principal.rawAccessToken()), messageId);
+        } catch (ApiErrorException e) {
+            return error(ErrorMessage.create(e.getMessage(), path));
+        }
+
+        final String chatId = removedMessage.getChatId();
+
+        // decrement message counter for those who has not read chat
+        // since creation time of the removed message
+        final Set<Long> filteredMembers = chatRepository.getLastReadMessages(chatId)
+                .entrySet()
+                .stream()
+                .filter(e -> e.getValue().isBefore(removedMessage.getCreatedAt()))
+                .map(Map.Entry::getKey)
+                .collect(toSet());
+
+        chatRepository.changeUnreadMessages(chatId, filteredMembers, -1);
+
+        return ok(IdentifiedMessage.builder()
+                .action(Action.REMOVE)
+                .id(messageId)
+                .chatId(chatId)
                 .senderId(principal.token().userId())
                 .build());
     }

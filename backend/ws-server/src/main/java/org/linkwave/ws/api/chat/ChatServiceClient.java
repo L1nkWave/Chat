@@ -74,6 +74,9 @@ public interface ChatServiceClient {
             @RequestBody NewTextMessage message
     );
 
+    @DeleteMapping("/messages/{id}")
+    RemovedMessage removeMessage(@RequestHeader(AUTHORIZATION) String authHeader, @PathVariable String id);
+
     @PatchMapping("/{chatId}/messages/readers")
     ReadMessages readMessages(
             @RequestHeader(AUTHORIZATION) String authHeader,
