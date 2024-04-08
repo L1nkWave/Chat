@@ -21,9 +21,13 @@ import org.linkwave.chatservice.common.RequestInitiator;
 import org.linkwave.chatservice.common.ResourceNotFoundException;
 import org.linkwave.chatservice.message.Message;
 import org.linkwave.chatservice.message.MessageDto;
+import org.linkwave.chatservice.message.MessageService;
+import org.linkwave.chatservice.user.User;
 import org.linkwave.chatservice.user.UserService;
 import org.linkwave.shared.storage.FileStorageService;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.util.Pair;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -54,6 +58,12 @@ public class ChatServiceImpl implements ChatService {
     private final ModelMapper modelMapper;
     private final FileStorageService fileStorageService;
     private final UserService userService;
+    private MessageService messageService;
+
+    @Autowired
+    public void setMessageService(@Lazy MessageService messageService) {
+        this.messageService = messageService;
+    }
 
     @Transactional
     @Override
@@ -282,12 +292,18 @@ public class ChatServiceImpl implements ChatService {
     @Transactional
     @Override
     public void removeGroupChatMember(Long userId, String chatId) {
+        final User user = userService.getUser(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
         final GroupChat groupChat = findGroupChat(chatId);
         if (!isMember(userId, groupChat)) {
             throw new ResourceNotFoundException("Member not found");
         }
         groupChat.removeMember(userId);
         updateChat(groupChat);
+
+        messageService.removeMessageCursor(user, chatId);
+        userService.save(user);
     }
 
     @Override

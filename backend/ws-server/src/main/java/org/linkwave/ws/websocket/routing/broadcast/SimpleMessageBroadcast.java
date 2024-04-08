@@ -19,7 +19,7 @@ public class SimpleMessageBroadcast implements WebSocketMessageBroadcast {
     private final SessionManager sessionManager;
 
     @Override
-    public boolean share(@NonNull Set<String> sessionIds, String json) throws IOException {
+    public boolean share(@NonNull Set<String> sessionIds, String serializedMessage) throws IOException {
         int foundSessions = 0, sentFailed = 0;
 
         for (String ssId : sessionIds) {
@@ -30,7 +30,7 @@ public class SimpleMessageBroadcast implements WebSocketMessageBroadcast {
             }
 
             try {
-                session.sendMessage(new TextMessage(json));
+                session.sendMessage(new TextMessage(serializedMessage));
             } catch (IOException e) {
                 log.error("-> share(): can't send message to ss={}, ssOpen={}", session.getId(), session.isOpen());
                 sentFailed++;

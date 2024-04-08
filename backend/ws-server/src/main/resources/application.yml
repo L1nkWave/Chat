@@ -26,6 +26,7 @@ eureka:
 
 ws:
   session:
+    exp: 10
     concurrent:
       send-time-limit: 2000
       buffer-size-limit: 10240

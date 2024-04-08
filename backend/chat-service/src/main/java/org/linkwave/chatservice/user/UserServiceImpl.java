@@ -19,10 +19,9 @@ public class UserServiceImpl implements UserService {
 
     @Transactional
     @Override
-    public void createUserIfNeed(Long userId) {
-        if (getUser(userId).isEmpty()) {
-            userRepository.save(User.builder().userId(userId).build());
-        }
+    public User createUserIfNeed(final Long userId) {
+        return getUser(userId)
+                .orElseGet(() -> userRepository.save(User.builder().userId(userId).build()));
     }
 
     @Transactional

@@ -19,8 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static java.util.Comparator.comparing;
 import static java.util.function.Predicate.not;
@@ -112,6 +112,12 @@ public class MessageServiceImpl implements MessageService {
             textMessage.setEdited(true);
             updateMessage(textMessage);
 
+            // update last message if needed
+            if (message.equals(chat.getLastMessage())) {
+                chat.setLastMessage(message);
+                chatService.updateChat(chat);
+            }
+
             return UpdatedTextMessage.builder()
                     .messageId(textMessage.getId())
                     .chatId(chat.getId())
@@ -123,6 +129,32 @@ public class MessageServiceImpl implements MessageService {
             log.debug("-> editTextMessage(): not text message sId={} msgId={}", senderId, messageId);
             throw new MessageNotFoundException();
         }
+    }
+
+    @Transactional
+    @Override
+    public RemovedMessage removeMessage(Long senderId, String messageId) {
+        final Message message = getMessage(messageId);
+        checkPermissions(senderId, message);
+
+        final Chat chat = message.getChat();
+        final Message lastMessage = chat.getLastMessage();
+        if (message.equals(lastMessage)) {
+            chat.setLastMessage(Message.builder()
+                    .action(REMOVE)
+                    .authorId(lastMessage.getAuthorId())
+                    .createdAt(lastMessage.getCreatedAt())
+                    .build());
+            chatService.updateChat(chat);
+        }
+
+        messageRepository.delete(message);
+
+        return RemovedMessage.builder()
+                .chatId(chat.getId())
+                .messageId(messageId)
+                .createdAt(message.getCreatedAt())
+                .build();
     }
 
     private void checkPermissions(Long userId, @NonNull Message message) {
@@ -157,23 +189,18 @@ public class MessageServiceImpl implements MessageService {
 
     @Transactional
     @Override
-    public List<String> readMessages(Long memberId, String chatId, String lastReadMessageId) {
+    public ReadMessages readMessages(Long memberId, String chatId, Instant lastReadMessageTimestamp) {
 
         log.debug("-> readMessages(): user[{}] reads chat[{}]", memberId, chatId);
 
         final User user = userService.getUser(memberId).orElseThrow(ResourceNotFoundException::new);
-
-        final Message lastReadMessage = getMessage(lastReadMessageId);
-        final Instant lastReadMessageCreation = lastReadMessage.getCreatedAt();
-        if (!lastReadMessage.getChat().getId().equals(chatId)) { // not chat message
-            throw new MessageNotFoundException();
-        }
-        if (!chatService.isMember(memberId, lastReadMessage.getChat())) {
+        final Chat chat = chatService.findChat(chatId);
+        if (!chatService.isMember(memberId, chat)) {
             throw new PrivacyViolationException();
         }
 
         // find chat message cursor
-        final var optionalCursor = user.getChatMessageCursors()
+        var optionalCursor = user.getChatMessageCursors()
                 .stream()
                 .filter(cursor -> cursor.getChatId().equals(chatId))
                 .findAny();
@@ -181,45 +208,46 @@ public class MessageServiceImpl implements MessageService {
         // prepare for querydsl
         final var qMessage = new org.linkwave.chatservice.message.QMessage("message");
         final var isChatMessageAndNotOwn = qMessage.chat.id.eq(chatId).and(qMessage.authorId.ne(memberId));
+        final var beforeLastReadMessage = isChatMessageAndNotOwn.andAnyOf(
+                qMessage.createdAt.before(lastReadMessageTimestamp),
+                qMessage.createdAt.eq(lastReadMessageTimestamp)
+        );
 
         final Iterable<Message> unreadMessages;
 
         if (optionalCursor.isPresent()) {
             final ChatMessageCursor cursor = optionalCursor.get();
-            if (cursor.getMessageId().equals(lastReadMessageId)) {
-                return Collections.emptyList();
+            if (cursor.getTimestamp().equals(lastReadMessageTimestamp)) {
+                return ReadMessages.builder().cursor(cursor).build();
             }
 
-            // find unread messages
+            // find unread messages in range (from, to]
             unreadMessages = messageRepository.findAll(
-                    isChatMessageAndNotOwn
-                            .and(qMessage.createdAt.between(
-                                    cursor.getMessageCreation(), lastReadMessageCreation
-                            ))
+                    beforeLastReadMessage.and(
+                            qMessage.createdAt.after(cursor.getTimestamp())
+                    )
             );
 
             // update read message cursor
-            cursor.setMessageId(lastReadMessageId);
-            cursor.setMessageCreation(lastReadMessageCreation);
+            cursor.setTimestamp(lastReadMessageTimestamp);
         } else {
             // create read message cursor for chat
-            final var newCursor = ChatMessageCursor.builder()
+            optionalCursor = Optional.of(ChatMessageCursor.builder()
                     .chatId(chatId)
-                    .messageId(lastReadMessageId)
-                    .messageCreation(lastReadMessageCreation)
-                    .build();
+                    .timestamp(lastReadMessageTimestamp)
+                    .build());
 
-            user.addChatMessageCursor(newCursor);
+            addMessageCursor(user, optionalCursor.get());
 
             // find unread messages starting from the first
-            unreadMessages = messageRepository.findAll(
-                    isChatMessageAndNotOwn
-                            .and(qMessage.createdAt.before(lastReadMessageCreation.plusMillis(1L)))
-            );
+            unreadMessages = messageRepository.findAll(beforeLastReadMessage);
         }
 
+        // convert iterable to list
+        final List<Message> unreadMessagesList = stream(unreadMessages.spliterator(), false).toList();
+
         // mark unread messages as read
-        final List<Message> readMessages = stream(unreadMessages.spliterator(), false)
+        final List<Message> readMessages = unreadMessagesList.stream()
                 .filter(not(Message::isRead))
                 .peek(_message -> _message.setRead(true))
                 .toList();
@@ -227,8 +255,22 @@ public class MessageServiceImpl implements MessageService {
         messageRepository.saveAll(readMessages);
         userService.save(user);
 
-        log.debug("-> readMessages(): user[{}] read {} messages in chat[{}]", memberId, readMessages.size(), chatId);
-        return readMessages.stream().map(Message::getId).toList();
+        log.debug("-> readMessages(): user[{}] read {} messages in chat[{}]", memberId, unreadMessagesList.size(), chatId);
+        return ReadMessages.builder()
+                .cursor(optionalCursor.get())
+                .readCount(unreadMessagesList.size())
+                .unreadMessages(readMessages.stream().map(Message::getId).toList())
+                .build();
+    }
+
+    @Override
+    public void addMessageCursor(@NonNull User user, @NonNull ChatMessageCursor cursor) {
+        user.addChatMessageCursor(cursor);
+    }
+
+    @Override
+    public void removeMessageCursor(@NonNull User user, String chatId) {
+        user.removeChatMessageCursor(chatId);
     }
 
 }

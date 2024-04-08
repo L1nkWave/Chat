@@ -34,7 +34,7 @@ public @interface Broadcast {
      *      </li>
      * </ul>
      */
-    String value();
+    String value() default "chat:{id}";
 
     /**
      * Specifies whether {@link BroadcastManager} should be intended to use message content
