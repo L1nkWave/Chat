@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.linkwave.ws.api.ApiErrorException;
 import org.linkwave.ws.api.chat.*;
 import org.linkwave.ws.repository.ChatRepository;
 import org.linkwave.ws.websocket.dto.*;

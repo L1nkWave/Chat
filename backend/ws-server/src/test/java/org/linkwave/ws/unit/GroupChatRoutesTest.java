@@ -3,7 +3,7 @@ package org.linkwave.ws.unit;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.linkwave.shared.utils.Bearers;
-import org.linkwave.ws.api.chat.ApiErrorException;
+import org.linkwave.ws.api.ApiErrorException;
 import org.linkwave.ws.api.chat.ChatServiceClient;
 import org.linkwave.ws.api.chat.GroupChatDto;
 import org.linkwave.ws.websocket.dto.Action;

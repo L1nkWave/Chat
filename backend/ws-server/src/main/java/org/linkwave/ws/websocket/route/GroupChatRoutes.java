@@ -2,7 +2,7 @@ package org.linkwave.ws.websocket.route;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.linkwave.ws.api.chat.ApiErrorException;
+import org.linkwave.ws.api.ApiErrorException;
 import org.linkwave.ws.api.chat.ChatMember;
 import org.linkwave.ws.api.chat.ChatServiceClient;
 import org.linkwave.ws.api.chat.GroupChatDto;

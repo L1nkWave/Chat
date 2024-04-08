@@ -5,7 +5,7 @@ import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.linkwave.ws.api.chat.ApiErrorException;
+import org.linkwave.ws.api.ApiErrorException;
 import org.linkwave.ws.api.chat.ChatServiceClient;
 import org.linkwave.ws.api.users.UserServiceClient;
 import org.linkwave.ws.websocket.dto.Action;
