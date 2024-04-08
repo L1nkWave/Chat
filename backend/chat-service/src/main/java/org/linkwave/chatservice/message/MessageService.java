@@ -1,5 +1,6 @@
 package org.linkwave.chatservice.message;
 
+import org.linkwave.chatservice.chat.duo.Chat;
 import org.linkwave.chatservice.message.text.EditTextMessage;
 import org.linkwave.chatservice.message.text.NewTextMessage;
 import org.linkwave.chatservice.message.text.UpdatedTextMessage;
@@ -11,6 +12,8 @@ import java.util.List;
 
 public interface MessageService {
     MessageDto saveMessage(Long senderId, String chatId, Action action);
+
+    void saveMessage(Message newMessage, Chat chat);
 
     MessageDto saveTextMessage(Long senderId, String chatId, @NonNull NewTextMessage messageDto);
 
