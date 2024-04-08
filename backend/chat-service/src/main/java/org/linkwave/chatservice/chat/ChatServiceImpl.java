@@ -19,6 +19,7 @@ import org.linkwave.chatservice.common.ChatOptionsViolationException;
 import org.linkwave.chatservice.common.PrivacyViolationException;
 import org.linkwave.chatservice.common.RequestInitiator;
 import org.linkwave.chatservice.common.ResourceNotFoundException;
+import org.linkwave.chatservice.message.Action;
 import org.linkwave.chatservice.message.Message;
 import org.linkwave.chatservice.message.MessageDto;
 import org.linkwave.chatservice.message.MessageService;
@@ -283,8 +284,17 @@ public class ChatServiceImpl implements ChatService {
             throw new ChatOptionsViolationException("All members slots are occupied");
         }
 
-        // add member
-        final ChatMember newMember = groupChat.addMember(userId);
+        final ChatMember newMember = groupChat.addMember(userId); // add member
+
+        final var joinMessage = Message.builder()
+                .authorId(userId)
+                .action(Action.JOIN)
+                .chat(groupChat)
+                .createdAt(newMember.getJoinedAt())
+                .build();
+
+        messageService.saveMessage(joinMessage, groupChat); // save join message
+
         updateChat(groupChat);
         return newMember;
     }
@@ -300,6 +310,14 @@ public class ChatServiceImpl implements ChatService {
             throw new ResourceNotFoundException("Member not found");
         }
         groupChat.removeMember(userId);
+
+        final var leaveMessage = Message.builder()
+                .authorId(userId)
+                .action(Action.LEAVE)
+                .chat(groupChat)
+                .build();
+
+        messageService.saveMessage(leaveMessage, groupChat);
         updateChat(groupChat);
 
         messageService.removeMessageCursor(user, chatId);

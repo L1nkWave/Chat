@@ -3,14 +3,15 @@ package org.linkwave.ws.websocket.route;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.ws.api.chat.ApiErrorException;
+import org.linkwave.ws.api.chat.ChatMember;
 import org.linkwave.ws.api.chat.ChatServiceClient;
 import org.linkwave.ws.api.chat.GroupChatDto;
+import org.linkwave.ws.repository.ChatRepository;
 import org.linkwave.ws.websocket.dto.Action;
 import org.linkwave.ws.websocket.dto.ChatMessage;
 import org.linkwave.ws.websocket.dto.ErrorMessage;
 import org.linkwave.ws.websocket.dto.NewGroupChat;
 import org.linkwave.ws.websocket.jwt.UserPrincipal;
-import org.linkwave.ws.repository.ChatRepository;
 import org.linkwave.ws.websocket.routing.Box;
 import org.linkwave.ws.websocket.routing.Payload;
 import org.linkwave.ws.websocket.routing.bpp.Broadcast;
@@ -20,7 +21,8 @@ import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.PathVariable;
 
 import static org.linkwave.shared.utils.Bearers.append;
-import static org.linkwave.ws.websocket.routing.Box.*;
+import static org.linkwave.ws.websocket.routing.Box.error;
+import static org.linkwave.ws.websocket.routing.Box.ok;
 
 @Slf4j
 @WebSocketRoute("/chat/group")
@@ -88,11 +90,15 @@ public class GroupChatRoutes {
         }
 
         // api call to add member
+        final ChatMember member;
         try {
-            chatClient.joinGroupChat(append(principal.rawAccessToken()), id);
+            member = chatClient.joinGroupChat(append(principal.rawAccessToken()), id);
         } catch (ApiErrorException e) {
             return error(ErrorMessage.create(e.getMessage(), path));
         }
+
+        // add unread message for each chat member
+        chatRepository.changeUnreadMessages(id, chatRepository.getMembers(id), 1);
 
         // update chats graph
         chatRepository.addMember(userId, id);
@@ -101,6 +107,7 @@ public class GroupChatRoutes {
                 .action(Action.JOIN)
                 .chatId(id)
                 .senderId(userId)
+                .timestamp(member.getJoinedAt())
                 .build());
     }
 
@@ -126,6 +133,10 @@ public class GroupChatRoutes {
 
         // update chats graph
         chatRepository.removeMember(userId, id);
+
+        // add unread message for each chat member
+        chatRepository.changeUnreadMessages(id, chatRepository.getMembers(id), 1);
+
         return ok(ChatMessage.builder()
                 .action(Action.LEAVE)
                 .chatId(id)
