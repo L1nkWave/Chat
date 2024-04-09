@@ -37,7 +37,7 @@ public interface ChatServiceClient {
     );
 
     @PostMapping("/{chatId}/group/members")
-    void joinGroupChat(
+    ChatMember joinGroupChat(
             @RequestHeader(AUTHORIZATION) String authHeader,
             @PathVariable String chatId
     );

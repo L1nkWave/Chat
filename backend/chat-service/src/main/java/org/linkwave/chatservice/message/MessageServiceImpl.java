@@ -71,6 +71,13 @@ public class MessageServiceImpl implements MessageService {
 
     @Transactional
     @Override
+    public void saveMessage(@NonNull Message newMessage, @NonNull Chat chat) {
+        final Message message = messageRepository.save(newMessage);
+        chat.addMessage(message);
+    }
+
+    @Transactional
+    @Override
     public MessageDto saveTextMessage(Long senderId, String chatId,
                                       @NonNull NewTextMessage messageDto) {
 
