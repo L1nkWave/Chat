@@ -14,23 +14,27 @@ import java.util.Map;
 @Slf4j
 public abstract class AbstractSessionManager implements SessionManager {
 
-    protected final Cache<String, WebSocketSession> sessions = Caffeine.newBuilder()
-        .expireAfterWrite(Duration.ofMinutes(10)) // access token time expiration
-        .removalListener((String sessionId, WebSocketSession session, RemovalCause cause) -> {
-            if (cause != RemovalCause.EXPIRED) {
-                return;
-            }
-            log.debug("-> removalListener(): session={}", session);
-            if (session != null) {
-                try {
-                    session.close(CloseStatus.POLICY_VIOLATION);
-                } catch (IOException e) {
-                    log.error("-> removalListener(): session can't be closed");
-                    this.remove(session);
-                }
-            }
-        })
-        .build();
+    protected final Cache<String, WebSocketSession> sessions;
+
+    public AbstractSessionManager(Long sessionExpiration) {
+        this.sessions = Caffeine.newBuilder()
+                .expireAfterWrite(Duration.ofMinutes(sessionExpiration)) // access token time expiration
+                .removalListener((String sessionId, WebSocketSession session, RemovalCause cause) -> {
+                    if (cause != RemovalCause.EXPIRED) {
+                        return;
+                    }
+                    log.debug("-> removalListener(): session={}", session);
+                    if (session != null) {
+                        try {
+                            session.close(CloseStatus.POLICY_VIOLATION);
+                        } catch (IOException e) {
+                            log.error("-> removalListener(): session can't be closed");
+                            this.remove(session);
+                        }
+                    }
+                })
+                .build();
+    }
 
     @Override
     public Map<String, WebSocketSession> getSessionContext() {

@@ -1,4 +1,4 @@
-package org.linkwave.ws.api.chat;
+package org.linkwave.ws.api;
 
 public class ApiErrorException extends RuntimeException {
     public ApiErrorException(String message) {

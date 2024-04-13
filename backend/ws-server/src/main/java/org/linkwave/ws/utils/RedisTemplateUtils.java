@@ -1,6 +1,7 @@
 package org.linkwave.ws.utils;
 
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -9,6 +10,7 @@ import org.springframework.lang.NonNull;
 
 import java.util.function.Consumer;
 
+@Slf4j
 @UtilityClass
 public class RedisTemplateUtils {
 
@@ -35,6 +37,7 @@ public class RedisTemplateUtils {
                     consumer.accept(operations);
                     operations.exec();
                 } catch (RuntimeException e) {
+                    log.error(e.getMessage());
                     operations.discard();
                 }
                 return null;
