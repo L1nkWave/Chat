@@ -1,20 +1,22 @@
-import { MouseEventHandler } from "react";
-
 import { ChatParams, ContactParams } from "@/api/http/users/users.types";
+import {
+  InteractiveChatParams,
+  InteractiveContactParams,
+} from "@/components/Chat/InteractiveList/interactiveList.types";
 
 export type UserItemVariant = "chat" | "contact";
 
 export type UserItemProps = {
-  variant: UserItemVariant;
-  chat?: ChatParams;
-  contact?: ContactParams;
-  onClick?: MouseEventHandler<HTMLButtonElement>;
+  className?: string;
 };
 
 export type ChatItemProps = {
   chat?: ChatParams;
-};
+  onClick?: InteractiveChatParams["onChatClick"];
+} & UserItemProps;
 
 export type ContactItemProps = {
+  currentContact?: ContactParams;
   contact?: ContactParams;
-};
+  onClick?: InteractiveContactParams["onContactClick"];
+} & UserItemProps;
