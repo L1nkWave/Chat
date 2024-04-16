@@ -1,4 +1,4 @@
-package org.linkwave.ws.api.chat;
+package org.linkwave.ws.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.Response;

@@ -2,6 +2,7 @@ package org.linkwave.ws.repository;
 
 import org.linkwave.ws.api.chat.ChatMemberDto;
 
+import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 
@@ -34,9 +35,15 @@ public interface ChatRepository<U, C> extends SessionRepository<U> {
 
     Map<String, Integer> getUnreadMessages(U userId);
 
+    void setUnreadMessages(C chatId, Integer newValue);
+
     void changeUnreadMessages(C chatId, Set<U> membersIds, Integer delta);
 
     void changeUnreadMessages(C chatId, U userId, Integer delta);
+
+    void changeUnreadMessages(C chatId, U userId, Integer delta, Instant lastReadMessage);
+
+    Map<Long, Instant> getLastReadMessages(C chatId);
 
     void shareWithConsumer(String consumerId, String jsonMessage);
 }

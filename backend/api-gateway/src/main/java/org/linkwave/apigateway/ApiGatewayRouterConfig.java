@@ -50,6 +50,8 @@ public class ApiGatewayRouterConfig {
                         .uri(USER_SERVICE.getUrl()))
                 .route(r -> r
                         .path("/api/v1/users/**")
+                        .and()
+                        .not(fn -> fn.path("/api/v1/users/{id}/online"))
                         .filters(f -> f.filter(authHeaderGatewayFilter))
                         .uri(USER_SERVICE.getUrl()))
                 .route(r -> r

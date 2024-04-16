@@ -14,6 +14,11 @@ spring:
       host: 'localhost'
       port: 6379
 
+  cloud:
+    openfeign:
+      okhttp:
+        enabled: true
+
 eureka:
   client:
     service-url:
@@ -21,6 +26,7 @@ eureka:
 
 ws:
   session:
+    exp: 10
     concurrent:
       send-time-limit: 2000
       buffer-size-limit: 10240

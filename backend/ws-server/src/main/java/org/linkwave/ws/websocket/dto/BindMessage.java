@@ -1,4 +1,4 @@
 package org.linkwave.ws.websocket.dto;
 
-public record BindMessage(String chatId, String tmpMessageId, String messageId) {
+public record BindMessage(Action action, String chatId, String tmpMessageId, String messageId) {
 }

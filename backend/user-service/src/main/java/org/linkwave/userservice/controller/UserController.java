@@ -5,12 +5,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.shared.auth.DefaultUserDetails;
-import org.linkwave.userservice.dto.ContactDto;
 import org.linkwave.userservice.dto.UserDto;
 import org.linkwave.userservice.dto.UserRegisterRequest;
 import org.linkwave.userservice.exception.LimitExceededException;
 import org.linkwave.userservice.exception.UnacceptableRequestDataException;
-import org.linkwave.userservice.service.ContactService;
 import org.linkwave.userservice.service.UserService;
 import org.springframework.data.util.Pair;
 import org.springframework.lang.NonNull;
@@ -34,7 +32,6 @@ public class UserController {
     public static final int BATCH_SIZE_LIMIT = 100;
 
     private final UserService userService;
-    private final ContactService contactService;
 
     @PostMapping("/register")
     @ResponseStatus(CREATED)
@@ -47,13 +44,9 @@ public class UserController {
         return userService.getUser(id);
     }
 
-    @GetMapping("/contacts")
-    public List<ContactDto> getContacts(@RequestParam String username,
-                                        @RequestParam int offset, @RequestParam int limit,
-                                        @NonNull HttpServletResponse response) {
-        final Pair<Integer, List<ContactDto>> result = contactService.getContactsByUsername(getDetails().id(), username, offset, limit);
-        response.setHeader(TOTAL_COUNT.getValue(), String.valueOf(result.getFirst()));
-        return result.getSecond();
+    @PatchMapping("/{id}/online")
+    public void updateUserStatus(@PathVariable Long id, @RequestParam Boolean value) {
+        userService.setUserStatus(id, value);
     }
 
     @GetMapping

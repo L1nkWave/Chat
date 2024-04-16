@@ -24,7 +24,7 @@ public class Chat {
     @Builder.Default
     private List<ChatMember> members = new ArrayList<>();
 
-    @DBRef
+    @DBRef(lazy = true)
     @Builder.Default
     private List<Message> messages = new ArrayList<>();
 

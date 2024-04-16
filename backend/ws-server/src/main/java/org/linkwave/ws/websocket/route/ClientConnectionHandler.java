@@ -5,8 +5,9 @@ import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.linkwave.ws.api.chat.ApiErrorException;
+import org.linkwave.ws.api.ApiErrorException;
 import org.linkwave.ws.api.chat.ChatServiceClient;
+import org.linkwave.ws.api.users.UserServiceClient;
 import org.linkwave.ws.websocket.dto.Action;
 import org.linkwave.ws.websocket.dto.StatusMessage;
 import org.linkwave.ws.websocket.jwt.UserPrincipal;
@@ -43,6 +44,7 @@ public class ClientConnectionHandler implements AfterConnectionEstablished, Afte
     private String separator;
 
     private final ChatServiceClient chatClient;
+    private final UserServiceClient userClient;
     private final ChatRepository<Long, String> chatRepository;
     private final ObjectMapper objectMapper;
     private WebSocketMessageBroadcast messageBroadcast;
@@ -54,6 +56,11 @@ public class ClientConnectionHandler implements AfterConnectionEstablished, Afte
         final Long userId = principal.token().userId();
 
         log.debug("-> user:[{}] connected, SSID={}", principal.getName(), sessionId);
+
+        if (chatRepository.hasSessions(userId)) {
+            chatRepository.saveSession(userId, sessionId);
+            return;
+        }
 
         // fetch users chats
         final String bearer = append(principal.rawAccessToken());
@@ -80,6 +87,7 @@ public class ClientConnectionHandler implements AfterConnectionEstablished, Afte
         // notify & add connected user to predefined chats
         notifyChatMembersWith(Action.ONLINE, chats, userId);
         chatRepository.saveSession(userId, sessionId);
+        userClient.updateUserStatus(userId, Boolean.TRUE);
     }
 
     @Override
@@ -90,8 +98,12 @@ public class ClientConnectionHandler implements AfterConnectionEstablished, Afte
 
         log.debug("-> user:[{}] disconnected, SSID={}", principal.getName(), sessionId);
 
-        notifyChatMembersWith(Action.OFFLINE, chatRepository.getUserChats(userId), userId);
         chatRepository.removeSession(userId, sessionId);
+
+        if (!chatRepository.hasSessions(userId)) {
+            notifyChatMembersWith(Action.OFFLINE, chatRepository.getUserChats(userId), userId);
+            userClient.updateUserStatus(userId, Boolean.FALSE);
+        }
     }
 
     @SuppressWarnings("unchecked")

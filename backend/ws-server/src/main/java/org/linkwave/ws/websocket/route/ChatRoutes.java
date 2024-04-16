@@ -4,13 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.linkwave.ws.api.chat.ApiErrorException;
-import org.linkwave.ws.api.chat.ChatServiceClient;
-import org.linkwave.ws.api.chat.MessageDto;
-import org.linkwave.ws.api.chat.NewTextMessage;
+import org.linkwave.ws.api.ApiErrorException;
+import org.linkwave.ws.api.chat.*;
+import org.linkwave.ws.repository.ChatRepository;
 import org.linkwave.ws.websocket.dto.*;
 import org.linkwave.ws.websocket.jwt.UserPrincipal;
-import org.linkwave.ws.repository.ChatRepository;
 import org.linkwave.ws.websocket.routing.Box;
 import org.linkwave.ws.websocket.routing.Payload;
 import org.linkwave.ws.websocket.routing.bpp.Broadcast;
@@ -21,9 +19,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 
-import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import static java.util.stream.Collectors.toSet;
 import static org.linkwave.shared.utils.Bearers.append;
 import static org.linkwave.ws.websocket.routing.Box.error;
 import static org.linkwave.ws.websocket.routing.Box.ok;
@@ -38,8 +37,8 @@ public class ChatRoutes {
     private final ObjectMapper objectMapper;
 
     @SneakyThrows
+    @Broadcast
     @SubRoute("/{id}/send")
-    @Broadcast("chat:{id}")
     public Box<OutcomeMessage> sendMessage(@PathVariable String id,
                                            @Payload IncomeMessage message,
                                            @NonNull WebSocketSession session,
@@ -69,7 +68,7 @@ public class ChatRoutes {
         chatRepository.changeUnreadMessages(id, members, 1);
 
         // send a bind message to initiator
-        final var bindMessage = new BindMessage(id, message.tmpMessageId(), messageId);
+        final var bindMessage = new BindMessage(Action.BIND, id, message.tmpMessageId(), messageId);
         session.sendMessage(new TextMessage(objectMapper.writeValueAsString(bindMessage)));
 
         // build outcome message
@@ -83,6 +82,95 @@ public class ChatRoutes {
                 .build());
     }
 
+    @SubRoute("/edit_text_message/{messageId}")
+    @Broadcast(value = "chat:{chatId}", analyzeMessage = true)
+    public Box<OutcomeMessage> editTextMessage(@PathVariable String messageId,
+                                               @Payload String text,
+                                               @NonNull UserPrincipal principal,
+                                               @NonNull String path) {
+
+        final UpdatedTextMessage updatedMessage;
+        try {
+            updatedMessage = chatClient.editTextMessage(
+                    append(principal.rawAccessToken()),
+                    messageId,
+                    new NewTextMessage(text)
+            );
+        } catch (ApiErrorException e) {
+            return error(ErrorMessage.create(e.getMessage(), path));
+        }
+
+        return ok(OutcomeMessage.builder()
+                .action(Action.UPD_MESSAGE)
+                .id(updatedMessage.getMessageId())
+                .chatId(updatedMessage.getChatId())
+                .text(updatedMessage.getText())
+                .timestamp(updatedMessage.getEditedAt())
+                .senderId(principal.token().userId())
+                .build());
+    }
+
+    @SubRoute("/remove_message/{messageId}")
+    @Broadcast(value = "chat:{chatId}", analyzeMessage = true)
+    public Box<IdentifiedMessage> removeMessage(@PathVariable String messageId,
+                                                @NonNull UserPrincipal principal,
+                                                @NonNull String path) {
+
+        final RemovedMessage removedMessage;
+        try {
+            removedMessage = chatClient.removeMessage(append(principal.rawAccessToken()), messageId);
+        } catch (ApiErrorException e) {
+            return error(ErrorMessage.create(e.getMessage(), path));
+        }
+
+        final String chatId = removedMessage.getChatId();
+
+        // decrement message counter for those who has not read chat
+        // since creation time of the removed message
+        final Set<Long> filteredMembers = chatRepository.getLastReadMessages(chatId)
+                .entrySet()
+                .stream()
+                .filter(e -> e.getValue().isBefore(removedMessage.getCreatedAt()))
+                .map(Map.Entry::getKey)
+                .collect(toSet());
+
+        chatRepository.changeUnreadMessages(chatId, filteredMembers, -1);
+
+        return ok(IdentifiedMessage.builder()
+                .action(Action.REMOVE)
+                .id(messageId)
+                .chatId(chatId)
+                .senderId(principal.token().userId())
+                .build());
+    }
+
+    @Broadcast
+    @SubRoute("/{id}/clear_history")
+    public Box<ChatMessage> clearChatHistory(@PathVariable String id,
+                                             @NonNull UserPrincipal principal,
+                                             @NonNull String path) {
+
+        final Long userId = principal.token().userId();
+        if (!chatRepository.isMember(id, userId)) {
+            return error(ErrorMessage.create("You are not member of chat", path));
+        }
+
+        try {
+            chatClient.clearMessages(append(principal.rawAccessToken()), id);
+        } catch (ApiErrorException e) {
+            return error(ErrorMessage.create(e.getMessage(), path));
+        }
+
+        // reset unread messages counter
+        chatRepository.setUnreadMessages(id, 0);
+
+        return ok(ChatMessage.builder()
+                .action(Action.CLEAR_HISTORY)
+                .chatId(id)
+                .senderId(userId)
+                .build());
+    }
+
     @SubRoute("/unread_messages")
     public UnreadMessages getUnreadMessages(@NonNull UserPrincipal principal) {
         final Long userId = principal.token().userId();
@@ -91,34 +179,46 @@ public class ChatRoutes {
                 .build();
     }
 
-    @SubRoute("/{chatId}/read/{messageId}")
-    @Broadcast("chat:{chatId}")
-    public Box<ReadMessage> readMessages(@PathVariable String chatId,
-                                         @PathVariable String messageId,
+    @Broadcast
+    @SubRoute("/{id}/read")
+    public Box<ReadMessage> readMessages(@PathVariable String id,
+                                         @Payload LastReadMessage message,
                                          @NonNull UserPrincipal principal,
                                          @NonNull String path) {
 
         final Long userId = principal.token().userId();
 
-        // if all message are read
-        if (chatRepository.getUnreadMessages(chatId, userId) == 0) {
-            return ok();
+        if (!chatRepository.isMember(id, userId)) {
+            return error(ErrorMessage.create("You are not member of chat", path));
         }
 
-        final List<String> readMessagesIds;
+        final ReadMessages readMessages;
         try {
-            readMessagesIds = chatClient.readMessages(append(principal.rawAccessToken()), chatId, messageId);
+            readMessages = chatClient.readMessages(
+                    append(principal.rawAccessToken()),
+                    id,
+                    message.getTimestamp()
+            );
         } catch (ApiErrorException e) {
             return error(ErrorMessage.create(e.getMessage(), path));
         }
 
-        // subtract unread messages
-        if (!readMessagesIds.isEmpty()) {
-            chatRepository.changeUnreadMessages(chatId, userId, -readMessagesIds.size());
+        // subtract unread messages keeping counter gte 0
+        final int unreadMessages = chatRepository.getUnreadMessages(id, userId);
+        final int minCount = Math.min(unreadMessages, readMessages.getReadCount());
+        if (minCount > 0) {
+            chatRepository.changeUnreadMessages(
+                    id, userId,
+                    -minCount,
+                    readMessages.getCursor().getTimestamp()
+            );
+        }
+
+        if (!readMessages.getUnreadMessages().isEmpty()) {
             return ok(ReadMessage.builder()
                     .senderId(userId)
-                    .chatId(chatId)
-                    .messages(readMessagesIds)
+                    .chatId(id)
+                    .messages(readMessages.getUnreadMessages())
                     .build());
         }
         return ok();

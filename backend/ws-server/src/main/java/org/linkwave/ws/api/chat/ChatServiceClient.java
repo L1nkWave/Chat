@@ -4,6 +4,7 @@ import org.linkwave.ws.websocket.dto.NewGroupChat;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,7 +37,7 @@ public interface ChatServiceClient {
     );
 
     @PostMapping("/{chatId}/group/members")
-    void joinGroupChat(
+    ChatMember joinGroupChat(
             @RequestHeader(AUTHORIZATION) String authHeader,
             @PathVariable String chatId
     );
@@ -66,11 +67,24 @@ public interface ChatServiceClient {
             @RequestParam Long recipientId
     );
 
-    @PostMapping("/{chatId}/messages/readers")
-    List<String> readMessages(
+    @PatchMapping("/messages/{messageId}/text")
+    UpdatedTextMessage editTextMessage(
+            @RequestHeader(AUTHORIZATION) String authHeader,
+            @PathVariable String messageId,
+            @RequestBody NewTextMessage message
+    );
+
+    @DeleteMapping("/messages/{id}")
+    RemovedMessage removeMessage(@RequestHeader(AUTHORIZATION) String authHeader, @PathVariable String id);
+
+    @DeleteMapping("/{chatId}/messages")
+    void clearMessages(@RequestHeader(AUTHORIZATION) String authHeader, @PathVariable String chatId);
+
+    @PatchMapping("/{chatId}/messages/readers")
+    ReadMessages readMessages(
             @RequestHeader(AUTHORIZATION) String authHeader,
             @PathVariable String chatId,
-            @RequestParam("to") String lastReadMessageId
+            @RequestParam("to") Instant timestamp
     );
 
 }

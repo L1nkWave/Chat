@@ -3,7 +3,8 @@ package org.linkwave.ws.unit;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.linkwave.shared.utils.Bearers;
-import org.linkwave.ws.api.chat.ApiErrorException;
+import org.linkwave.ws.api.ApiErrorException;
+import org.linkwave.ws.api.chat.ChatMember;
 import org.linkwave.ws.api.chat.ChatServiceClient;
 import org.linkwave.ws.api.chat.GroupChatDto;
 import org.linkwave.ws.websocket.dto.Action;
@@ -84,9 +85,14 @@ public class GroupChatRoutesTest {
         final Pair<UserPrincipal, WebSocketSession> sessionPair = createSession(false);
         final var principal = sessionPair.getFirst();
         final Long userId = principal.token().userId();
+        final ChatMember chatMember = ChatMember.builder()
+                .id(userId)
+                .joinedAt(Instant.now())
+                .build();
 
         final String chatId = UUID.randomUUID().toString();
         when(chatRepository.isMember(chatId, userId)).thenReturn(FALSE);
+        when(chatServiceClient.joinGroupChat(anyString(), eq(chatId))).thenReturn(chatMember);
 
         final Box<ChatMessage> result = routes.join(chatId, principal, "");
         final ChatMessage message = result.getValue();
