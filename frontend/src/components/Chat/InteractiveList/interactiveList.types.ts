@@ -2,16 +2,22 @@ import { ChatParams, ContactParams } from "@/api/http/users/users.types";
 
 export type InteractiveListVariant = "contacts" | "chats";
 
-export type ContactListProps = {
-  contacts?: ContactParams[];
+export type Contacts = ContactParams[];
+
+export type InteractiveContactParams = {
+  currentContact?: ContactParams;
+  contacts?: Contacts;
+  onContactClick?: (id: ContactParams) => void;
 };
 
-export type ChatListProps = {
+export type InteractiveChatParams = {
+  currentChat?: ChatParams;
   chats?: ChatParams[];
+  onChatClick?: (id: ChatParams) => void;
 };
 
 export type InteractiveListProps = {
   interactiveListVariant: InteractiveListVariant;
-  contacts?: ContactParams[];
-  chats?: ChatParams[];
+  interactiveContact?: InteractiveContactParams;
+  interactiveChat?: InteractiveChatParams;
 };
