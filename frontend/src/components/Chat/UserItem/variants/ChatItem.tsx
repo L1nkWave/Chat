@@ -1,12 +1,21 @@
 import { Avatar } from "@/components/Avatar/Avatar";
 import { ChatItemProps } from "@/components/Chat/UserItem/userItem.types";
 
-export function ChatItem({ chat }: Readonly<ChatItemProps>) {
+export function ChatItem({ chat, onClick, className }: Readonly<ChatItemProps>) {
   if (!chat) {
     return null;
   }
+  const handleClick = () => {
+    if (onClick) {
+      onClick(chat);
+    }
+  };
   return (
-    <div className="flex flex-row justify-between items-center">
+    <button
+      onClick={handleClick}
+      type="button"
+      className={`flex flex-row justify-between items-center outline-none bg-dark-300 p-4 rounded-lg hover:bg-dark-200 ${className}`}
+    >
       <div className="flex flex-row">
         <div className="w-14 h-14">
           <Avatar item={chat} alt="User Avatar" />
@@ -22,6 +31,6 @@ export function ChatItem({ chat }: Readonly<ChatItemProps>) {
           {chat.unreadMessagesCount > 0 && <p className="text-white text-xs p-1">{chat.unreadMessagesCount}</p>}
         </div>
       </div>
-    </div>
+    </button>
   );
 }
