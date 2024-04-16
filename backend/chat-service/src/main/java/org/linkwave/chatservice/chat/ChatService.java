@@ -116,6 +116,8 @@ public interface ChatService {
 
     boolean isAdmin(Long memberId, @NonNull Chat chat);
 
+    void checkMemberRole(@NonNull Chat chat, Long memberId, ChatRole role) throws ChatMemberPermissionsDenied;
+
     ChatMember addGroupChatMember(Long userId, String chatId);
 
     void removeGroupChatMember(Long userId, String chatId);

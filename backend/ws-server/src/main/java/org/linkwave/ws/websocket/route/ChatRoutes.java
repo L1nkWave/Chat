@@ -144,6 +144,33 @@ public class ChatRoutes {
                 .build());
     }
 
+    @Broadcast
+    @SubRoute("/{id}/clear_history")
+    public Box<ChatMessage> clearChatHistory(@PathVariable String id,
+                                             @NonNull UserPrincipal principal,
+                                             @NonNull String path) {
+
+        final Long userId = principal.token().userId();
+        if (!chatRepository.isMember(id, userId)) {
+            return error(ErrorMessage.create("You are not member of chat", path));
+        }
+
+        try {
+            chatClient.clearMessages(append(principal.rawAccessToken()), id);
+        } catch (ApiErrorException e) {
+            return error(ErrorMessage.create(e.getMessage(), path));
+        }
+
+        // reset unread messages counter
+        chatRepository.setUnreadMessages(id, 0);
+
+        return ok(ChatMessage.builder()
+                .action(Action.CLEAR_HISTORY)
+                .chatId(id)
+                .senderId(userId)
+                .build());
+    }
+
     @SubRoute("/unread_messages")
     public UnreadMessages getUnreadMessages(@NonNull UserPrincipal principal) {
         final Long userId = principal.token().userId();

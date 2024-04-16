@@ -15,6 +15,7 @@ import java.util.List;
 
 import static org.linkwave.chatservice.common.RequestUtils.userDetails;
 import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.NO_CONTENT;
 import static org.springframework.http.ResponseEntity.ok;
 
 @RestController
@@ -54,6 +55,12 @@ public class MessageController {
     @DeleteMapping("/messages/{id}")
     public RemovedMessage removeMessage(@PathVariable String id) {
         return messageService.removeMessage(userDetails().id(), id);
+    }
+
+    @DeleteMapping("/{chatId}/messages")
+    @ResponseStatus(NO_CONTENT)
+    public void clearMessages(@PathVariable String chatId) {
+        messageService.clearMessages(userDetails().id(), chatId);
     }
 
     @PatchMapping("/{chatId}/messages/readers")
