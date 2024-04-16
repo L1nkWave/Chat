@@ -8,17 +8,19 @@ import { UserStatus } from "@/lib/features/user/userSlice.types";
 
 export function LastSeen({
   online,
-  lastSeen,
   className,
+  lastSeen,
   textColor = "text-gray-400",
   iconSize = 16,
 }: Readonly<LastSeenProps>) {
   let lastSeenDate;
+
   if (typeof lastSeen === "number") {
-    if (isToday(lastSeen)) {
-      lastSeenDate = `Today ${formatDate(lastSeen, DateFormat.HOURS_AND_MINUTES)}`;
+    const convertedLastSeen = lastSeen * 1000;
+    if (isToday(convertedLastSeen)) {
+      lastSeenDate = `Today ${formatDate(convertedLastSeen, DateFormat.HOURS_AND_MINUTES)}`;
     } else {
-      lastSeenDate = formatDate(lastSeen, DateFormat.EUROPEAN);
+      lastSeenDate = formatDate(convertedLastSeen, DateFormat.EUROPEAN);
     }
   }
 
