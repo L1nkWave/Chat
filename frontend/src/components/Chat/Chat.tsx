@@ -1,89 +1,61 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 
 import { getContacts } from "@/api/http/users/users";
 import { ContactParams } from "@/api/http/users/users.types";
 import { SIDEBAR_ICON_SIZE } from "@/components/Chat/chat.config";
 import { InteractiveList } from "@/components/Chat/InteractiveList/InteractiveList";
+import { Contacts } from "@/components/Chat/InteractiveList/interactiveList.types";
 import { MainBox } from "@/components/Chat/MainBox/MainBox";
 import { SideBar } from "@/components/Chat/SideBar/SideBar";
 import { CustomButton } from "@/components/CustomButton/CustomButton";
-import { decodeToken } from "@/helpers/DecodeToken/decodeToken";
-import { setCurrentInteractiveList } from "@/lib/features/chat/chatSlice";
+import { SocketContext } from "@/context/SocketContext/SocketContext";
+import { setCurrentInteractiveList, setCurrentMainBox } from "@/lib/features/chat/chatSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 
 export function Chat() {
   const dispatch = useAppDispatch();
 
   const { accessToken } = useAppSelector(state => state.auth);
-  const { webSocket } = useAppSelector(state => state.socket);
+  const { webSocket } = useContext(SocketContext);
   const { currentMainBox, currentInteractiveList } = useAppSelector(state => state.chat);
 
   const router = useRouter();
 
-  const [contacts, setContacts] = useState<ContactParams[]>([]);
+  const [contacts, setContacts] = useState<Contacts>([]);
+  const [contact, setContact] = useState<ContactParams | undefined>(undefined);
 
   useEffect(() => {
+    if (!accessToken) {
+      router.push("/sign-in");
+      return;
+    }
     const fetchContacts = async () => {
       try {
-        let fetchedContacts = await getContacts();
-        fetchedContacts = fetchedContacts.map(contact => {
-          if (contact.user.id === 2)
-            return {
-              ...contact,
-              user: {
-                ...contact.user,
-                online: true,
-              },
-            };
-          return contact;
-        });
-
+        const fetchedContacts = await getContacts();
         setContacts(fetchedContacts);
       } catch (error) {
         toast.error("Error fetching contacts");
       }
     };
-
     fetchContacts();
-    if (!accessToken) {
-      return router.push("/sign-in");
-    }
-
-    if (!webSocket) {
-      return () => {};
-    }
-
-    const payload = decodeToken(accessToken);
-    if (!payload) {
-      return router.push("/sign-in");
-    }
-
-    return () => {};
   }, [accessToken, router, webSocket]);
 
   const handleContactsClick = () => {
     dispatch(setCurrentInteractiveList("contacts"));
   };
 
-  const handleChatsClick = () => {
+  const handleChatsClick = async () => {
     dispatch(setCurrentInteractiveList("chats"));
   };
 
-  // return (
-  //   <div className="w-full h-full">
-  //     <Image
-  //       width={400}
-  //       height={500}
-  //       className="w-full rounded-lg"
-  //       src="/images/ChatPage/backend-fall.gif"
-  //       alt="Backend is currently unstable, please wait."
-  //     />
-  //   </div>
-  // );
+  const handleContactClick = (currentContact: ContactParams) => {
+    setContact(currentContact);
+    dispatch(setCurrentMainBox("user-info"));
+  };
 
   return (
     <div className="w-screen flex px-64">
@@ -102,8 +74,18 @@ export function Chat() {
         />
         <CustomButton variant="square" iconSize={SIDEBAR_ICON_SIZE} icon="setting-outline" />
       </SideBar>
-      <InteractiveList interactiveListVariant={currentInteractiveList} contacts={contacts} chats={[]} />
-      <MainBox mainBoxVariant={currentMainBox} />
+      <InteractiveList
+        interactiveListVariant={currentInteractiveList}
+        interactiveContact={{
+          currentContact: contact,
+          contacts,
+          onContactClick: handleContactClick,
+        }}
+        interactiveChat={{
+          chats: [],
+        }}
+      />
+      <MainBox mainBoxVariant={currentMainBox} contact={contact} />
     </div>
   );
 }
