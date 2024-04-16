@@ -3,6 +3,7 @@ package org.linkwave.chatservice.common;
 import jakarta.servlet.http.HttpServletRequest;
 import org.linkwave.chatservice.api.ApiResponseClientErrorException;
 import org.linkwave.chatservice.api.ServiceErrorException;
+import org.linkwave.chatservice.chat.ChatMemberPermissionsDenied;
 import org.linkwave.chatservice.chat.ChatNotFoundException;
 import org.linkwave.chatservice.message.MessageNotFoundException;
 import org.linkwave.shared.dto.ApiError;
@@ -74,7 +75,8 @@ public class RestExceptionHandler {
     @ResponseStatus(FORBIDDEN)
     @ExceptionHandler({
             PrivacyViolationException.class,
-            ChatOptionsViolationException.class
+            ChatOptionsViolationException.class,
+            ChatMemberPermissionsDenied.class
     })
     public ApiError handleForbiddenAccess(@NonNull RuntimeException e, @NonNull HttpServletRequest request) {
         return ApiError.builder()

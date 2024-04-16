@@ -1,8 +1,18 @@
 package org.linkwave.ws.websocket.dto;
 
 public enum Action {
+
+    // Chat
     JOIN, LEAVE,
+
+    // User status
     ONLINE, OFFLINE,
-    MESSAGE, UPD_MESSAGE, READ, UNREAD_MESSAGES, BIND, REMOVE,
+
+    // Messages
+    MESSAGE, BIND, UPD_MESSAGE,
+    READ, UNREAD_MESSAGES,
+    REMOVE, CLEAR_HISTORY,
+
+    // Error
     ERROR
 }

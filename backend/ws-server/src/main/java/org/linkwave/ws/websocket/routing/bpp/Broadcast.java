@@ -29,8 +29,8 @@ public @interface Broadcast {
      *          attached to specific route handler.
      *      </li>
      *      <li>
-     *          a field from received message for broadcast. In order to use this feature the {@code messageAnalysis}
-     *          property should be set to {@code true}.
+     *          a field from received message for broadcast. In order to use this feature the {@link Broadcast#analyzeMessage()}
+     *          should be set to {@code true}.
      *      </li>
      * </ul>
      */
@@ -42,5 +42,9 @@ public @interface Broadcast {
      */
     boolean analyzeMessage() default false;
 
-    boolean multiInstances() default false;
+    /**
+     * The message will be broadcasted to other instances if set to {@code true}, <br/>
+     * otherwise only locally.
+     */
+    boolean multiInstances() default true;
 }

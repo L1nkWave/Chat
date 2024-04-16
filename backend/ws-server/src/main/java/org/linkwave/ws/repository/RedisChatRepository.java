@@ -80,6 +80,18 @@ public class RedisChatRepository implements ChatRepository<Long, String> {
     }
 
     @Override
+    public void setUnreadMessages(String chatId, Integer newValue) {
+        final Set<Long> members = getMembers(chatId);
+        executeInTxn(
+                redisTemplate,
+                ops -> {
+                    final var hashOps = ops.opsForHash();
+                    members.forEach(id -> hashOps.put(userChatsKey(id), chatId, String.valueOf(newValue)));
+                }
+        );
+    }
+
+    @Override
     public void changeUnreadMessages(String chatId, Set<Long> membersIds, Integer delta) {
         executeInTxn(
                 redisTemplate,

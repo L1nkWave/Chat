@@ -257,6 +257,14 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
+    public void checkMemberRole(@NonNull Chat chat, Long memberId, ChatRole role) throws ChatMemberPermissionsDenied {
+        final Optional<ChatMember> chatMember = findChatMember(memberId, chat);
+        if (chatMember.isEmpty() || chatMember.get().getRole() != role) {
+            throw new ChatMemberPermissionsDenied();
+        }
+    }
+
+    @Override
     public Optional<ChatMember> findChatMember(Long userId, @NonNull Chat chat) {
         return chat.getMembers()
                 .stream()

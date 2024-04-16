@@ -21,6 +21,8 @@ public interface MessageService {
 
     RemovedMessage removeMessage(Long senderId, String messageId);
 
+    void clearMessages(Long senderId, String chatId);
+
     void updateMessage(@NonNull Message message);
 
     Message getMessage(String id);

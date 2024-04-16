@@ -99,6 +99,26 @@ public class SimpleBroadcastManagerTest {
         verify(chatRepository, times(1)).shareWithConsumer(any(), any());
     }
 
+    @SneakyThrows
+    @Test
+    @DisplayName("Should share message locally")
+    void shouldShareMessageLocally() {
+        final String jsonMessage = "";
+        final Method handler = getRequiredMethod(RouteHandlers.class, "sendLocally");
+        final var pathVariables = Map.of("id", "1378");
+        final var broadcastKey = "chat:1378";
+        final Set<String> sessionIds = generateSessionIds(SESSIONS_COUNT);
+
+        when(chatRepository.getSessions(broadcastKey)).thenReturn(sessionIds);
+        when(messageBroadcast.share(sessionIds, jsonMessage)).thenReturn(FALSE);
+
+        broadcastManager.process(handler, pathVariables, new Object(), jsonMessage);
+
+        verify(chatRepository, times(1)).getSessions(broadcastKey);
+        verify(messageBroadcast, times(1)).share(sessionIds, jsonMessage);
+        verify(chatRepository, times(0)).shareWithConsumer(any(), any());
+    }
+
     @Test
     @DisplayName("Should throw exception when broadcast key is not resolved")
     void shouldThrowExceptionWhenBroadcastKeyIsNotResolved() {
@@ -160,7 +180,7 @@ public class SimpleBroadcastManagerTest {
 
     private static class RouteHandlers {
 
-        @Broadcast("chat:{id}")
+        @Broadcast
         void send() {
         }
 
@@ -169,6 +189,11 @@ public class SimpleBroadcastManagerTest {
 
         @Broadcast(value = "chat:{chatId}", analyzeMessage = true)
         Message sendWithMessageAnalysis() {
+            return new Message(UUID.randomUUID().toString());
+        }
+
+        @Broadcast(multiInstances = false)
+        Message sendLocally() {
             return new Message(UUID.randomUUID().toString());
         }
 

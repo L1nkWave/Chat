@@ -2,6 +2,7 @@ package org.linkwave.chatservice.message;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.linkwave.chatservice.chat.ChatRole;
 import org.linkwave.chatservice.chat.ChatService;
 import org.linkwave.chatservice.chat.duo.Chat;
 import org.linkwave.chatservice.common.PrivacyViolationException;
@@ -162,6 +163,16 @@ public class MessageServiceImpl implements MessageService {
                 .messageId(messageId)
                 .createdAt(message.getCreatedAt())
                 .build();
+    }
+
+    @Transactional
+    @Override
+    public void clearMessages(Long senderId, String chatId) {
+        final Chat chat = chatService.findChat(chatId);
+        chatService.checkMemberRole(chat, senderId, ChatRole.ADMIN);
+        messageRepository.deleteAllChatMessages(chatId);
+        chat.setLastMessage(null);
+        chatService.updateChat(chat);
     }
 
     private void checkPermissions(Long userId, @NonNull Message message) {

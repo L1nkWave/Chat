@@ -68,7 +68,7 @@ public class SimpleBroadcastManager implements BroadcastManager {
             isSharedCompletely = false;
         }
 
-        if (!isSharedCompletely) {
+        if (!isSharedCompletely && broadcastAnn.multiInstances()) {
             log.debug("-> process(): multi-instance broadcast is required");
 
             for (String instanceId : instances.split(separator)) {

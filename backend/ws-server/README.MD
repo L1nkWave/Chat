@@ -164,6 +164,27 @@ Response message example:
 
 <br/>
 
+### Clear chat history (`DUO` / `GROUP`)
+
+Message structure:
+
+```
+path=/chat/{chatId}/clear_history
+```
+
+Response message example:
+
+```json
+{
+  "action": "CLEAR_HISTORY",
+  "timestamp": 1712406700.330034700,
+  "senderId": 1,
+  "chatId": "66054151e162397346b28554"
+}
+```
+
+<br/>
+
 ### Read messages (`DUO` / `GROUP`)
 
 Message structure:
