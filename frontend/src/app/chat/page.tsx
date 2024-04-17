@@ -2,11 +2,11 @@ import React from "react";
 
 import { Chat } from "@/components/Chat/Chat";
 import { Container } from "@/components/Container/Container";
-import { SocketProvider } from "@/context/SocketProvider/SocketProvider";
+import { SocketProvider } from "@/context/SocketContext/SocketProvider/SocketProvider";
 
 export default function ChatPage() {
   return (
-    <Container showHeader={false}>
+    <Container className="p-0" showHeader={false}>
       <SocketProvider>
         <Chat />
       </SocketProvider>

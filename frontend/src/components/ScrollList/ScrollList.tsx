@@ -1,8 +1,10 @@
 import "./scrollList.styles.ts.css";
 
-import { PropsWithChildren, useState } from "react";
+import { useState } from "react";
 
-export function ScrollList({ children }: Readonly<PropsWithChildren>) {
+import { ScrollListProps } from "@/components/ScrollList/scrollList.types";
+
+export function ScrollList({ children, className }: Readonly<ScrollListProps>) {
   const [isMouseEntered, setIsMouseEntered] = useState(false);
 
   const handleMouseEnter = () => {
@@ -13,7 +15,7 @@ export function ScrollList({ children }: Readonly<PropsWithChildren>) {
   };
   return (
     <div
-      className={`flex flex-col h-full outline-none bg-dark-500 pl-8 pr-6 py-8 gap-2 overflow-y-auto ${isMouseEntered ? "scroll-list__scrollbar" : "scroll-list__scrollbar-hidden"}`}
+      className={`flex flex-col h-full outline-none bg-dark-500 pl-8 pr-6 py-8 gap-2 overflow-y-auto ${isMouseEntered ? "scroll-list__scrollbar" : "scroll-list__scrollbar-hidden"} ${className}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       role="tablist"

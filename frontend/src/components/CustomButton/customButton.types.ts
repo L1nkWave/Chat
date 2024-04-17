@@ -2,7 +2,7 @@ import { ButtonHTMLAttributes, DetailedHTMLProps, PropsWithChildren } from "reac
 
 import { IconName } from "@/components/Icon/Icon";
 
-export type CustomButtonVariant = "square" | "flattened" | "primary" | "transparent";
+export type CustomButtonVariant = "square" | "flattened" | "primary" | "transparent" | "outline";
 
 export type CustomButtonProps = {
   iconSize?: number;
