@@ -4,13 +4,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.linkwave.shared.utils.Bearers;
 import org.linkwave.ws.api.ApiErrorException;
-import org.linkwave.ws.api.chat.ChatMember;
-import org.linkwave.ws.api.chat.ChatServiceClient;
-import org.linkwave.ws.api.chat.GroupChatDto;
-import org.linkwave.ws.websocket.dto.Action;
-import org.linkwave.ws.websocket.dto.ChatMessage;
-import org.linkwave.ws.websocket.dto.ErrorMessage;
-import org.linkwave.ws.websocket.dto.NewGroupChat;
+import org.linkwave.ws.api.chat.*;
+import org.linkwave.ws.websocket.dto.*;
 import org.linkwave.ws.websocket.jwt.UserPrincipal;
 import org.linkwave.ws.repository.ChatRepository;
 import org.linkwave.ws.websocket.route.GroupChatRoutes;
@@ -85,8 +80,9 @@ public class GroupChatRoutesTest {
         final Pair<UserPrincipal, WebSocketSession> sessionPair = createSession(false);
         final var principal = sessionPair.getFirst();
         final Long userId = principal.token().userId();
-        final ChatMember chatMember = ChatMember.builder()
+        final var chatMember = ChatMemberDto.builder()
                 .id(userId)
+                .role("MEMBER")
                 .joinedAt(Instant.now())
                 .build();
 
@@ -94,13 +90,14 @@ public class GroupChatRoutesTest {
         when(chatRepository.isMember(chatId, userId)).thenReturn(FALSE);
         when(chatServiceClient.joinGroupChat(anyString(), eq(chatId))).thenReturn(chatMember);
 
-        final Box<ChatMessage> result = routes.join(chatId, principal, "");
-        final ChatMessage message = result.getValue();
+        final Box<MemberMessage> result = routes.join(chatId, principal, "");
+        final MemberMessage message = result.getValue();
 
         verify(chatRepository, times(1)).isMember(chatId, userId);
         assertThat(result.hasError()).isFalse();
         assertThat(message.getChatId()).isEqualTo(chatId);
         assertThat(message.getAction()).isEqualTo(Action.JOIN);
+        assertThat(message.getSenderId()).isEqualTo(userId);
     }
 
     @Test
@@ -113,7 +110,7 @@ public class GroupChatRoutesTest {
         when(chatRepository.isMember(chatId, userId)).thenReturn(TRUE);
         final String expectedError = "You are already a member of chat";
 
-        final Box<ChatMessage> result = routes.join(chatId, principal, "");
+        final Box<MemberMessage> result = routes.join(chatId, principal, "");
 
         assertThat(result.hasError()).isTrue();
         assertThat(result.getErrorValue()).isNotNull();
@@ -135,7 +132,7 @@ public class GroupChatRoutesTest {
                 .when(chatServiceClient)
                 .joinGroupChat(Bearers.append(principal.rawAccessToken()), chatId);
 
-        final Box<ChatMessage> result = routes.join(chatId, principal, "");
+        final Box<MemberMessage> result = routes.join(chatId, principal, "");
 
         verify(chatRepository, only()).isMember(chatId, userId);
         assertThat(result.hasError()).isTrue();
