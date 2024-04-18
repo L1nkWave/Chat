@@ -15,7 +15,64 @@ Response message example:
   "action": "JOIN",
   "timestamp": 1710622097.792737500,
   "chatId": "65f605253b9b7c0d6dab5546",
-  "senderId": 34
+  "senderId": 10,
+  "memberId": null,
+  "memberDetails": {
+    "username": "@danielmartinez",
+    "name": "Daniel Martinez",
+    "avatarPath": null,
+    "online": true
+  }
+}
+```
+
+<br/>
+
+### Add member to the group chat
+
+Message structure:
+```
+path=/chat/group/{chatId}/add_member/{userId}
+```
+
+Response message example:
+```json
+{
+  "action": "ADD",
+  "timestamp": 1713443949.902010300,
+  "senderId": 1,
+  "chatId": "6621128c182be4335fc0a6e5",
+  "memberId": 10,
+  "memberDetails": {
+    "username": "@danielmartinez",
+    "name": "Daniel Martinez",
+    "avatarPath": null,
+    "online": false
+  }
+}
+```
+
+Possible errors:
+
+- Do not have permissions
+
+```json
+{
+  "action": "ERROR",
+  "timestamp": 1713443892.540455500,
+  "error": "Permissions denied",
+  "path": "/chat/group/6621128c182be4335fc0a6e5/add_member/10"
+}
+```
+
+- Not a member of chat
+
+```json
+{
+    "action": "ERROR",
+    "timestamp": 1713443892.540455500,
+    "error": "You are not member of chat",
+    "path": "/chat/group/6621128c182be4335fc0a6e5/add_member/10"
 }
 ```
 
@@ -38,6 +95,57 @@ In other case you will receive message with `ERROR` action:
   "timestamp": 1710622280.309209600,
   "error": "You are not member of chat",
   "path": "/chat/group/65fca83ea94fa31e8a726f9956/leave"
+}
+```
+
+<br/>
+
+### Kick from the group chat
+
+Message structure:
+
+```
+path=/chat/group/{chatId}/kick/{memberId}
+```
+
+Response message:
+```json
+{
+  "action": "KICK",
+  "timestamp": 1713460587.891633600,
+  "senderId": 1,
+  "chatId": "6621128c182be4335fc0a6e5",
+  "memberId": 10,
+  "memberDetails": {
+    "username": "@danielmartinez",
+    "name": "Daniel Martinez",
+    "avatarPath": null,
+    "online": true
+  }
+}
+```
+
+Possible errors:
+
+- Do not have permissions
+
+```json
+{
+  "action": "ERROR",
+  "timestamp": 1713443892.540455500,
+  "error": "Permissions denied",
+  "path": "/chat/group/6621128c182be4335fc0a6e5/kick/10"
+}
+```
+
+- Member not found
+
+```json
+{
+  "action": "ERROR",
+  "timestamp": 1713443892.540455500,
+  "error": "Member not found",
+  "path": "/chat/group/6621128c182be4335fc0a6e5/kick/23"
 }
 ```
 
