@@ -37,7 +37,7 @@ public interface ChatServiceClient {
     );
 
     @PostMapping("/{chatId}/group/members")
-    ChatMember joinGroupChat(
+    ChatMemberDto joinGroupChat(
             @RequestHeader(AUTHORIZATION) String authHeader,
             @PathVariable String chatId
     );
@@ -48,8 +48,22 @@ public interface ChatServiceClient {
             @PathVariable String chatId
     );
 
+    @PostMapping("/{chatId}/group/members/{userId}")
+    ChatMemberDto addGroupChatMember(
+            @RequestHeader(AUTHORIZATION) String authHeader,
+            @PathVariable String chatId,
+            @PathVariable Long userId
+    );
+
+    @DeleteMapping("/{chatId}/group/members/{memberId}")
+    ChatMemberDto removeGroupChatMember(
+            @RequestHeader(AUTHORIZATION) String authHeader,
+            @PathVariable String chatId,
+            @PathVariable Long memberId
+    );
+
     @GetMapping("/members/batch")
-    Map<String, Set<ChatMemberDto>> getChatsMembers(
+    Map<String, Set<ChatMember>> getChatsMembers(
             @RequestHeader(AUTHORIZATION) String authHeader,
             @RequestParam List<String> ids
     );
