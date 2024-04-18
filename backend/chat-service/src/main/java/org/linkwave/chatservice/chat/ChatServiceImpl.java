@@ -4,6 +4,7 @@ import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.linkwave.chatservice.api.ApiResponseClientErrorException;
 import org.linkwave.chatservice.api.users.UserDto;
 import org.linkwave.chatservice.api.users.UserServiceClient;
 import org.linkwave.chatservice.api.ws.LoadChatRequest;
@@ -15,14 +16,12 @@ import org.linkwave.chatservice.chat.group.GroupChat;
 import org.linkwave.chatservice.chat.group.GroupChatDetailsDto;
 import org.linkwave.chatservice.chat.group.GroupChatDto;
 import org.linkwave.chatservice.chat.group.NewGroupChatRequest;
-import org.linkwave.chatservice.common.ChatOptionsViolationException;
-import org.linkwave.chatservice.common.PrivacyViolationException;
-import org.linkwave.chatservice.common.RequestInitiator;
-import org.linkwave.chatservice.common.ResourceNotFoundException;
+import org.linkwave.chatservice.common.*;
 import org.linkwave.chatservice.message.Action;
 import org.linkwave.chatservice.message.Message;
 import org.linkwave.chatservice.message.MessageDto;
 import org.linkwave.chatservice.message.MessageService;
+import org.linkwave.chatservice.message.member.MemberMessage;
 import org.linkwave.chatservice.user.User;
 import org.linkwave.chatservice.user.UserService;
 import org.linkwave.shared.storage.FileStorageService;
@@ -40,6 +39,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.*;
 
+import static java.lang.String.format;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 import static org.linkwave.chatservice.chat.ChatRole.ADMIN;
@@ -274,13 +274,15 @@ public class ChatServiceImpl implements ChatService {
 
     @Transactional
     @Override
-    public ChatMember addGroupChatMember(Long userId, String chatId) {
+    public ChatMemberDto addGroupChatMember(String chatId, @NonNull RequestInitiator initiator) {
 
+        final Long userId = initiator.userId();
+        final UserDto user = userServiceClient.getUser(userId, initiator.bearer());
         userService.createUserIfNeed(userId);
 
         final GroupChat groupChat = findGroupChat(chatId);
         if (isMember(userId, groupChat)) {
-            throw new IllegalArgumentException("You are already a member");
+            throw new BadRequestDataException("You are already a member");
         }
 
         // check chat properties
@@ -301,10 +303,55 @@ public class ChatServiceImpl implements ChatService {
                 .createdAt(newMember.getJoinedAt())
                 .build();
 
-        messageService.saveMessage(joinMessage, groupChat); // save join message
-
+        messageService.saveMessage(joinMessage); // save join message
         updateChat(groupChat);
-        return newMember;
+
+        return ChatMemberDto.builder()
+                .id(user.getId())
+                .joinedAt(newMember.getJoinedAt())
+                .role(newMember.getRole())
+                .details(modelMapper.map(user, ChatMemberDetailsDto.class))
+                .build();
+    }
+
+    @Transactional
+    @Override
+    public ChatMemberDto addGroupChatMember(String chatId, @NonNull RequestInitiator initiator, Long userId) {
+        final GroupChat groupChat = findGroupChat(chatId);
+
+        checkMemberRole(groupChat, initiator.userId(), ADMIN);
+
+        if (isMember(userId, groupChat)) {
+            throw new BadRequestDataException(format("User[%d] already a member of chat", userId));
+        }
+
+        if (groupChat.getMembersCount() == groupChat.getMembersLimit()) {
+            throw new ChatOptionsViolationException("All members slots are occupied");
+        }
+
+        // check user existence
+        final UserDto user = userServiceClient.getUser(userId, initiator.bearer());
+        userService.createUserIfNeed(userId);
+
+        final ChatMember newMember = groupChat.addMember(userId);
+
+        final var message = MemberMessage.builder()
+                .authorId(initiator.userId())
+                .action(Action.ADD)
+                .chat(groupChat)
+                .memberId(userId)
+                .createdAt(newMember.getJoinedAt())
+                .build();
+
+        messageService.saveMessage(message);
+        updateChat(groupChat);
+
+        return ChatMemberDto.builder()
+                .id(user.getId())
+                .joinedAt(newMember.getJoinedAt())
+                .role(newMember.getRole())
+                .details(modelMapper.map(user, ChatMemberDetailsDto.class))
+                .build();
     }
 
     @Transactional
@@ -325,11 +372,56 @@ public class ChatServiceImpl implements ChatService {
                 .chat(groupChat)
                 .build();
 
-        messageService.saveMessage(leaveMessage, groupChat);
+        messageService.saveMessage(leaveMessage);
         updateChat(groupChat);
 
         messageService.removeMessageCursor(user, chatId);
         userService.save(user);
+    }
+
+    @Transactional
+    @Override
+    public ChatMemberDto removeGroupChatMember(String chatId, @NonNull RequestInitiator initiator, Long memberId) {
+        final User user = userService.getUser(memberId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        final GroupChat groupChat = findGroupChat(chatId);
+
+        // check initiator role
+        checkMemberRole(groupChat, initiator.userId(), ADMIN);
+
+        // check if given user is chat member
+        if (!isMember(memberId, groupChat)) {
+            throw new ResourceNotFoundException("Member not found");
+        }
+
+        groupChat.removeMember(memberId);
+
+        final var message = MemberMessage.builder()
+                .action(Action.KICK)
+                .chat(groupChat)
+                .authorId(initiator.userId())
+                .memberId(memberId)
+                .build();
+
+        messageService.saveMessage(message);
+        updateChat(groupChat);
+
+        messageService.removeMessageCursor(user, chatId);
+        userService.save(user);
+
+        UserDto memberInfo = null;
+        try {
+            memberInfo = userServiceClient.getUser(memberId, initiator.bearer());
+        } catch (ApiResponseClientErrorException e) {
+            // user is deleted
+        }
+        return ChatMemberDto.builder()
+                .id(memberId)
+                .details(memberInfo == null
+                        ? null
+                        : modelMapper.map(memberInfo, ChatMemberDetailsDto.class))
+                .build();
     }
 
     @Override

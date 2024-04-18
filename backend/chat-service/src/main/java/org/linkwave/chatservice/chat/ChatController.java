@@ -106,14 +106,27 @@ public class ChatController {
 
     @PostMapping("/{id}/group/members")
     @ResponseStatus(CREATED)
-    public ChatMember joinGroupChat(@PathVariable String id) {
-        return chatService.addGroupChatMember(userDetails().id(), id);
+    public ChatMemberDto joinGroupChat(@PathVariable String id, @NonNull HttpServletRequest request) {
+        return chatService.addGroupChatMember(id, requestInitiator(request));
     }
 
     @DeleteMapping("/{id}/group/members")
     @ResponseStatus(NO_CONTENT)
     public void leaveGroupChat(@PathVariable String id) {
         chatService.removeGroupChatMember(userDetails().id(), id);
+    }
+
+    @PostMapping("/{id}/group/members/{userId}")
+    @ResponseStatus(CREATED)
+    public ChatMemberDto addMember(@PathVariable String id, @PathVariable Long userId,
+                                   @NonNull HttpServletRequest request) {
+        return chatService.addGroupChatMember(id, requestInitiator(request), userId);
+    }
+
+    @DeleteMapping("/{id}/group/members/{memberId}")
+    public ChatMemberDto removeMember(@PathVariable String id, @PathVariable Long memberId,
+                                      @NonNull HttpServletRequest request) {
+        return chatService.removeGroupChatMember(id, requestInitiator(request), memberId);
     }
 
     @PostMapping("/{id}/group/avatar")

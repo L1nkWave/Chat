@@ -118,9 +118,13 @@ public interface ChatService {
 
     void checkMemberRole(@NonNull Chat chat, Long memberId, ChatRole role) throws ChatMemberPermissionsDenied;
 
-    ChatMember addGroupChatMember(Long userId, String chatId);
+    ChatMemberDto addGroupChatMember(String chatId, @NonNull RequestInitiator initiator);
+
+    ChatMemberDto addGroupChatMember(String chatId, @NonNull RequestInitiator initiator, Long userId);
 
     void removeGroupChatMember(Long userId, String chatId);
+
+    ChatMemberDto removeGroupChatMember(String chatId, @NonNull RequestInitiator initiator, Long memberId);
 
     /**
      * Returns group chat details if initiator has access to it.

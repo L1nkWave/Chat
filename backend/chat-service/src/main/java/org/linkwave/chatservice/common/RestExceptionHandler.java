@@ -41,9 +41,9 @@ public class RestExceptionHandler {
     @ResponseStatus(BAD_REQUEST)
     @ExceptionHandler({
             BadCredentialsException.class,
+            BadRequestDataException.class,
             ApiResponseClientErrorException.class,
             UnacceptableRequestDataException.class,
-            IllegalArgumentException.class,
             MultipartException.class,
             MissingServletRequestPartException.class
     })
