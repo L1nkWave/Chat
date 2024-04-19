@@ -3,7 +3,7 @@ package org.linkwave.ws.websocket.dto;
 public enum Action {
 
     // Chat
-    JOIN, LEAVE,
+    JOIN, LEAVE, ADD, KICK, SET_ROLE,
 
     // User status
     ONLINE, OFFLINE,

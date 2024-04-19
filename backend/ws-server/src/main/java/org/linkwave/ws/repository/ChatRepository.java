@@ -1,13 +1,13 @@
 package org.linkwave.ws.repository;
 
-import org.linkwave.ws.api.chat.ChatMemberDto;
+import org.linkwave.ws.api.chat.ChatMember;
 
 import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 
 public interface ChatRepository<U, C> extends SessionRepository<U> {
-    void loadChats(Map<C, Set<ChatMemberDto>> chatsMembers);
+    void loadChats(Map<C, Set<ChatMember>> chatsMembers);
 
     void addMember(U userId, Set<C> chats);
 

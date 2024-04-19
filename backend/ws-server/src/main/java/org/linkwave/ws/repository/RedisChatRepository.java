@@ -2,7 +2,7 @@ package org.linkwave.ws.repository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.linkwave.ws.api.chat.ChatMemberDto;
+import org.linkwave.ws.api.chat.ChatMember;
 import org.modelmapper.internal.Pair;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -29,12 +29,12 @@ public class RedisChatRepository implements ChatRepository<Long, String> {
     private final RedisTemplate<String, String> redisTemplate;
 
     @Override
-    public void loadChats(Map<String, Set<ChatMemberDto>> chatsMembers) {
+    public void loadChats(Map<String, Set<ChatMember>> chatsMembers) {
         executeInTxn(redisTemplate, ops -> {
                     final var setOps = ops.opsForSet();
                     final var hashOps = ops.opsForHash();
                     chatsMembers.forEach((chatId, members) -> {
-                        var membersIds = members.stream().map(ChatMemberDto::getId).toList();
+                        var membersIds = members.stream().map(ChatMember::getId).toList();
                         final String chatKey = chatKey(chatId);
 
                         // fill chat with members
