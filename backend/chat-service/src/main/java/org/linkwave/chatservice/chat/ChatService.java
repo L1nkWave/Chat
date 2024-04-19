@@ -126,6 +126,8 @@ public interface ChatService {
 
     ChatMemberDto removeGroupChatMember(String chatId, @NonNull RequestInitiator initiator, Long memberId);
 
+    void changeMemberRole(String chatId, Long initiatorId, Long memberId, ChatRole newRole);
+
     /**
      * Returns group chat details if initiator has access to it.
      *

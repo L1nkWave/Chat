@@ -129,6 +129,13 @@ public class ChatController {
         return chatService.removeGroupChatMember(id, requestInitiator(request), memberId);
     }
 
+    @PatchMapping("/{id}/group/members/{memberId}/roles")
+    public void changeMemberRole(@PathVariable String id,
+                                 @PathVariable Long memberId,
+                                 @RequestParam ChatRole role) {
+        chatService.changeMemberRole(id, userDetails().id(), memberId, role);
+    }
+
     @PostMapping("/{id}/group/avatar")
     @ResponseStatus(CREATED)
     public void uploadGroupChatAvatar(@PathVariable String id,

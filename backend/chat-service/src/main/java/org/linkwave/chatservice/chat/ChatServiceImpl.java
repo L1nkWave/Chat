@@ -424,6 +424,22 @@ public class ChatServiceImpl implements ChatService {
                 .build();
     }
 
+    @Transactional
+    @Override
+    public void changeMemberRole(String chatId, Long initiatorId, Long memberId, ChatRole newRole) {
+        final GroupChat groupChat = findGroupChat(chatId);
+        checkMemberRole(groupChat, initiatorId, ADMIN);
+
+        findChatMember(memberId, groupChat).ifPresentOrElse(
+                member -> member.setRole(newRole),
+                () -> {
+                    throw new ResourceNotFoundException("Member not found");
+                }
+        );
+
+        updateChat(groupChat);
+    }
+
     @Override
     public GroupChatDetailsDto getGroupChatDetails(@NonNull RequestInitiator initiator, String chatId) {
         final GroupChat chat = findGroupChat(chatId);
