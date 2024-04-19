@@ -151,6 +151,57 @@ Possible errors:
 
 <br/>
 
+### Change member role in the group chat
+
+Message structure:
+
+```
+path=/chat/group/{chatId}/set_role/{memberId}
+
+{
+    "role": "ADMIN"
+}
+```
+
+Response message example:
+
+```json
+{
+  "action": "SET_ROLE",
+  "timestamp": 1713534527.594477900,
+  "senderId": 1,
+  "chatId": "6621128c182be4335fc0a6e5",
+  "memberId": 10,
+  "role": "ADMIN"
+}
+```
+
+Possible errors:
+
+- Do not have permissions
+
+```json
+{
+  "action": "ERROR",
+  "timestamp": 1713443892.540455500,
+  "error": "Permissions denied",
+  "path": "/chat/group/6621128c182be4335fc0a6e5/set_role/10"
+}
+```
+
+- Member not found
+
+```json
+{
+  "action": "ERROR",
+  "timestamp": 1713443892.540455500,
+  "error": "Member not found",
+  "path": "/chat/group/6621128c182be4335fc0a6e5/set_role/11320"
+}
+```
+
+<br/>
+
 ### Send a text-message to the chat (`DUO` / `GROUP`)
 
 Message structure is below. It is recommended to use UUID for temporary message id on the client.
