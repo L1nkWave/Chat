@@ -62,6 +62,13 @@ public interface ChatServiceClient {
             @PathVariable Long memberId
     );
 
+    @PatchMapping("/{chatId}/group/members/{memberId}/roles")
+    void changeMemberRole(
+            @RequestHeader(AUTHORIZATION) String authHeader,
+            @PathVariable String chatId, @PathVariable Long memberId,
+            @RequestParam ChatRole role
+    );
+
     @GetMapping("/members/batch")
     Map<String, Set<ChatMember>> getChatsMembers(
             @RequestHeader(AUTHORIZATION) String authHeader,
