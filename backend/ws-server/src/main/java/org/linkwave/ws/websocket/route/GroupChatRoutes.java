@@ -78,8 +78,8 @@ public class GroupChatRoutes {
     @Broadcast
     @SubRoute("/{id}/join")
     public Box<MemberMessage> join(@PathVariable String id,
-                                 @NonNull UserPrincipal principal,
-                                 @NonNull String path) {
+                                   @NonNull UserPrincipal principal,
+                                   @NonNull String path) {
 
         final Long userId = principal.token().userId();
         log.info("-> join(): chatId={}, userId={}", id, userId);
@@ -232,6 +232,43 @@ public class GroupChatRoutes {
                 .chatId(id)
                 .memberId(memberId)
                 .memberDetails(removedMember.getDetails())
+                .build());
+    }
+
+    @Broadcast
+    @SubRoute("/{id}/set_role/{memberId}")
+    public Box<ChatRoleMessage> changeMemberRole(@PathVariable String id,
+                                                 @PathVariable Long memberId,
+                                                 @NonNull UserPrincipal principal,
+                                                 @Payload NewChatRole message,
+                                                 @NonNull String path) {
+
+        final Long initiatorUserId = principal.token().userId();
+
+        if (initiatorUserId.equals(memberId)) {
+            return error(ErrorMessage.create("Invalid user ID", path));
+        }
+
+        if (!chatRepository.isMember(id, initiatorUserId)) {
+            return error(ErrorMessage.create("You are not member of chat", path));
+        }
+
+        if (!chatRepository.isMember(id, memberId)) {
+            return error(ErrorMessage.create("Member not found", path));
+        }
+
+        try {
+            chatClient.changeMemberRole(append(principal.rawAccessToken()), id, memberId, message.getRole());
+        } catch (ApiErrorException e) {
+            return error(ErrorMessage.create(e.getMessage(), path));
+        }
+
+        return ok(ChatRoleMessage.builder()
+                .action(Action.SET_ROLE)
+                .chatId(id)
+                .senderId(initiatorUserId)
+                .memberId(memberId)
+                .role(message.getRole())
                 .build());
     }
 
