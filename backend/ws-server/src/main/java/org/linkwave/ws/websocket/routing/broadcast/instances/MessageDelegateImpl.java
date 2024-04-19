@@ -1,9 +1,6 @@
 package org.linkwave.ws.websocket.routing.broadcast.instances;
 
-import org.linkwave.ws.websocket.dto.Action;
-import org.linkwave.ws.websocket.dto.BaseMessage;
-import org.linkwave.ws.websocket.dto.OutcomeMessage;
-import org.linkwave.ws.websocket.dto.StatusMessage;
+import org.linkwave.ws.websocket.dto.*;
 import org.linkwave.ws.repository.ChatRepository;
 import org.linkwave.ws.websocket.routing.broadcast.WebSocketMessageBroadcast;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,29 +25,25 @@ public class MessageDelegateImpl implements MessageDelegate {
     private final ObjectMapper mapper;
 
     /**
-     * @param message must be instanced of {@code BaseMessage}
+     * @param message serialized message that must be instanced of {@code BaseMessage}.
      */
     @SuppressWarnings("unchecked")
     @SneakyThrows
     @Override
     public void handleMessage(@NonNull String message) {
-        // for now, we have two possible descendants: OutcomeMessage and StatusMessage
+        // for now, we have two possible descendants: ChatMessage and StatusMessage
         // one of them has chat id, other does not
 
         // parse message to BaseMessage in order to retrieve action
-        BaseMessage baseMessage = mapper.readValue(message, BaseMessage.class);
+        final var baseMessage = mapper.readValue(message, BaseMessage.class);
         Set<String> members;
 
-        Action action = baseMessage.getAction();
+        final Action action = baseMessage.getAction();
         log.debug("-> handleMessage(): action={}", action);
 
         // then we have to define receivers, in case when we have chat id it is quite obvious
         // but when it is OFFLINE / ONLINE we have to collect all members of user's chats
         switch (action) {
-            case JOIN, LEAVE, MESSAGE -> {
-                var outcomeMessage = mapper.readValue(message, OutcomeMessage.class);
-                members = chatRepository.getChatMembersSessions(outcomeMessage.getChatId());
-            }
             case OFFLINE, ONLINE -> {
 
                 var statusMessage = mapper.readValue(message, StatusMessage.class);
@@ -72,7 +65,11 @@ public class MessageDelegateImpl implements MessageDelegate {
                         .flatMap(Stream::distinct)
                         .collect(toSet());
             }
-            default -> throw new IllegalStateException("Unpredicted message type");
+            case BIND, ERROR -> throw new IllegalStateException("Unsupported message action");
+            default -> {
+                var chatMessage = mapper.readValue(message, ChatMessage.class);
+                members = chatRepository.getChatMembersSessions(chatMessage.getChatId());
+            }
         }
 
         messageBroadcast.share(members, message);
