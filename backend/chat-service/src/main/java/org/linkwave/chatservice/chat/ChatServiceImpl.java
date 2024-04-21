@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.chatservice.api.ApiResponseClientErrorException;
+import org.linkwave.chatservice.api.ServiceErrorException;
 import org.linkwave.chatservice.api.users.UserDto;
 import org.linkwave.chatservice.api.users.UserServiceClient;
 import org.linkwave.chatservice.api.ws.LoadChatRequest;
@@ -32,7 +33,9 @@ import org.springframework.data.util.Pair;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.file.Path;
@@ -56,6 +59,7 @@ public class ChatServiceImpl implements ChatService {
     private final UserServiceClient userServiceClient;
     private final WSServiceClient wsServiceClient;
     private final ChatRepository<Chat> chatRepository;
+    private final TransactionTemplate txnTemplate;
     private final ModelMapper modelMapper;
     private final FileStorageService fileStorageService;
     private final UserService userService;
@@ -66,7 +70,6 @@ public class ChatServiceImpl implements ChatService {
         this.messageService = messageService;
     }
 
-    @Transactional
     @Override
     public ChatDto createChat(@NonNull RequestInitiator initiator,
                               @NonNull NewChatRequest chatRequest) {
@@ -81,30 +84,39 @@ public class ChatServiceImpl implements ChatService {
         // check recipient existence
         userServiceClient.getUser(recipientId, initiator.bearer());
 
-        // check if chat already exists
-        final var chat = chatRepository.findChatWithPair(initiator.userId(), recipientId);
-        if (chat.isPresent()) {
-            throw new BadCredentialsException("Chat already exists");
+        final Chat newChat;
+        try {
+            newChat = txnTemplate.execute(txnStatus -> {
+                // check if chat already exists
+                final var chat = chatRepository.findChatWithPair(initiator.userId(), recipientId);
+                if (chat.isPresent()) {
+                    throw new BadCredentialsException("Chat already exists");
+                }
+
+                // create users if needed
+                userService.createUserIfNeed(initiator.userId());
+                userService.createUserIfNeed(recipientId);
+
+                // create members
+                final var now = Instant.now();
+                final List<ChatMember> chatMembers = List.of(
+                        new ChatMember(initiator.userId(), ADMIN, now),
+                        new ChatMember(recipientId, ADMIN, now)
+                );
+
+                // build & save chat
+                final Chat _newChat = Chat.builder()
+                        .members(chatMembers)
+                        .createdAt(now)
+                        .build();
+
+                chatRepository.save(_newChat);
+                return _newChat;
+            });
+            Objects.requireNonNull(newChat);
+        } catch (TransactionException e) {
+            throw new ServiceErrorException(e);
         }
-
-        // create users if needed
-        userService.createUserIfNeed(initiator.userId());
-        userService.createUserIfNeed(recipientId);
-
-        // create members
-        final var now = Instant.now();
-        final List<ChatMember> chatMembers = List.of(
-                new ChatMember(initiator.userId(), ADMIN, now),
-                new ChatMember(recipientId, ADMIN, now)
-        );
-
-        // build & save chat
-        final Chat newChat = Chat.builder()
-                .members(chatMembers)
-                .createdAt(now)
-                .build();
-
-        chatRepository.save(newChat);
 
         // load chat to ws server
         try {
@@ -115,13 +127,11 @@ public class ChatServiceImpl implements ChatService {
         return modelMapper.map(newChat, ChatDto.class);
     }
 
-    @Transactional
     @Override
     public GroupChatDto createGroupChat(@NonNull RequestInitiator initiator,
                                         @NonNull NewGroupChatRequest chatRequest) {
 
         final Long initiatorUserId = initiator.userId();
-        userService.createUserIfNeed(initiatorUserId);
 
         final var now = Instant.now();
         final List<ChatMember> members = List.of(new ChatMember(initiatorUserId, ADMIN, now));
@@ -136,7 +146,14 @@ public class ChatServiceImpl implements ChatService {
                 .createdAt(now)
                 .build();
 
-        chatRepository.save(newGroupChat);
+        try {
+            txnTemplate.executeWithoutResult(txnStatus -> {
+                userService.createUserIfNeed(initiatorUserId);
+                chatRepository.save(newGroupChat);
+            });
+        } catch (TransactionException e) {
+            throw new ServiceErrorException(e);
+        }
 
         // load chat to ws server
         try {
@@ -272,13 +289,11 @@ public class ChatServiceImpl implements ChatService {
                 .findAny();
     }
 
-    @Transactional
     @Override
     public ChatMemberDto addGroupChatMember(String chatId, @NonNull RequestInitiator initiator) {
 
         final Long userId = initiator.userId();
         final UserDto user = userServiceClient.getUser(userId, initiator.bearer());
-        userService.createUserIfNeed(userId);
 
         final GroupChat groupChat = findGroupChat(chatId);
         if (isMember(userId, groupChat)) {
@@ -303,8 +318,15 @@ public class ChatServiceImpl implements ChatService {
                 .createdAt(newMember.getJoinedAt())
                 .build();
 
-        messageService.saveMessage(joinMessage); // save join message
-        updateChat(groupChat);
+        try {
+            txnTemplate.executeWithoutResult(txnStatus -> {
+                userService.createUserIfNeed(userId);
+                messageService.saveMessage(joinMessage); // save join message
+                updateChat(groupChat);
+            });
+        } catch (TransactionException e) {
+            throw new ServiceErrorException(e);
+        }
 
         return ChatMemberDto.builder()
                 .id(user.getId())
@@ -314,7 +336,6 @@ public class ChatServiceImpl implements ChatService {
                 .build();
     }
 
-    @Transactional
     @Override
     public ChatMemberDto addGroupChatMember(String chatId, @NonNull RequestInitiator initiator, Long userId) {
         final GroupChat groupChat = findGroupChat(chatId);
@@ -331,10 +352,8 @@ public class ChatServiceImpl implements ChatService {
 
         // check user existence
         final UserDto user = userServiceClient.getUser(userId, initiator.bearer());
-        userService.createUserIfNeed(userId);
 
         final ChatMember newMember = groupChat.addMember(userId);
-
         final var message = MemberMessage.builder()
                 .authorId(initiator.userId())
                 .action(Action.ADD)
@@ -343,8 +362,15 @@ public class ChatServiceImpl implements ChatService {
                 .createdAt(newMember.getJoinedAt())
                 .build();
 
-        messageService.saveMessage(message);
-        updateChat(groupChat);
+        try {
+            txnTemplate.executeWithoutResult(txnStatus -> {
+                userService.createUserIfNeed(userId);
+                messageService.saveMessage(message);
+                updateChat(groupChat);
+            });
+        } catch (TransactionException e) {
+            throw new ServiceErrorException(e);
+        }
 
         return ChatMemberDto.builder()
                 .id(user.getId())
@@ -379,36 +405,42 @@ public class ChatServiceImpl implements ChatService {
         userService.save(user);
     }
 
-    @Transactional
     @Override
     public ChatMemberDto removeGroupChatMember(String chatId, @NonNull RequestInitiator initiator, Long memberId) {
+
         final User user = userService.getUser(memberId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        final GroupChat groupChat = findGroupChat(chatId);
+        try {
+            txnTemplate.executeWithoutResult(txnStatus -> {
+                final GroupChat groupChat = findGroupChat(chatId);
 
-        // check initiator role
-        checkMemberRole(groupChat, initiator.userId(), ADMIN);
+                // check initiator role
+                checkMemberRole(groupChat, initiator.userId(), ADMIN);
 
-        // check if given user is chat member
-        if (!isMember(memberId, groupChat)) {
-            throw new ResourceNotFoundException("Member not found");
+                // check if given user is chat member
+                if (!isMember(memberId, groupChat)) {
+                    throw new ResourceNotFoundException("Member not found");
+                }
+
+                groupChat.removeMember(memberId);
+
+                final var message = MemberMessage.builder()
+                        .action(Action.KICK)
+                        .chat(groupChat)
+                        .authorId(initiator.userId())
+                        .memberId(memberId)
+                        .build();
+
+                messageService.saveMessage(message);
+                updateChat(groupChat);
+
+                messageService.removeMessageCursor(user, chatId);
+                userService.save(user);
+            });
+        } catch (TransactionException e) {
+            throw new ServiceErrorException(e);
         }
-
-        groupChat.removeMember(memberId);
-
-        final var message = MemberMessage.builder()
-                .action(Action.KICK)
-                .chat(groupChat)
-                .authorId(initiator.userId())
-                .memberId(memberId)
-                .build();
-
-        messageService.saveMessage(message);
-        updateChat(groupChat);
-
-        messageService.removeMessageCursor(user, chatId);
-        userService.save(user);
 
         UserDto memberInfo = null;
         try {
