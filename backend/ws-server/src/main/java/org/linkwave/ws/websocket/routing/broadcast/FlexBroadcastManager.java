@@ -41,11 +41,11 @@ public class FlexBroadcastManager extends SimpleBroadcastManager {
 
         Broadcast[] broadcasts = routeHandler.getAnnotationsByType(Broadcast.class);
 
-        // remove duplicate key-patterns
         if (broadcasts.length > 1) {
+            // remove duplicate key-patterns
             final Map<String, Broadcast> broadcastMap = Arrays
                     .stream(broadcasts)
-                    .collect(toMap(Broadcast::value, identity()));
+                    .collect(toMap(Broadcast::value, identity(), (b1, b2) -> b1));
 
             if (broadcastMap.size() != broadcasts.length) {
                 log.warn("-> process(): found duplicate key-patterns");
