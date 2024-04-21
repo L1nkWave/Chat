@@ -112,6 +112,7 @@ public class GroupChatRoutes {
     }
 
     @Broadcast
+    @Broadcast(value = "user:{senderId}", analyzeMessage = true)
     @SubRoute("/{id}/leave")
     public Box<ChatMessage> leaveChat(@PathVariable String id,
                                       @NonNull UserPrincipal principal,
@@ -191,6 +192,7 @@ public class GroupChatRoutes {
     }
 
     @Broadcast
+    @Broadcast("user:{memberId}")
     @SubRoute("/{id}/kick/{memberId}")
     public Box<MemberMessage> removeMember(@PathVariable String id,
                                            @PathVariable Long memberId,
