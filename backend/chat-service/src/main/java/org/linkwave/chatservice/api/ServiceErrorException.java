@@ -6,4 +6,8 @@ public class ServiceErrorException extends RuntimeException {
         super();
     }
 
+    public ServiceErrorException(Throwable cause) {
+        super(cause);
+    }
+
 }
