@@ -407,12 +407,11 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public ChatMemberDto removeGroupChatMember(String chatId, @NonNull RequestInitiator initiator, Long memberId) {
-
-        final User user = userService.getUser(memberId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
         try {
             txnTemplate.executeWithoutResult(txnStatus -> {
+                final User user = userService.getUser(memberId)
+                        .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
                 final GroupChat groupChat = findGroupChat(chatId);
 
                 // check initiator role
