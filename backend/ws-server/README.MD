@@ -91,10 +91,10 @@ In other case you will receive message with `ERROR` action:
 
 ```json
 {
-  "action": "ERROR",
-  "timestamp": 1710622280.309209600,
-  "error": "You are not member of chat",
-  "path": "/chat/group/65fca83ea94fa31e8a726f9956/leave"
+  "action": "LEAVE",
+  "timestamp": 1713443892.540455500,
+  "senderId": 34,
+  "chatId": "6621128c182be4335fc0a6e5"
 }
 ```
 
