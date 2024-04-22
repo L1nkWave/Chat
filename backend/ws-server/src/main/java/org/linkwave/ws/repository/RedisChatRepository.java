@@ -172,6 +172,12 @@ public class RedisChatRepository implements ChatRepository<Long, String> {
     }
 
     @Override
+    public Set<String> getUserSessions(String customKey) {
+        final Set<String> members = redisTemplate.opsForSet().members(customKey);
+        return members == null ? emptySet() : members;
+    }
+
+    @Override
     public boolean isMember(String chatId, Long userId) {
         return TRUE.equals(
                 redisTemplate.opsForSet().isMember(
@@ -215,7 +221,11 @@ public class RedisChatRepository implements ChatRepository<Long, String> {
     }
 
     private String userKey(Long userId) {
-        return "user:%d".formatted(userId);
+        return userKey(String.valueOf(userId));
+    }
+
+    private String userKey(String userId) {
+        return "user:%s".formatted(userId);
     }
 
     private String chatKey(String chatId) {

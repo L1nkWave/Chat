@@ -6,7 +6,6 @@ import org.linkwave.ws.repository.ChatRepository;
 import org.linkwave.ws.websocket.routing.bpp.Broadcast;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -20,18 +19,17 @@ import static org.linkwave.ws.utils.RouteUtils.isPathVariable;
 import static org.springframework.util.ReflectionUtils.*;
 
 @Slf4j
-@Component
 @RequiredArgsConstructor
 public class SimpleBroadcastManager implements BroadcastManager {
 
     @Value("${server.instances.value}")
-    private String instances;
+    protected String instances;
 
     @Value("${server.instances.separator}")
-    private String separator;
+    protected String separator;
 
-    private final WebSocketMessageBroadcast messageBroadcast;
-    private final ChatRepository<Long, String> chatRepository;
+    protected final WebSocketMessageBroadcast messageBroadcast;
+    protected final ChatRepository<Long, String> chatRepository;
 
     @Override
     public void process(@NonNull Method routeHandler, @NonNull Map<String, String> pathVariables,
@@ -60,19 +58,22 @@ public class SimpleBroadcastManager implements BroadcastManager {
             return;
         }
 
+        broadcast(broadcastAnn, members, serializedMessage);
+    }
+
+    protected void broadcast(Broadcast broadcast, Set<String> sessionsIds, String serializedMessage) {
         boolean isSharedCompletely;
         try {
-            isSharedCompletely = messageBroadcast.share(members, serializedMessage);
+            isSharedCompletely = messageBroadcast.share(sessionsIds, serializedMessage);
         } catch (IOException e) {
             log.error("-> process(): {}", e.getMessage());
             isSharedCompletely = false;
         }
 
-        if (!isSharedCompletely && broadcastAnn.multiInstances()) {
+        if (!isSharedCompletely && broadcast.multiInstances()) {
             log.debug("-> process(): multi-instance broadcast is required");
 
             for (String instanceId : instances.split(separator)) {
-                // here we should pass message with session id too
                 chatRepository.shareWithConsumer(instanceId, serializedMessage);
             }
         }
@@ -84,7 +85,7 @@ public class SimpleBroadcastManager implements BroadcastManager {
     }
 
     @NonNull
-    private String resolveKey(@NonNull String keyPattern, @NonNull Map<String, String> pathVariables, Object message) {
+    protected String resolveKey(@NonNull String keyPattern, @NonNull Map<String, String> pathVariables, Object message) {
 
         // parse broadcast value pattern
         final String[] components = keyPattern.trim().split(KEY_SEPARATOR);

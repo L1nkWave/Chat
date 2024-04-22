@@ -2,19 +2,17 @@ package org.linkwave.ws.websocket.routing.bpp;
 
 import org.linkwave.ws.websocket.routing.broadcast.BroadcastManager;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
- * This annotation is used to enable message broadcast for route handler
+ * This annotation is used to enable message broadcast for route handler.
  *
  * @see BroadcastManager
  * @see SubRoute
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
+@Repeatable(Broadcasts.class)
 public @interface Broadcast {
 
     /**
