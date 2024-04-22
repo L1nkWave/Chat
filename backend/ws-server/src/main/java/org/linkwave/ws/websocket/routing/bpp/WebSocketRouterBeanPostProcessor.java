@@ -68,7 +68,7 @@ public class WebSocketRouterBeanPostProcessor implements BeanPostProcessor, Appl
                     }
 
                     // check broadcast options
-                    verifyBroadcast(method);
+                    final boolean broadcast = verifyBroadcast(method);
 
                     method.setAccessible(true);
                     routes.put(combinedPath, new RouteComponent(entry.getValue(), method));
@@ -77,7 +77,7 @@ public class WebSocketRouterBeanPostProcessor implements BeanPostProcessor, Appl
                     sb.setLength(0);
                     sb.append(rootPath);
 
-                    log.debug("Route [{}], broadcast: {}", combinedPath, method.isAnnotationPresent(Broadcast.class));
+                    log.debug("Route [{}], broadcast: {}", combinedPath, broadcast);
                 }
             }
             sb.setLength(0);
@@ -87,29 +87,35 @@ public class WebSocketRouterBeanPostProcessor implements BeanPostProcessor, Appl
         return bean;
     }
 
-    private void verifyBroadcast(@NonNull Method routeHandler) {
-        if (!routeHandler.isAnnotationPresent(Broadcast.class)) {
-            return;
+    private boolean verifyBroadcast(@NonNull Method routeHandler) {
+        final Broadcast[] annotations = routeHandler.getAnnotationsByType(Broadcast.class);
+        if (annotations.length == 0) {
+            return false;
         }
 
         if (routeHandler.getReturnType().equals(void.class)) {
             throw new RuntimeException(
-                    format("Route handler \"%s\" with broadcast has return type void", routeHandler.getName())
+                    format(
+                            "Route handler \"%s\" marked as broadcast has return type void",
+                            "%s.%s".formatted(routeHandler.getDeclaringClass().getName(), routeHandler.getName())
+                    )
             );
         }
 
-        String[] keyComponents = routeHandler.getAnnotation(Broadcast.class)
-                .value()
-                .trim()
-                .split(BroadcastManager.KEY_SEPARATOR);
+        for (Broadcast annotation : annotations) {
+            final String[] keyComponents = annotation.value()
+                    .trim()
+                    .split(BroadcastManager.KEY_SEPARATOR);
 
-        if (keyComponents.length < 2) {
-            String errMsg = format(
-                    "Broadcast annotation value incorrect format at route handler \"%s\"",
-                    routeHandler.getName()
-            );
-            throw new RuntimeException(errMsg);
+            if (keyComponents.length < 2) {
+                String errMsg = format(
+                        "Broadcast annotation value incorrect format at route handler \"%s\"",
+                        "%s.%s".formatted(routeHandler.getDeclaringClass().getName(), routeHandler.getName())
+                );
+                throw new RuntimeException(errMsg);
+            }
         }
+        return true;
     }
 
     private Field getRoutesMapField(@NonNull Class<?> cls) {

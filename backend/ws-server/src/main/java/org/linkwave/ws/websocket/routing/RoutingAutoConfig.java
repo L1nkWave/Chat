@@ -1,21 +1,45 @@
 package org.linkwave.ws.websocket.routing;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.linkwave.ws.repository.ChatRepository;
+import org.linkwave.ws.repository.SessionRepository;
 import org.linkwave.ws.websocket.jwt.UserPrincipal;
 import org.linkwave.ws.websocket.routing.args.ArgumentResolverStrategy;
 import org.linkwave.ws.websocket.routing.args.PathVariableResolverStrategy;
 import org.linkwave.ws.websocket.routing.args.PayloadResolverStrategy;
+import org.linkwave.ws.websocket.routing.broadcast.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.WebSocketSession;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Map;
 
 @Configuration
 public class RoutingAutoConfig {
 
     public static final String PATH_PARAM_NAME = "path";
+
+    @Bean
+    public BroadcastRepositoryResolver broadcastRepositoryResolver(
+            ChatRepository<Long, String> chatRepository
+    ) {
+        return new BroadcastRepositoryResolverImpl(
+                chatRepository,
+                Map.of(
+                        "user:{}", SessionRepository::getUserSessions,
+                        "chat:{}", ChatRepository::getSessions
+                )
+        );
+    }
+
+    @Bean
+    public BroadcastManager broadcastManager(WebSocketMessageBroadcast messageBroadcast,
+                                             ChatRepository<Long, String> chatRepository,
+                                             BroadcastRepositoryResolver repositoryResolver) {
+        return new FlexBroadcastManager(messageBroadcast, chatRepository, repositoryResolver);
+    }
 
     // argument resolvers registry
     @Bean
