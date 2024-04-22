@@ -5,6 +5,7 @@ import org.linkwave.ws.repository.ChatRepository;
 import org.springframework.lang.NonNull;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
 
@@ -33,7 +34,14 @@ public class BroadcastRepositoryResolverImpl implements BroadcastRepositoryResol
             > repositoryResolvers;
 
     @Override
-    public Set<String> resolve(String broadcastKeyPattern, String resolvedKeyPattern) {
+    public Set<String> resolve(@NonNull String broadcastKeyPattern, @NonNull String resolvedKeyPattern) {
+        Objects.requireNonNull(broadcastKeyPattern);
+        Objects.requireNonNull(resolvedKeyPattern);
+
+        if (broadcastKeyPattern.equals(resolvedKeyPattern)) {
+            throw new IllegalArgumentException("Invalid broadcast keys");
+        }
+
         return repositoryResolvers
                 .get(eraseKey(broadcastKeyPattern))
                 .apply(chatRepository, resolvedKeyPattern);

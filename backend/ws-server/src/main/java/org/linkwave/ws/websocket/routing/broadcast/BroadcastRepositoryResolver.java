@@ -1,6 +1,7 @@
 package org.linkwave.ws.websocket.routing.broadcast;
 
 import org.linkwave.ws.websocket.routing.bpp.Broadcast;
+import org.springframework.lang.NonNull;
 
 import java.util.Set;
 
@@ -16,6 +17,6 @@ public interface BroadcastRepositoryResolver {
      * @param resolvedKeyPattern key-pattern with resolved key variables
      * @return set of sessions ids that matched the specified criteria
      */
-    Set<String> resolve(String broadcastKeyPattern, String resolvedKeyPattern);
+    Set<String> resolve(@NonNull String broadcastKeyPattern, @NonNull String resolvedKeyPattern);
 
 }
