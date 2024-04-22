@@ -161,7 +161,7 @@ services:
       SPRING_APPLICATION_JSON: '{
         "server.port": 9091,
         "server.id": "E2",
-        "server.instances.value": "E1",
+        "server.instances.list": "E1",
         "spring.data.redis.host": "host.docker.internal",
         "spring.data.redis.port": 16379,
         "eureka.client.service-url.defaultZone": "$DISCOVERY_URL"

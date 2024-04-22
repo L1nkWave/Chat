@@ -50,13 +50,13 @@ public class SimpleBroadcastManagerTest {
         final Field instances = findField(SimpleBroadcastManager.class, "instances");
         if (instances != null) {
             makeAccessible(instances);
-            setField(instances, broadcastManager, "E2");
+            setField(instances, broadcastManager, new String[]{"E2"});
         }
 
-        final Field separator = findField(SimpleBroadcastManager.class, "separator");
-        if (separator != null) {
-            makeAccessible(separator);
-            setField(separator, broadcastManager, ",");
+        final Field isMibEnabled = findField(SimpleBroadcastManager.class, "isMultiInstanceBroadcastEnabled");
+        if (isMibEnabled != null) {
+            makeAccessible(isMibEnabled);
+            setField(isMibEnabled, broadcastManager, true);
         }
     }
 

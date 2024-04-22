@@ -22,11 +22,11 @@ import static org.springframework.util.ReflectionUtils.*;
 @RequiredArgsConstructor
 public class SimpleBroadcastManager implements BroadcastManager {
 
-    @Value("${server.instances.value}")
-    protected String instances;
+    @Value("${server.instances.list}")
+    protected String[] instances;
 
-    @Value("${server.instances.separator}")
-    protected String separator;
+    @Value("${server.instances.enabled}")
+    protected boolean isMultiInstanceBroadcastEnabled;
 
     protected final WebSocketMessageBroadcast messageBroadcast;
     protected final ChatRepository<Long, String> chatRepository;
@@ -70,10 +70,12 @@ public class SimpleBroadcastManager implements BroadcastManager {
             isSharedCompletely = false;
         }
 
-        if (!isSharedCompletely && broadcast.multiInstances()) {
+        if (isMultiInstanceBroadcastEnabled &&
+            !isSharedCompletely &&
+            broadcast.multiInstances()) {
             log.debug("-> process(): multi-instance broadcast is required");
 
-            for (String instanceId : instances.split(separator)) {
+            for (String instanceId : instances) {
                 chatRepository.shareWithConsumer(instanceId, serializedMessage);
             }
         }
