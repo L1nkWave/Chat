@@ -37,11 +37,11 @@ import static org.linkwave.shared.utils.Bearers.append;
 @RequiredArgsConstructor
 public class ClientConnectionHandler implements AfterConnectionEstablished, AfterConnectionClosed {
 
-    @Value("${server.instances.value}")
-    private String instances;
+    @Value("${server.instances.list}")
+    private String[] instances;
 
-    @Value("${server.instances.separator}")
-    private String separator;
+    @Value("${server.instances.enabled}")
+    protected boolean isMultiInstanceBroadcastEnabled;
 
     private final ChatServiceClient chatClient;
     private final UserServiceClient userClient;
@@ -140,10 +140,11 @@ public class ClientConnectionHandler implements AfterConnectionEstablished, Afte
                 jsonMessage = objectMapper.writeValueAsString(content);
             }
 
-            for (String instanceId : instances.split(separator)) {
-                chatRepository.shareWithConsumer(instanceId, jsonMessage);
+            if (isMultiInstanceBroadcastEnabled) {
+                for (String instanceId : instances) {
+                    chatRepository.shareWithConsumer(instanceId, jsonMessage);
+                }
             }
-
         }
 
     }
