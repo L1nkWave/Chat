@@ -3,6 +3,7 @@ package org.linkwave.ws.api.chat;
 import org.linkwave.ws.websocket.dto.NewGroupChat;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.util.List;
@@ -93,6 +94,23 @@ public interface ChatServiceClient {
             @RequestHeader(AUTHORIZATION) String authHeader,
             @PathVariable String messageId,
             @RequestBody NewTextMessage message
+    );
+
+    @PostMapping("/{chatId}/messages/file")
+    CreatedFileMessage uploadFile(
+            @RequestHeader(AUTHORIZATION) String authHeader,
+            @PathVariable String chatId,
+            @RequestPart("file") MultipartFile[] file
+    );
+
+    @GetMapping("/{chatId}/messages/file/own")
+    void isOwnFileMessage(
+            @RequestHeader(AUTHORIZATION) String authHeader,
+            @PathVariable String chatId,
+            @RequestParam String messageId,
+            @RequestParam String filename,
+            @RequestParam String contentType,
+            @RequestParam long size
     );
 
     @DeleteMapping("/messages/{id}")
