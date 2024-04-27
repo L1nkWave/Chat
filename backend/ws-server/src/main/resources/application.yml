@@ -2,8 +2,8 @@ server:
   port: 9090
   id: 'E1'
   instances:
-    value: 'E2'
-    separator: ','
+    list: 'E2'
+    enabled: true
 
 spring:
   application:
