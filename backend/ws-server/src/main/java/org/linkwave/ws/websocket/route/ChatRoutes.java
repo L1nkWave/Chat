@@ -39,11 +39,11 @@ public class ChatRoutes {
     @SneakyThrows
     @Broadcast
     @SubRoute("/{id}/send")
-    public Box<OutcomeMessage> sendMessage(@PathVariable String id,
-                                           @Payload IncomeMessage message,
-                                           @NonNull WebSocketSession session,
-                                           @NonNull UserPrincipal principal,
-                                           @NonNull String path) {
+    public Box<OutcomeMessage> sendTextMessage(@PathVariable String id,
+                                               @Payload IncomeMessage message,
+                                               @NonNull WebSocketSession session,
+                                               @NonNull UserPrincipal principal,
+                                               @NonNull String path) {
 
         final Long userId = principal.token().userId();
         log.debug("-> sendMessage(): chatId={}, userId={}, msg={}", id, userId, message);
@@ -107,6 +107,46 @@ public class ChatRoutes {
                 .text(updatedMessage.getText())
                 .timestamp(updatedMessage.getEditedAt())
                 .senderId(principal.token().userId())
+                .build());
+    }
+
+    @Broadcast
+    @SubRoute("/{id}/send_file")
+    public Box<OutcomeFileMessage> sendFileMessage(@PathVariable String id,
+                                                   @Payload CreatedFileMessage message,
+                                                   @NonNull UserPrincipal principal,
+                                                   @NonNull String path) {
+
+        final Long userId = principal.token().userId();
+        log.debug("-> sendFileMessage(): chatId={}, userId={}", id, userId);
+
+        if (!chatRepository.isMember(id, userId)) {
+            return error(ErrorMessage.create("You are not member of chat", path));
+        }
+
+        try {
+            chatClient.isOwnFileMessage(
+                    append(principal.rawAccessToken()),
+                    id,
+                    message.getId(),
+                    message.getFilename(),
+                    message.getContentType(),
+                    message.getSize()
+            );
+        } catch (ApiErrorException e) {
+            return error(ErrorMessage.create("Uploaded file message not found", path));
+        }
+
+        // unread messages counter has to be already changed in Chat API
+
+        return ok(OutcomeFileMessage.builder()
+                .id(message.getId())
+                .chatId(id)
+                .senderId(userId)
+                .timestamp(message.getCreatedAt())
+                .filename(message.getFilename())
+                .contentType(message.getContentType())
+                .size(message.getSize())
                 .build());
     }
 
