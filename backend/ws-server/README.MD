@@ -1,4 +1,7 @@
-## Web-socket routes documentation
+## 📝 WebSocket endpoints documentation
+
+<details>
+<summary>👥 Group chats</summary>
 
 ### Join in the group chat
 
@@ -28,7 +31,32 @@ Response message example:
 
 <br/>
 
-### Add member to the group chat
+### Leave from the group chat
+
+Message structure:
+
+```
+path=/chat/group/{chatId}/leave
+```
+
+Response message is absent if you were a member of the chat.
+In other case you will receive message with `ERROR` action:
+
+```json
+{
+  "action": "LEAVE",
+  "timestamp": 1713443892.540455500,
+  "senderId": 34,
+  "chatId": "6621128c182be4335fc0a6e5"
+}
+```
+
+<br/>
+
+<details>
+<summary>Edit chat members</summary>
+
+### ➕ Add member to the group chat
 
 Message structure:
 ```
@@ -78,29 +106,7 @@ Possible errors:
 
 <br/>
 
-### Leave from the group chat
-
-Message structure:
-
-```
-path=/chat/group/{chatId}/leave
-```
-
-Response message is absent if you were a member of the chat.
-In other case you will receive message with `ERROR` action:
-
-```json
-{
-  "action": "LEAVE",
-  "timestamp": 1713443892.540455500,
-  "senderId": 34,
-  "chatId": "6621128c182be4335fc0a6e5"
-}
-```
-
-<br/>
-
-### Kick from the group chat
+### ➖ Kick from the group chat
 
 Message structure:
 
@@ -151,7 +157,7 @@ Possible errors:
 
 <br/>
 
-### Change member role in the group chat
+### ✏️ Change member role in the group chat
 
 Message structure:
 
@@ -159,7 +165,7 @@ Message structure:
 path=/chat/group/{chatId}/set_role/{memberId}
 
 {
-    "role": "ADMIN"
+  "role": string
 }
 ```
 
@@ -200,9 +206,16 @@ Possible errors:
 }
 ```
 
+</details>
+
+</details>
+
 <br/>
 
-### Send a text-message to the chat (`DUO` / `GROUP`)
+<details>
+<summary>💬 Messaging</summary>
+
+### 📨 Send a text message
 
 Message structure is below. It is recommended to use UUID for temporary message id on the client.
 
@@ -210,8 +223,8 @@ Message structure is below. It is recommended to use UUID for temporary message 
 path=/chat/{chatId}/send
 
 {
-  "tmpMessageId": "3ba88cab-8ca5-48e7-aff4-ba689fccee70",
-  "text": "Hi everyone!"
+  "tmpMessageId": string,
+  "text": string
 }
 ```
 
@@ -253,7 +266,7 @@ you will get message with `ERROR` action:
 
 <br/>
 
-### Edit text-message (`DUO` / `GROUP`)
+### ✏️ Edit text message
 
 Message structure:
 
@@ -301,7 +314,53 @@ Possible errors:
 
 <br/>
 
-### Remove message (`DUO` / `GROUP`)
+### 📎 Send a file message
+
+Message structure:
+
+```
+path=/chat/{chatId}/send_file
+
+{
+  "id": integer,
+  "createdAt": number,
+  "filename": string,
+  "contentType": string,
+  "size": integer
+}
+```
+
+Response message example:
+
+```json
+{
+  "action": "FILE",
+  "timestamp": 1714228196.375171300,
+  "senderId": 1,
+  "chatId": "662ce8cc905e8b2151fca5e2",
+  "id": "662d0be46dc0dc6dc0ffa9c5",
+  "filename": "masm32v11r.zip",
+  "contentType": "application/zip",
+  "size": 5012275
+}
+```
+
+Possible errors:
+
+- Invalid payload message data. Even if you set wrong file size, message still can not be found
+
+```json
+{
+  "action": "ERROR",
+  "timestamp": 1714227975.459646500,
+  "error": "Uploaded file message not found",
+  "path": "/chat/662ce8cc905e8b2151fca5e2/send_file"
+}
+```
+
+<br/>
+
+### ➖ Remove message
 
 Message structure:
 
@@ -323,7 +382,7 @@ Response message example:
 
 <br/>
 
-### Clear chat history (`DUO` / `GROUP`)
+### ❌ Clear chat history
 
 Message structure:
 
@@ -344,7 +403,7 @@ Response message example:
 
 <br/>
 
-### Read messages (`DUO` / `GROUP`)
+### 👀 Read messages
 
 Message structure:
 
@@ -352,7 +411,7 @@ Message structure:
 path=/chat/{chatId}/read
 
 {
-    "timestamp": 1712405998.170949000
+  "timestamp": number
 }
 ```
 
@@ -388,7 +447,7 @@ Possible errors:
 
 <br/>
 
-### Get unread messages (`DUO` / `GROUP`)
+### 📥 Get unread messages
 
 Message structure:
 
@@ -409,4 +468,4 @@ Response message example:
 }
 ```
 
-<br/>
+</details>
