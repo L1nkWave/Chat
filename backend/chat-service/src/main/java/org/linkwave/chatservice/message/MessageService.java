@@ -1,11 +1,13 @@
 package org.linkwave.chatservice.message;
 
-import org.linkwave.chatservice.chat.duo.Chat;
+import org.linkwave.chatservice.common.RequestInitiator;
+import org.linkwave.chatservice.message.file.CreatedFileMessage;
 import org.linkwave.chatservice.message.text.EditTextMessage;
 import org.linkwave.chatservice.message.text.NewTextMessage;
 import org.linkwave.chatservice.message.text.UpdatedTextMessage;
 import org.linkwave.chatservice.user.User;
 import org.springframework.lang.NonNull;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.util.List;
@@ -16,6 +18,12 @@ public interface MessageService {
     void saveMessage(Message newMessage);
 
     MessageDto saveTextMessage(Long senderId, String chatId, @NonNull NewTextMessage messageDto);
+
+    CreatedFileMessage saveFileMessage(RequestInitiator initiator, String chatId, @NonNull MultipartFile attachedFile);
+
+    boolean isOwnFileMessage(Long senderId, String chatId, CreatedFileMessage message);
+
+    byte[] getAttachedFile(Long userId, String messageId);
 
     UpdatedTextMessage editTextMessage(Long senderId, String messageId, @NonNull EditTextMessage editTextMessage);
 
