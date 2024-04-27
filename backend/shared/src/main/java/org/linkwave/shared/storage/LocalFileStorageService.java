@@ -56,8 +56,11 @@ public class LocalFileStorageService implements FileStorageService {
 
             final String contentType = file.getContentType();
 
-            if (contentType != null) { // then save file format
-                final String fileFormat = contentType.substring(contentType.indexOf("/"));
+            if (contentType != null) { // save file format
+                final int idx = contentType.indexOf("/");
+                final String fileFormat = idx != -1 && idx + 1 < contentType.length()
+                        ? contentType.substring(idx + 1)
+                        : "";
                 return format("%s.%s", DEFAULT_FILENAME, fileFormat);
             } else {
                 return DEFAULT_FILENAME;
