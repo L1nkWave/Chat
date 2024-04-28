@@ -9,7 +9,7 @@ public enum Action {
     ONLINE, OFFLINE,
 
     // Messages
-    MESSAGE, BIND, UPD_MESSAGE,
+    MESSAGE, FILE, BIND, UPD_MESSAGE,
     READ, UNREAD_MESSAGES,
     REMOVE, CLEAR_HISTORY,
 

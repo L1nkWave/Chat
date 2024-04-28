@@ -1,10 +1,7 @@
 package org.linkwave.chatservice.api.ws;
 
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.*;
 
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 
@@ -21,6 +18,13 @@ public interface WSServiceClient {
     void loadNewGroupChat(
             @RequestHeader(AUTHORIZATION) String authHeader,
             @PathVariable String chatId
+    );
+
+    @PatchMapping("/{id}/unread_messages")
+    void addUnreadMessage(
+            @RequestHeader(AUTHORIZATION) String authHeader,
+            @PathVariable String id,
+            @RequestParam Long senderId
     );
 
 }

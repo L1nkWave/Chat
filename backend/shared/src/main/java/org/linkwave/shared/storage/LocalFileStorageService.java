@@ -7,9 +7,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.UUID;
 
 import static java.lang.String.format;
-import static java.lang.System.currentTimeMillis;
 
 public class LocalFileStorageService implements FileStorageService {
 
@@ -41,7 +41,7 @@ public class LocalFileStorageService implements FileStorageService {
             folder = Files.createDirectories(folder);
         }
 
-        final String filename = format("%s-%s", currentTimeMillis(), resolveFilename(file));
+        final String filename = format("%s-%s", UUID.randomUUID(), resolveFilename(file));
 
         // save file to chat folder
         Files.write(Path.of(folder.toString(), filename), file.getBytes());
@@ -56,8 +56,11 @@ public class LocalFileStorageService implements FileStorageService {
 
             final String contentType = file.getContentType();
 
-            if (contentType != null) { // then save file format
-                final String fileFormat = contentType.substring(contentType.indexOf("/"));
+            if (contentType != null) { // save file format
+                final int idx = contentType.indexOf("/");
+                final String fileFormat = idx != -1 && idx + 1 < contentType.length()
+                        ? contentType.substring(idx + 1)
+                        : "";
                 return format("%s.%s", DEFAULT_FILENAME, fileFormat);
             } else {
                 return DEFAULT_FILENAME;
