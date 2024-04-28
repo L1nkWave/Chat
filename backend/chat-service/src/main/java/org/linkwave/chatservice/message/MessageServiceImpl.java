@@ -1,24 +1,36 @@
 package org.linkwave.chatservice.message;
 
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.linkwave.chatservice.api.ServiceErrorException;
+import org.linkwave.chatservice.api.ws.WSServiceClient;
 import org.linkwave.chatservice.chat.ChatRole;
 import org.linkwave.chatservice.chat.ChatService;
 import org.linkwave.chatservice.chat.duo.Chat;
 import org.linkwave.chatservice.common.PrivacyViolationException;
+import org.linkwave.chatservice.common.RequestInitiator;
 import org.linkwave.chatservice.common.ResourceNotFoundException;
 import org.linkwave.chatservice.common.UnacceptableRequestDataException;
+import org.linkwave.chatservice.message.file.CreatedFileMessage;
+import org.linkwave.chatservice.message.file.FileMessage;
 import org.linkwave.chatservice.message.text.EditTextMessage;
 import org.linkwave.chatservice.message.text.NewTextMessage;
 import org.linkwave.chatservice.message.text.TextMessage;
 import org.linkwave.chatservice.message.text.UpdatedTextMessage;
 import org.linkwave.chatservice.user.User;
 import org.linkwave.chatservice.user.UserService;
+import org.linkwave.shared.storage.FileStorageService;
 import org.modelmapper.ModelMapper;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -33,9 +45,14 @@ import static org.linkwave.chatservice.message.Action.*;
 @RequiredArgsConstructor
 public class MessageServiceImpl implements MessageService {
 
+    public static final Path MESSAGE_FILE_PATH = Path.of("api", "chats");
+
+    private final WSServiceClient wsClient;
     private final ChatService chatService;
     private final UserService userService;
+    private final TransactionTemplate txnTemplate;
     private final MessageRepository messageRepository;
+    private final FileStorageService fileStorageService;
     private final ModelMapper modelMapper;
 
     private Message createMessage(Long senderId, Instant creationTime, Action action) {
@@ -98,6 +115,84 @@ public class MessageServiceImpl implements MessageService {
         chatService.updateChat(chat);
 
         return modelMapper.map(message, MessageDto.class);
+    }
+
+    @SneakyThrows
+    @Override
+    public CreatedFileMessage saveFileMessage(RequestInitiator initiator, String chatId, @NonNull MultipartFile attachedFile) {
+        final Chat chat = chatService.findChat(chatId);
+        if (!chatService.isMember(initiator.userId(), chat)) {
+            throw new PrivacyViolationException();
+        }
+
+        final Path dirPath = Path.of(MESSAGE_FILE_PATH.toString(), chatId);
+        final String generatedFilename = fileStorageService.storeFile(
+                dirPath, String.valueOf(initiator.userId()), attachedFile
+        );
+
+        final var message = FileMessage.builder()
+                .action(FILE)
+                .authorId(initiator.userId())
+                .storageFilename(generatedFilename)
+                .filename(attachedFile.getOriginalFilename())
+                .contentType(attachedFile.getContentType())
+                .size(attachedFile.getSize())
+                .build();
+
+        try {
+            txnTemplate.executeWithoutResult(txnStatus -> {
+                chat.addMessage(message);
+                messageRepository.save(message);
+                chatService.updateChat(chat);
+            });
+        } catch (TransactionException e) {
+            throw new ServiceErrorException(e);
+        }
+        wsClient.addUnreadMessage(initiator.bearer(), chatId, initiator.userId());
+        return modelMapper.map(message, CreatedFileMessage.class);
+    }
+
+    @Override
+    public boolean isOwnFileMessage(Long senderId, String chatId, @NonNull CreatedFileMessage fileMessage) {
+        final Message message = getMessage(fileMessage.getId());
+
+        if (!message.getChat().getId().equals(chatId)) {
+            throw new MessageNotFoundException();
+        }
+
+        if (message instanceof FileMessage file) {
+            return message.getAuthorId().equals(senderId) &&
+                   file.getFilename().equals(fileMessage.getFilename()) &&
+                   file.getSize() == fileMessage.getSize() &&
+                   file.getContentType().equals(fileMessage.getContentType());
+        }
+
+        return false;
+    }
+
+    @Override
+    public byte[] getAttachedFile(Long userId, String messageId) {
+        final Message message = getMessage(messageId);
+        final Chat chat = message.getChat();
+
+        if (!chatService.isMember(userId, chat)) {
+            throw new PrivacyViolationException();
+        } else if (message instanceof FileMessage fileMessage) {
+            try {
+                // api/chats/{chatId}/{senderId}/{filename}
+                final Path fileStoragePath = Path.of(
+                        MESSAGE_FILE_PATH.toString(),
+                        chat.getId(),
+                        String.valueOf(message.getAuthorId()),
+                        fileMessage.getStorageFilename()
+                );
+                return fileStorageService.readFileAsBytes(fileStoragePath);
+            } catch (IOException e) {
+                throw new ResourceNotFoundException();
+            }
+        } else {
+            throw new ResourceNotFoundException();
+        }
     }
 
     @Override

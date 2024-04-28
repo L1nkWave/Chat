@@ -20,6 +20,11 @@
       "get": {
         "tags": ["Chat"],
         "summary": "Retrieve a portion of user chats",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/offset"
@@ -75,6 +80,11 @@
       "post": {
         "tags": ["Chat"],
         "summary": "Create duo chat",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -126,6 +136,11 @@
       "get": {
         "tags": ["Chat"],
         "summary": "Check if duo chat exists between request initiator and recipient",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "204": {
             "description": "Duo chat exists"
@@ -165,6 +180,11 @@
       "get": {
         "tags": ["Chat"],
         "summary": "Get ids of all user chats",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Received all chats ids that request initiator is involved in",
@@ -196,6 +216,11 @@
       "post": {
         "tags": ["Chat"],
         "summary": "Create group chat",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -228,6 +253,11 @@
       "get": {
         "tags": ["Chat"],
         "summary": "Get group chat details by ID",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "The response whose body contains details of required group chat",
@@ -251,6 +281,11 @@
       "get": {
         "tags": ["Chat"],
         "summary": "Check if request initiator is a member of group chat",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "204": {
             "description": "Membership is confirmed"
@@ -295,6 +330,11 @@
       "post": {
         "tags": ["Chat"],
         "summary": "Add request initiator to members of the group chat",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "201": {
             "description": "Successfully added to the group chat members",
@@ -327,6 +367,11 @@
       "delete": {
         "tags": ["Chat"],
         "summary": "Remove request initiator from group chat members",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "204": {
             "description": "Successfully removed from members"
@@ -359,6 +404,11 @@
       "get": {
         "tags": ["Chat"],
         "summary": "Retrieve the group chat avatar",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Group chat avatar",
@@ -391,6 +441,11 @@
       "post": {
         "tags": ["Chat"],
         "summary": "Multipart request to upload group chat avatar",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "multipart/form-data": {
@@ -459,6 +514,11 @@
       "delete": {
         "tags": ["Chat"],
         "summary": "Delete uploaded group chat avatar",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Uploaded avatar was successfully deleted"
@@ -491,6 +551,11 @@
       "get": {
         "tags": ["Message"],
         "summary": "Get all chat messages",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Messages were successfully retrieved",
@@ -528,6 +593,11 @@
       "post": {
         "tags": ["Message"],
         "summary": "Save a message that only consists of action as content",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "$ref": "#/components/parameters/action"
@@ -588,6 +658,11 @@
       "post": {
         "tags": ["Message"],
         "summary": "Save a text message to the chat",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -627,6 +702,195 @@
         }
       }
     },
+    "/v1/chats/{id}/messages/file": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/id"
+        }
+      ],
+      "post": {
+        "tags": ["Message"],
+        "summary": "Upload a file as message to the chat",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "array",
+                    "items": {
+                      "format": "binary"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The message with attached file was created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedFileMessage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "File is missing" : {
+                    "value": {
+                      "path": "/api/v1/chats/662ce8cc905e8b2151fca5e2/messages/file",
+                      "message": "Uploaded file can not be empty",
+                      "status": 400,
+                      "timestamp": 1714229719.072462200
+                    }
+                  },
+                  "More than 1 file uploaded": {
+                    "value": {
+                      "path": "/api/v1/chats/662ce8cc905e8b2151fca5e2/messages/file",
+                      "message": "Only one file can be uploaded per request",
+                      "status": 400,
+                      "timestamp": 1714229719.072462200
+                    }
+                  },
+                  "Not multipart request": {
+                    "value": {
+                      "path": "/api/v1/chats/662ce8cc905e8b2151fca5e2/messages/file",
+                      "message": "Current request is not a multipart request",
+                      "status": 400,
+                      "timestamp": 1714229719.072462200
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chats/messages/{id}/file": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/id"
+        }
+      ],
+      "get": {
+        "tags": ["Message"],
+        "summary": "Get file from the message",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Binary file",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Message not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/chats/messages/662d0be46dc0dc6dc0ffa9c/file",
+                  "message": "Requested message not found",
+                  "status": 404,
+                  "timestamp": 1714230719.682893900
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/chats/{id}/messages/file/own": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/id"
+        }
+      ],
+      "get": {
+        "tags": ["Message"],
+        "summary": "Check if file message was initiated by request initiator",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "messageId",
+            "schema": {
+              "type": "string",
+              "nullable": false
+            },
+            "example": "662d0be46dc0dc6dc0ffa9c5"
+          },
+          {
+            "in": "query",
+            "name": "filename",
+            "schema": {
+              "type": "string",
+              "nullable": false
+            },
+            "example": "masm32v11r.zip"
+          },
+          {
+            "in": "query",
+            "name": "contentType",
+            "schema": {
+              "type": "string",
+              "nullable": false
+            },
+            "example": "application/zip"
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "schema": {
+              "type": "integer",
+              "nullable": false,
+              "minimum": 0
+            },
+            "example": "2048"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File is found"
+          },
+          "404": {
+            "description": "File is not found"
+          }
+        }
+      }
+    },
     "/v1/chats/{id}/messages/readers": {
       "parameters": [
         {
@@ -646,6 +910,11 @@
       "post": {
         "tags": ["Message"],
         "summary": "Read a range of chat messages",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Returns ids of read messages",
@@ -1163,6 +1432,39 @@
         },
         "example": {
           "text": "hello world!"
+        }
+      },
+      "CreatedFileMessage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": false
+          },
+          "createdAt": {
+            "type": "number",
+            "nullable": false
+          },
+          "filename": {
+            "type": "string",
+            "nullable": false
+          },
+          "contentType": {
+            "type": "string",
+            "nullable": false
+          },
+          "size": {
+            "type": "integer",
+            "nullable": false,
+            "minimum": 0
+          }
+        },
+        "example": {
+          "id": "662d0be46dc0dc6dc0ffa9c5",
+          "createdAt": 1714228196.375171300,
+          "filename": "masm32v11r.zip",
+          "contentType": "application/zip",
+          "size": 5012275
         }
       }
     },

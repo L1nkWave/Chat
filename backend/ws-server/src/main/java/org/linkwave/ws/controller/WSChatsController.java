@@ -8,6 +8,8 @@ import org.linkwave.ws.repository.ChatRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Set;
+
 import static org.springframework.http.HttpStatus.CREATED;
 
 @Slf4j
@@ -31,6 +33,13 @@ public class WSChatsController {
     public void loadNewGroupChat(@PathVariable String id) {
         log.debug("-> loadGroupChat()");
         chatRepository.addMember(userDetails().id(), id);
+    }
+
+    @PatchMapping("/{id}/unread_messages")
+    public void addUnreadMessage(@PathVariable String id, @RequestParam Long senderId) {
+        final Set<Long> members = chatRepository.getMembers(id);
+        members.remove(senderId);
+        chatRepository.changeUnreadMessages(id, members, 1);
     }
 
     private DefaultUserDetails userDetails() {

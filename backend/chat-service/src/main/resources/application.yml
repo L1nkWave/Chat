@@ -10,6 +10,11 @@ spring:
   application:
     name: 'chat-service'
 
+  cloud:
+    openfeign:
+      okhttp:
+        enabled: true
+
   servlet:
     multipart:
       max-file-size: 32MB
