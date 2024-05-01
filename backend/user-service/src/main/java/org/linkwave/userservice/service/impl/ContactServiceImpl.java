@@ -21,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
+import static java.util.Comparator.comparing;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -45,6 +47,7 @@ public class ContactServiceImpl implements ContactService {
         final List<ContactDto> mappedContacts = contacts.stream()
                 .skip(offset)
                 .limit(limit)
+                .sorted(comparing(ContactEntity::getAlias))
                 .map(contact -> ContactDto.builder()
                         .user(modelMapper.map(contact.getUser(), UserDto.class))
                         .addedAt(contact.getAddedAt())
