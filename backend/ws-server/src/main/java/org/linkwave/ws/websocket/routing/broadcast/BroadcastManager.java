@@ -9,7 +9,7 @@ import org.linkwave.ws.websocket.routing.bpp.Broadcast;
 
 /**
  * Built-in component that is used by router to automatically broadcast message
- * using {@code @Broadcast} annotation. Broadcast manager is informed about what, how and where
+ * using {@link Broadcast} annotation. Broadcast manager is informed about what, how and where
  * the message must be delivered.
  *
  * @see Broadcast

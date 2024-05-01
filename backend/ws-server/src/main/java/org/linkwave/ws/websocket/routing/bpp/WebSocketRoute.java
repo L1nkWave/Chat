@@ -10,9 +10,9 @@ import java.lang.annotation.Target;
 
 /**
  * This annotation is used to define bean that can hold
- * route handlers, i.e. methods marked with {@code @SubRoute}
+ * route handlers, i.e. methods marked with {@link Endpoint}
  *
- * @see SubRoute
+ * @see Endpoint
  */
 @Component
 @Retention(RetentionPolicy.RUNTIME)

@@ -14,7 +14,7 @@ import org.linkwave.ws.websocket.dto.IncomeMessage;
 import org.linkwave.ws.websocket.dto.OutcomeMessage;
 import org.linkwave.ws.websocket.routing.*;
 import org.linkwave.ws.websocket.routing.args.RouteHandlerArgumentResolver;
-import org.linkwave.ws.websocket.routing.bpp.SubRoute;
+import org.linkwave.ws.websocket.routing.bpp.Endpoint;
 import org.linkwave.ws.websocket.routing.bpp.WebSocketRoute;
 import org.linkwave.ws.websocket.routing.broadcast.BroadcastManager;
 import org.linkwave.ws.websocket.routing.exception.InvalidMessageFormatException;
@@ -202,7 +202,7 @@ public class WebSocketRouterImplTest {
     @WebSocketRoute("/chat")
     private static class ChatRoutesT {
 
-        @SubRoute("/{id}/send")
+        @Endpoint("/{id}/send")
         Box<OutcomeMessage> sendMessage(@PathVariable String id,
                                         WebSocketSession session,
                                         @Payload String message) {
@@ -213,7 +213,7 @@ public class WebSocketRouterImplTest {
                     .build());
         }
 
-        @SubRoute("/{id}/update_message/{messageId}")
+        @Endpoint("/{id}/update_message/{messageId}")
         Box<String> updateMessage(@PathVariable String id,
                                   @PathVariable String messageId,
                                   WebSocketSession session,

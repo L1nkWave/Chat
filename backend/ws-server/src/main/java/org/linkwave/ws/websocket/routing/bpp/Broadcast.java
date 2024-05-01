@@ -8,7 +8,7 @@ import java.lang.annotation.*;
  * This annotation is used to enable message broadcast for route handler.
  *
  * @see BroadcastManager
- * @see SubRoute
+ * @see Endpoint
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
@@ -23,7 +23,7 @@ public @interface Broadcast {
      *
      * <ul>
      *     <li>
-     *          a path variable from route that is specified in {@link  SubRoute} annotation that
+     *          a path variable from endpoint that is specified in {@link  Endpoint} annotation that
      *          attached to specific route handler.
      *      </li>
      *      <li>
