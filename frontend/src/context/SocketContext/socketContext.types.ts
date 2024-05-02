@@ -1,3 +1,4 @@
 export type SocketContextProps = {
-  webSocket: WebSocket | null;
+  webSocket?: WebSocket | null;
+  message?: unknown;
 };

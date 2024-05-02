@@ -9,10 +9,7 @@ export const makeStore = () =>
       auth: authReducer,
       chat: chatReducer,
     },
-    middleware: getDefaultMiddleware =>
-      getDefaultMiddleware({
-        serializableCheck: false,
-      }),
+    middleware: getDefaultMiddleware => getDefaultMiddleware(),
   });
 
 export const store = makeStore();
