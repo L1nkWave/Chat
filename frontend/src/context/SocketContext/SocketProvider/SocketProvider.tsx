@@ -3,9 +3,12 @@
 import { useRouter } from "next/navigation";
 import { PropsWithChildren, useEffect, useMemo, useState } from "react";
 
+import { refreshToken } from "@/api/http/auth/auth";
 import { connectToSocket } from "@/api/socket";
 import { SocketContext } from "@/context/SocketContext/SocketContext";
+import { SocketContextProps } from "@/context/SocketContext/socketContext.types";
 import { RECONNECT_TIMEOUT } from "@/context/SocketContext/SocketProvider/socketProvider.config";
+import { setAccessToken } from "@/lib/features/user/userSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 
 export function SocketProvider({ children }: Readonly<PropsWithChildren>) {
@@ -13,18 +16,21 @@ export function SocketProvider({ children }: Readonly<PropsWithChildren>) {
   const { accessToken } = useAppSelector(state => state.auth);
   const route = useRouter();
   const [webSocket, setWebSocket] = useState<WebSocket | null>(null);
+  const [message, setMessage] = useState<unknown>();
 
   useEffect(() => {
     if (!accessToken) {
       route.push("/sign-in");
       return () => {};
     }
+
     const newSocket = connectToSocket(accessToken);
+
     newSocket.onclose = () => {
       setTimeout(async () => {
         try {
-          const refreshedSocket = connectToSocket(accessToken);
-          setWebSocket(refreshedSocket);
+          const data = await refreshToken();
+          dispatch(setAccessToken(data.accessToken));
         } catch (error) {
           setWebSocket(null);
         }
@@ -32,12 +38,21 @@ export function SocketProvider({ children }: Readonly<PropsWithChildren>) {
     };
 
     newSocket.onerror = () => {
+      console.log("Error");
       route.push("/sign-in");
     };
 
-    newSocket.onopen = () => {
+    newSocket.onopen = event => {
+      console.log("Open", event);
       setWebSocket(newSocket);
     };
+
+    newSocket.onmessage = event => {
+      console.log("Message", event.data);
+      setMessage(JSON.parse(event.data));
+    };
+
+    newSocket.addEventListener("error", () => {});
 
     return () => {
       if (newSocket.readyState === WebSocket.OPEN) {
@@ -46,11 +61,12 @@ export function SocketProvider({ children }: Readonly<PropsWithChildren>) {
     };
   }, [accessToken, dispatch, route]);
 
-  const value = useMemo(() => {
+  const value = useMemo<SocketContextProps>(() => {
     return {
       webSocket,
+      message,
     };
-  }, [webSocket]);
+  }, [message, webSocket]);
 
   return <SocketContext.Provider value={value}>{children}</SocketContext.Provider>;
 }

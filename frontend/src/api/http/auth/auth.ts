@@ -26,3 +26,8 @@ export async function refreshToken() {
   const { data } = await instance.post<AuthTypes>("auth/refresh-tokens", {}, { withCredentials: true });
   return data;
 }
+
+export async function logout() {
+  const { data } = await instance.post<AuthTypes>("auth/logout", {}, { withCredentials: true });
+  return data;
+}
