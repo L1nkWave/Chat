@@ -12,7 +12,7 @@ import org.linkwave.ws.websocket.jwt.UserPrincipal;
 import org.linkwave.ws.websocket.routing.Box;
 import org.linkwave.ws.websocket.routing.Payload;
 import org.linkwave.ws.websocket.routing.bpp.Broadcast;
-import org.linkwave.ws.websocket.routing.bpp.SubRoute;
+import org.linkwave.ws.websocket.routing.bpp.Endpoint;
 import org.linkwave.ws.websocket.routing.bpp.WebSocketRoute;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,7 +31,7 @@ public class GroupChatRoutes {
     private final ChatRepository<Long, String> chatRepository;
     private final ChatServiceClient chatClient;
 
-    @SubRoute(value = "/create", disabled = true)
+    @Endpoint(value = "/create", disabled = true)
     public Box<GroupChatDto> createChat(@NonNull UserPrincipal principal,
                                         @Payload NewGroupChat body,
                                         @NonNull String path) {
@@ -52,7 +52,7 @@ public class GroupChatRoutes {
         return ok(groupChat);
     }
 
-    @SubRoute(value = "/{id}/add", disabled = true)
+    @Endpoint(value = "/{id}/add", disabled = true)
     public Box<Void> addChat(@PathVariable String id,
                              @NonNull UserPrincipal principal,
                              @NonNull String path) {
@@ -76,7 +76,7 @@ public class GroupChatRoutes {
     }
 
     @Broadcast
-    @SubRoute("/{id}/join")
+    @Endpoint("/{id}/join")
     public Box<MemberMessage> join(@PathVariable String id,
                                    @NonNull UserPrincipal principal,
                                    @NonNull String path) {
@@ -113,7 +113,7 @@ public class GroupChatRoutes {
 
     @Broadcast
     @Broadcast(value = "user:{senderId}", analyzeMessage = true)
-    @SubRoute("/{id}/leave")
+    @Endpoint("/{id}/leave")
     public Box<ChatMessage> leaveChat(@PathVariable String id,
                                       @NonNull UserPrincipal principal,
                                       @NonNull String path) {
@@ -146,7 +146,7 @@ public class GroupChatRoutes {
     }
 
     @Broadcast
-    @SubRoute("/{id}/add_member/{userId}")
+    @Endpoint("/{id}/add_member/{userId}")
     public Box<MemberMessage> addMember(@PathVariable String id,
                                         @PathVariable Long userId,
                                         @NonNull UserPrincipal principal,
@@ -193,7 +193,7 @@ public class GroupChatRoutes {
 
     @Broadcast
     @Broadcast("user:{memberId}")
-    @SubRoute("/{id}/kick/{memberId}")
+    @Endpoint("/{id}/kick/{memberId}")
     public Box<MemberMessage> removeMember(@PathVariable String id,
                                            @PathVariable Long memberId,
                                            @NonNull UserPrincipal principal,
@@ -238,7 +238,7 @@ public class GroupChatRoutes {
     }
 
     @Broadcast
-    @SubRoute("/{id}/set_role/{memberId}")
+    @Endpoint("/{id}/set_role/{memberId}")
     public Box<ChatRoleMessage> changeMemberRole(@PathVariable String id,
                                                  @PathVariable Long memberId,
                                                  @NonNull UserPrincipal principal,

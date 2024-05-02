@@ -12,7 +12,7 @@ import org.linkwave.ws.websocket.routing.RoutingAutoConfig;
 import org.linkwave.ws.websocket.routing.RoutingMessage;
 import org.linkwave.ws.websocket.routing.args.DefaultRouteHandlerArgumentResolver;
 import org.linkwave.ws.websocket.routing.args.RouteHandlerArgumentResolver;
-import org.linkwave.ws.websocket.routing.bpp.SubRoute;
+import org.linkwave.ws.websocket.routing.bpp.Endpoint;
 import org.linkwave.ws.websocket.routing.exception.InvalidMessageFormatException;
 import org.linkwave.ws.websocket.routing.exception.InvalidPathException;
 import org.linkwave.ws.websocket.routing.exception.RoutingException;
@@ -204,37 +204,37 @@ public class DefaultRouteHandlerArgumentResolverTest {
 
     private static class RouteHandlers {
 
-        @SubRoute("/send")
+        @Endpoint("/send")
         void send() {
         }
 
-        @SubRoute("/echo")
+        @Endpoint("/echo")
         void echoPath(String path) {
 
         }
 
-        @SubRoute("/echo")
+        @Endpoint("/echo")
         void echoPrincipal(UserPrincipal userPrincipal, Principal principal) {
 
         }
 
-        @SubRoute("/chat/{id}/send")
+        @Endpoint("/chat/{id}/send")
         void send(WebSocketSession session, @Payload String message, @PathVariable long id, int abc) {
         }
 
-        @SubRoute("/chat/{id}/send")
+        @Endpoint("/chat/{id}/send")
         void send2(@Payload int message, @PathVariable long id) {
         }
 
-        @SubRoute("/chat/{ID}/send")
+        @Endpoint("/chat/{ID}/send")
         void send(@PathVariable long id) {
         }
 
-        @SubRoute("/chat/{objId}/send")
+        @Endpoint("/chat/{objId}/send")
         void send(@PathVariable Object objId) {
         }
 
-        @SubRoute("/chat/{intId}/send/{stringId}")
+        @Endpoint("/chat/{intId}/send/{stringId}")
         void send(@PathVariable int intId, @PathVariable String stringId) {
         }
 
@@ -246,7 +246,7 @@ public class DefaultRouteHandlerArgumentResolverTest {
         final List<Method> routeHandlers = Arrays.stream(handlers.getClass().getDeclaredMethods())
                 .filter(method -> method.getName().equals(handlerName))
                 .filter(method -> {
-                    final var ann = method.getAnnotation(SubRoute.class);
+                    final var ann = method.getAnnotation(Endpoint.class);
                     return ann != null && ann.value().equals(route);
                 })
                 .toList();

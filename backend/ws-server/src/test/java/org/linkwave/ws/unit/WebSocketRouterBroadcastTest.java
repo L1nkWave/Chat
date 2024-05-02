@@ -15,7 +15,7 @@ import org.linkwave.ws.repository.ChatRepository;
 import org.linkwave.ws.websocket.routing.*;
 import org.linkwave.ws.websocket.routing.args.DefaultRouteHandlerArgumentResolver;
 import org.linkwave.ws.websocket.routing.bpp.Broadcast;
-import org.linkwave.ws.websocket.routing.bpp.SubRoute;
+import org.linkwave.ws.websocket.routing.bpp.Endpoint;
 import org.linkwave.ws.websocket.routing.bpp.WebSocketRoute;
 import org.linkwave.ws.websocket.routing.broadcast.BroadcastManager;
 import org.linkwave.ws.websocket.routing.broadcast.SimpleBroadcastManager;
@@ -202,7 +202,7 @@ public class WebSocketRouterBroadcastTest {
     @WebSocketRoute("/group-chat")
     private static class ChatRoutesBroadcastT {
 
-        @SubRoute("/{id}/send")
+        @Endpoint("/{id}/send")
         @Broadcast("chat:{id}")
         Box<OutcomeMessage> sendMessage(@PathVariable String id,
                                         @NonNull WebSocketSession session,

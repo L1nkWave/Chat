@@ -6,10 +6,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 import org.linkwave.ws.websocket.routing.args.RouteHandlerArgumentResolver;
-import org.linkwave.ws.websocket.routing.bpp.SubRoute;
+import org.linkwave.ws.websocket.routing.bpp.Endpoint;
 
 /**
- * Used to indicate parameter as message payload in {@link SubRoute} (route handler).
+ * Used to indicate parameter as message payload in method annotated with {@link Endpoint} (i.e. route handler).
  * Moreover, the annotated parameter is involved in {@link RouteHandlerArgumentResolver}
  * in message injection.
  */

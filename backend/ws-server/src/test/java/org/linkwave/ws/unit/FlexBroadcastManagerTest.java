@@ -5,7 +5,7 @@ import lombok.SneakyThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.linkwave.ws.websocket.routing.bpp.Broadcast;
-import org.linkwave.ws.websocket.routing.bpp.SubRoute;
+import org.linkwave.ws.websocket.routing.bpp.Endpoint;
 import org.linkwave.ws.websocket.routing.broadcast.BroadcastRepositoryResolver;
 import org.linkwave.ws.websocket.routing.broadcast.FlexBroadcastManager;
 import org.linkwave.ws.websocket.routing.broadcast.WebSocketMessageBroadcast;
@@ -122,14 +122,14 @@ public class FlexBroadcastManagerTest {
 
         @Broadcast
         @Broadcast(value = "user:{senderId}", analyzeMessage = true)
-        @SubRoute("/chat/{id}")
+        @Endpoint("/chat/{id}")
         Message send(@PathVariable String id) {
             return new Message(id, 1L);
         }
 
         @Broadcast
         @Broadcast
-        @SubRoute("/chat/{id}")
+        @Endpoint("/chat/{id}")
         Message sendDuplicates(@PathVariable String id) {
             return new Message(id, 1L);
         }
