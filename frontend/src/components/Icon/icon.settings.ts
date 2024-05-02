@@ -3,7 +3,7 @@ import * as Icons from "@public/icons";
 export const DEFAULT_ICON_SIZE = 24;
 
 export const iconMapping = {
-  "chat-plus-outline": Icons.ChatPlusOutlineIcon,
+  "chat-outline": Icons.ChatPlusOutlineIcon,
   "form-outline": Icons.FormOutlineIcon,
   "group-outline": Icons.GroupOutlineIcon,
   "lock-outline": Icons.LockOutlineIcon,
@@ -20,4 +20,6 @@ export const iconMapping = {
   "left-angle": Icons.LeftAngleIcon,
   "pen-with-message": Icons.PenWithMessageIcon,
   "remove-circle-outline": Icons.RemoveCircleOutlineIcon,
+  "add-chat-outline": Icons.AddChatOutlineIcon,
+  "find-people-outline": Icons.FindPeopleOutlineIcon,
 };
