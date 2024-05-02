@@ -49,12 +49,12 @@ public class WebSocketRouterBeanPostProcessor implements BeanPostProcessor, Appl
             String rootPath = routeCls.getAnnotation(WebSocketRoute.class).value();
             sb.append(rootPath);
 
-            // scan all sub-routes
+            // scan all endpoints inside bean
             for (Method method : routeCls.getDeclaredMethods()) {
-                if (method.isAnnotationPresent(SubRoute.class)) {
-                    SubRoute ann = method.getAnnotation(SubRoute.class);
+                if (method.isAnnotationPresent(Endpoint.class)) {
+                    Endpoint ann = method.getAnnotation(Endpoint.class);
 
-                    // omit disabled route handler
+                    // omit disabled endpoint
                     if (ann.disabled()) {
                         continue;
                     }
@@ -64,7 +64,7 @@ public class WebSocketRouterBeanPostProcessor implements BeanPostProcessor, Appl
 
                     String combinedPath = sb.toString();
                     if (routes.containsKey(combinedPath)) {
-                        throw new RuntimeException("found duplicate routes");
+                        throw new RuntimeException("Found duplicate routes");
                     }
 
                     // check broadcast options

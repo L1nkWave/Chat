@@ -12,7 +12,7 @@ import org.linkwave.ws.websocket.jwt.UserPrincipal;
 import org.linkwave.ws.websocket.routing.Box;
 import org.linkwave.ws.websocket.routing.Payload;
 import org.linkwave.ws.websocket.routing.bpp.Broadcast;
-import org.linkwave.ws.websocket.routing.bpp.SubRoute;
+import org.linkwave.ws.websocket.routing.bpp.Endpoint;
 import org.linkwave.ws.websocket.routing.bpp.WebSocketRoute;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,7 +38,7 @@ public class ChatRoutes {
 
     @SneakyThrows
     @Broadcast
-    @SubRoute("/{id}/send")
+    @Endpoint("/{id}/send")
     public Box<OutcomeMessage> sendTextMessage(@PathVariable String id,
                                                @Payload IncomeMessage message,
                                                @NonNull WebSocketSession session,
@@ -82,7 +82,7 @@ public class ChatRoutes {
                 .build());
     }
 
-    @SubRoute("/edit_text_message/{messageId}")
+    @Endpoint("/edit_text_message/{messageId}")
     @Broadcast(value = "chat:{chatId}", analyzeMessage = true)
     public Box<OutcomeMessage> editTextMessage(@PathVariable String messageId,
                                                @Payload String text,
@@ -111,7 +111,7 @@ public class ChatRoutes {
     }
 
     @Broadcast
-    @SubRoute("/{id}/send_file")
+    @Endpoint("/{id}/send_file")
     public Box<OutcomeFileMessage> sendFileMessage(@PathVariable String id,
                                                    @Payload CreatedFileMessage message,
                                                    @NonNull UserPrincipal principal,
@@ -150,7 +150,7 @@ public class ChatRoutes {
                 .build());
     }
 
-    @SubRoute("/remove_message/{messageId}")
+    @Endpoint("/remove_message/{messageId}")
     @Broadcast(value = "chat:{chatId}", analyzeMessage = true)
     public Box<IdentifiedMessage> removeMessage(@PathVariable String messageId,
                                                 @NonNull UserPrincipal principal,
@@ -185,7 +185,7 @@ public class ChatRoutes {
     }
 
     @Broadcast
-    @SubRoute("/{id}/clear_history")
+    @Endpoint("/{id}/clear_history")
     public Box<ChatMessage> clearChatHistory(@PathVariable String id,
                                              @NonNull UserPrincipal principal,
                                              @NonNull String path) {
@@ -211,7 +211,7 @@ public class ChatRoutes {
                 .build());
     }
 
-    @SubRoute("/unread_messages")
+    @Endpoint("/unread_messages")
     public UnreadMessages getUnreadMessages(@NonNull UserPrincipal principal) {
         final Long userId = principal.token().userId();
         return UnreadMessages.builder()
@@ -220,7 +220,7 @@ public class ChatRoutes {
     }
 
     @Broadcast
-    @SubRoute("/{id}/read")
+    @Endpoint("/{id}/read")
     public Box<ReadMessage> readMessages(@PathVariable String id,
                                          @Payload LastReadMessage message,
                                          @NonNull UserPrincipal principal,
@@ -264,7 +264,7 @@ public class ChatRoutes {
         return ok();
     }
 
-    @SubRoute(value = "/{id}/{recipientId}/add", disabled = true)
+    @Endpoint(value = "/{id}/{recipientId}/add", disabled = true)
     public Box<Void> addChat(@PathVariable String id,
                              @PathVariable Long recipientId,
                              @NonNull UserPrincipal principal,

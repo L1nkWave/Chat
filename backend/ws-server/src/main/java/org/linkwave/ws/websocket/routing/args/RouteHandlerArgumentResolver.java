@@ -5,7 +5,7 @@ import org.linkwave.ws.websocket.routing.exception.InvalidMessageFormatException
 import org.linkwave.ws.websocket.routing.exception.InvalidPathException;
 import org.springframework.lang.NonNull;
 import org.springframework.web.socket.WebSocketSession;
-import org.linkwave.ws.websocket.routing.bpp.SubRoute;
+import org.linkwave.ws.websocket.routing.bpp.Endpoint;
 
 import java.util.List;
 import java.util.Map;
@@ -14,7 +14,7 @@ import java.util.Map;
  * Describes the way {@link WebSocketRouter} should resolve route handler's parameters
  * in order to construct his successful invocation. The message has a chance to be handled only if
  * it passed this stage, i.e. path that specified in message is valid and payload type is compatible with
- * the type of {@link Payload} declared in target {@link SubRoute} (route handler).
+ * the type of {@link Payload} declared in target {@link Endpoint} (route handler).
  */
 public interface RouteHandlerArgumentResolver {
 
