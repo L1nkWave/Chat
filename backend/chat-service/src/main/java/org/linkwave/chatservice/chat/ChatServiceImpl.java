@@ -12,6 +12,7 @@ import org.linkwave.chatservice.api.users.UserServiceClient;
 import org.linkwave.chatservice.api.ws.LoadChatRequest;
 import org.linkwave.chatservice.api.ws.WSServiceClient;
 import org.linkwave.chatservice.chat.duo.Chat;
+import org.linkwave.chatservice.chat.duo.CompanionDto;
 import org.linkwave.chatservice.chat.duo.DuoChatDto;
 import org.linkwave.chatservice.chat.duo.NewChatRequest;
 import org.linkwave.chatservice.chat.group.GroupChat;
@@ -184,46 +185,7 @@ public class ChatServiceImpl implements ChatService {
         final Set<Long> usersIds = new HashSet<>();
         final List<ChatDto> selectedChats = userChats
                 .stream()
-                .map(chat -> {
-                    final boolean isGroupChat = chat instanceof GroupChat;
-                    final Class<? extends ChatDto> cls = isGroupChat
-                            ? GroupChatDto.class
-                            : DuoChatDto.class;
-
-                    final ChatDto chatDto = modelMapper.map(chat, cls);
-
-                    if (isGroupChat) {
-                        chatDto.setAvatarAvailable(isAvatarSet((GroupChat) chat));
-                    } else {
-                        // pull user info for duo chat
-                        final List<ChatMember> members = chat.getMembers();
-                        Long memberId = members.get(0).getId();
-                        usersIds.add(memberId.equals(initiator.userId())
-                                ? memberId = members.get(1).getId()
-                                : memberId
-                        );
-
-                        ((DuoChatDto) chatDto).setUser(
-                                UserDto.builder().id(memberId).build()
-                        );
-                    }
-
-                    final Message lastMessage = chat.getLastMessage();
-                    if (lastMessage == null) {
-                        return chatDto;
-                    }
-
-                    final MessageDto messageDto = lastMessage.convert(modelMapper);
-
-                    // save author ID for filling user data in the future
-                    messageDto.setAuthor(MessageAuthorDto.builder()
-                            .id(lastMessage.getAuthorId())
-                            .build());
-                    chatDto.setLastMessage(messageDto);
-
-                    usersIds.add(lastMessage.getAuthorId());
-                    return chatDto;
-                })
+                .map(chat -> mapChats(chat, usersIds, initiator))
                 .toList();
 
         final Map<Long, UserDto> usersMap = new LinkedHashMap<>();
@@ -238,9 +200,7 @@ public class ChatServiceImpl implements ChatService {
         );
 
         // pull contacts
-        final Map<Long, ContactDto> contactsMap = fetchAllContacts(initiator)
-                .stream()
-                .collect(toMap(contact -> contact.getUser().getId(), identity()));
+        final Map<Long, ContactDto> contactsMap = fetchAllContacts(initiator);
 
         selectedChats.forEach(chat -> {
             final MessageDto lastMessage = chat.getLastMessage();
@@ -255,10 +215,12 @@ public class ChatServiceImpl implements ChatService {
 
                 if (chat instanceof DuoChatDto duoChat) {
                     duoChat.setAvatarAvailable(user.getAvatarPath() != null);
+
+                    // inject companion dto
                     final Long companionId = duoChat.getUser().getId();
-                    final UserDto companionUserDto = usersMap.get(companionId);
-                    if (companionUserDto != null) {
-                        duoChat.setUser(companionUserDto);
+                    final UserDto userDto = usersMap.get(companionId);
+                    if (userDto != null) {
+                        duoChat.setUser(modelMapper.map(userDto, CompanionDto.class));
                     }
                 }
 
@@ -278,7 +240,7 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @NonNull
-    private List<ContactDto> fetchAllContacts(@NonNull RequestInitiator initiator) {
+    private Map<Long, ContactDto> fetchAllContacts(@NonNull RequestInitiator initiator) {
         final String username = ""; // any username is matched
         int offset = 0;
 
@@ -290,7 +252,49 @@ public class ChatServiceImpl implements ChatService {
             allContacts.addAll(contacts);
             offset += DEFAULT_BATCH_SIZE;
         } while (contacts.size() == DEFAULT_BATCH_SIZE);
-        return allContacts;
+        return allContacts.stream()
+                .collect(toMap(contact -> contact.getUser().getId(), identity()));
+    }
+
+    private ChatDto mapChats(Chat chat, Set<Long> usersIds, RequestInitiator initiator) {
+        final boolean isGroupChat = chat instanceof GroupChat;
+        final Class<? extends ChatDto> cls = isGroupChat
+                ? GroupChatDto.class
+                : DuoChatDto.class;
+
+        final ChatDto chatDto = modelMapper.map(chat, cls);
+
+        if (isGroupChat) {
+            chatDto.setAvatarAvailable(isAvatarSet((GroupChat) chat));
+        } else {
+            // pull user info for duo chat
+            final List<ChatMember> members = chat.getMembers();
+            Long memberId = members.get(0).getId();
+            usersIds.add(memberId.equals(initiator.userId())
+                    ? memberId = members.get(1).getId()
+                    : memberId
+            );
+
+            ((DuoChatDto) chatDto).setUser(
+                    CompanionDto.builder().id(memberId).build()
+            );
+        }
+
+        final Message lastMessage = chat.getLastMessage();
+        if (lastMessage == null) {
+            return chatDto;
+        }
+
+        final MessageDto messageDto = lastMessage.convert(modelMapper);
+
+        // save author ID for filling user data in the future
+        messageDto.setAuthor(MessageAuthorDto.builder()
+                .id(lastMessage.getAuthorId())
+                .build());
+        chatDto.setLastMessage(messageDto);
+
+        usersIds.add(lastMessage.getAuthorId());
+        return chatDto;
     }
 
     @Override
@@ -307,8 +311,8 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
-    public Map<String, List<ChatMember>> getChatsMembers(Long userId, List<String> chatId) {
-        return chatRepository.findAllById(chatId)
+    public Map<String, List<ChatMember>> getChatsMembers(Long userId, List<String> chatIds) {
+        return chatRepository.findAllById(chatIds)
                 .stream()
                 .filter(chat -> isMember(userId, chat))
                 .collect(toMap(Chat::getId, Chat::getMembers));

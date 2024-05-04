@@ -48,7 +48,7 @@
                   "items": {
                     "anyOf": [
                       {
-                        "$ref": "#/components/schemas/ChatDto"
+                        "$ref": "#/components/schemas/DuoChatDto"
                       },
                       {
                         "$ref": "#/components/schemas/GroupChatDto"
@@ -1034,6 +1034,10 @@
             "type": "number",
             "nullable": false
           },
+          "avatarAvailable": {
+            "type": "boolean",
+            "nullable": false
+          },
           "lastMessage": {
             "$ref": "#/components/schemas/TextMessageDto"
           }
@@ -1042,6 +1046,62 @@
           "id": "65ed725dc636007bd4027c80",
           "type": "DUO",
           "createdAt": 1710060125.916620300,
+          "avatarAvailable": true,
+          "lastMessage": {
+            "id": "66055236cb761a59d173d978",
+            "action": "MESSAGE",
+            "createdAt": 1711624758.135000000,
+            "author": {
+              "id": 1,
+              "username": "@mathewmcc",
+              "name": "Matthew McConaughey"
+            },
+            "reactions": [],
+            "text": "Hi everyone!",
+            "edited": false,
+            "isRead": false
+          }
+        }
+      },
+      "DuoChatDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": false
+          },
+          "type": {
+            "type": "string",
+            "nullable": false,
+            "example": "DUO"
+          },
+          "createdAt": {
+            "type": "number",
+            "nullable": false
+          },
+          "avatarAvailable": {
+            "type": "boolean",
+            "nullable": false
+          },
+          "user": {
+            "$ref": "#/components/schemas/CompanionDto"
+          },
+          "lastMessage": {
+            "$ref": "#/components/schemas/TextMessageDto"
+          }
+        },
+        "example": {
+          "id": "65ed725dc636007bd4027c80",
+          "type": "DUO",
+          "createdAt": 1710060125.916620300,
+          "avatarAvailable": true,
+          "user": {
+            "id": 22,
+            "username": "@emmtlor",
+            "name": "Emma Taylor",
+            "lastSeen": 1707606183.446933000,
+            "online": false
+          },
           "lastMessage": {
             "id": "66055236cb761a59d173d978",
             "action": "MESSAGE",
@@ -1096,9 +1156,9 @@
             "type": "string",
             "nullable": false
           },
-          "avatarPath": {
-            "type": "string",
-            "nullable": true
+          "avatarAvailable": {
+            "type": "boolean",
+            "nullable": false
           },
           "createdAt": {
             "type": "number",
@@ -1112,7 +1172,7 @@
           "id": "65e8b0e4404b9356a273e305",
           "type": "GROUP",
           "name": "My group chat",
-          "avatarPath": null,
+          "avatarAvailable": true,
           "createdAt": 1709748452.204932100,
           "lastMessage": {
             "id": "66055236cb761a59d173d978",
@@ -1465,6 +1525,38 @@
           "filename": "masm32v11r.zip",
           "contentType": "application/zip",
           "size": 5012275
+        }
+      },
+      "CompanionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "nullable": false
+          },
+          "username": {
+            "type": "string",
+            "nullable": false
+          },
+          "name": {
+            "type": "string",
+            "nullable": false
+          },
+          "lastSeen": {
+            "type": "number",
+            "nullable": false
+          },
+          "online": {
+            "type": "boolean",
+            "nullable": false
+          }
+        },
+        "example": {
+          "id": 22,
+          "username": "@emmtlor",
+          "name": "Emma Taylor",
+          "lastSeen": 1707606183.446933000,
+          "online": false
         }
       }
     },
