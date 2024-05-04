@@ -1,11 +1,12 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useState } from "react";
 import { toast } from "react-toastify";
 
-import { getContacts } from "@/api/http/users/users";
-import { ContactParams } from "@/api/http/users/users.types";
+import { addDuoChat, getChats } from "@/api/http/chat/chat";
+import { addContact, getContacts, removeContact, searchContacts } from "@/api/http/contacts/contacts";
+import { ChatParams, ContactParams, UserParams } from "@/api/http/contacts/contacts.types";
+import { ListStateEnum } from "@/components/Chat/chat.types";
 import { InteractiveList } from "@/components/Chat/InteractiveList/InteractiveList";
 import { Contacts } from "@/components/Chat/InteractiveList/interactiveList.types";
 import { MainBox } from "@/components/Chat/MainBox/MainBox";
@@ -14,27 +15,28 @@ import { SIDEBAR_ITEM } from "@/components/Chat/SideBar/sidebar.config";
 import { SidebarButtonName } from "@/components/Chat/SideBar/sidebar.types";
 import { CustomButton } from "@/components/CustomButton/CustomButton";
 import { SocketContext } from "@/context/SocketContext/SocketContext";
-import { setCurrentInteractiveList, setCurrentMainBox } from "@/lib/features/chat/chatSlice";
+import { useAccessTokenEffect } from "@/hooks/useAccessTokenEffect";
+import { setCurrentInteractiveListState, setCurrentMainBoxState } from "@/lib/features/chat/chatSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 
 export function Chat() {
   const dispatch = useAppDispatch();
 
-  const { accessToken } = useAppSelector(state => state.auth);
-  const { webSocket, message } = useContext(SocketContext);
-  const { currentMainBox, currentInteractiveList } = useAppSelector(state => state.chat);
+  const { currentMainBoxState, currentInteractiveListState } = useAppSelector(state => state.chat);
 
-  const router = useRouter();
+  const { message } = useContext(SocketContext);
 
   const [contacts, setContacts] = useState<Contacts>([]);
   const [contact, setContact] = useState<ContactParams | undefined>(undefined);
+
+  const [globalUsers, setGlobalUsers] = useState<UserParams[]>([]);
+  const [globalUser, setGlobalUser] = useState<UserParams | undefined>(undefined);
+
+  const [chats, setChats] = useState<ChatParams[]>([]);
+
   const [currentSidebarItem, setCurrentSidebarItem] = useState<string>("chat" as SidebarButtonName);
 
-  useEffect(() => {
-    if (!accessToken) {
-      router.push("/sign-in");
-      return;
-    }
+  useAccessTokenEffect(() => {
     const fetchContacts = async () => {
       try {
         const fetchedContacts = await getContacts();
@@ -44,31 +46,83 @@ export function Chat() {
       }
     };
     fetchContacts();
-  }, [accessToken, router, webSocket]);
+  }, [contacts]);
 
-  useEffect(() => {
+  useAccessTokenEffect(() => {
+    const fetchGlobalContacts = async () => {
+      try {
+        const fetchedContacts = await searchContacts();
+        setGlobalUsers(fetchedContacts);
+      } catch (error) {
+        toast.error("Error fetching global users");
+      }
+    };
+    fetchGlobalContacts();
+  }, [globalUsers]);
+
+  useAccessTokenEffect(() => {
+    const fetchChats = async () => {
+      try {
+        const fetchedChats = await getChats();
+        setChats(fetchedChats);
+        console.log("Chats:", fetchedChats);
+      } catch (error) {
+        toast.error("Error fetching chats");
+      }
+    };
+    fetchChats();
+  }, [chats]);
+
+  useAccessTokenEffect(() => {
     console.log(message);
   }, [message]);
 
   const handleContactClick = (currentContact: ContactParams) => {
+    setGlobalUser(undefined);
     setContact(currentContact);
-    dispatch(setCurrentMainBox("user-info"));
+    dispatch(setCurrentMainBoxState("user-info"));
   };
 
-  SIDEBAR_ITEM.buttons.contact.onClick = () => {
-    dispatch(setCurrentInteractiveList("contacts"));
+  const handleGlobalContactClick = (currentGlobalUser: UserParams) => {
+    setContact(undefined);
+    setGlobalUser(currentGlobalUser);
+    dispatch(setCurrentMainBoxState("user-info"));
   };
 
-  SIDEBAR_ITEM.buttons.chat.onClick = () => {
-    dispatch(setCurrentInteractiveList("chats"));
+  const handleAddContact = async (userId: string, alias: string) => {
+    try {
+      await addContact(userId, alias);
+      await addDuoChat(userId);
+      setGlobalUsers(prevGlobalUsers =>
+        prevGlobalUsers.filter(prevGlobalUser => prevGlobalUser.id.toString() !== userId)
+      );
+    } catch (error) {
+      toast.error("Error adding contact");
+    }
+  };
+  const handleRemoveContact = async (userId: string) => {
+    try {
+      await removeContact(userId);
+      setContacts(prevContacts => prevContacts.filter(prevContact => prevContact.user.id.toString() !== userId));
+    } catch (error) {
+      toast.error("Error adding contact");
+    }
+  };
+
+  SIDEBAR_ITEM.buttons[ListStateEnum.CONTACTS].onClick = () => {
+    dispatch(setCurrentInteractiveListState(ListStateEnum.CONTACTS));
+  };
+
+  SIDEBAR_ITEM.buttons[ListStateEnum.CHATS].onClick = () => {
+    dispatch(setCurrentInteractiveListState(ListStateEnum.CHATS));
+  };
+
+  SIDEBAR_ITEM.buttons[ListStateEnum.FIND_CONTACTS].onClick = () => {
+    dispatch(setCurrentInteractiveListState(ListStateEnum.FIND_CONTACTS));
   };
 
   SIDEBAR_ITEM.buttons["add-chat"].onClick = () => {
     console.log("add-chat");
-  };
-
-  SIDEBAR_ITEM.buttons["find-people"].onClick = () => {
-    console.log("find-people");
   };
 
   SIDEBAR_ITEM.buttons.setting.onClick = () => {
@@ -95,17 +149,28 @@ export function Chat() {
         ))}
       </SideBar>
       <InteractiveList
-        interactiveListVariant={currentInteractiveList}
+        interactiveListVariant={currentInteractiveListState}
         interactiveContact={{
           currentContact: contact,
           contacts,
           onContactClick: handleContactClick,
         }}
         interactiveChat={{
-          chats: [],
+          chats,
+        }}
+        interactiveFindContacts={{
+          currentGlobalUser: globalUser,
+          globalContacts: globalUsers,
+          onGlobalContactClick: handleGlobalContactClick,
         }}
       />
-      <MainBox mainBoxVariant={currentMainBox} contact={contact} />
+      <MainBox
+        mainBoxVariant={currentMainBoxState}
+        contact={contact}
+        globalUser={globalUser}
+        onAddContactClick={handleAddContact}
+        onRemoveContactClick={handleRemoveContact}
+      />
     </div>
   );
 }
