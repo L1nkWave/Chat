@@ -7,7 +7,18 @@ import { Icon } from "@/components/Icon/Icon";
 import { LastSeen } from "@/components/LastSeen/LastSeen";
 import { getContactName } from "@/helpers/contactHelpers";
 
-export function UserInfoBox({ contact }: Readonly<UserInfoBoxProps>) {
+export function UserInfoBox({ contact, onRemoveContactClick, onAddContactClick }: Readonly<UserInfoBoxProps>) {
+  const isContactAdded = !!contact.addedAt;
+  const handleRemoveContactClick = () => {
+    if (contact.user.id && onRemoveContactClick) {
+      onRemoveContactClick(contact.user.id.toString());
+    }
+  };
+  const handleAddContactClick = () => {
+    if (contact.user.id && onAddContactClick) {
+      onAddContactClick(contact.user.id.toString(), contact.user.name);
+    }
+  };
   return (
     <div className="m-6 flex flex-col w-full h-fit border-2 rounded-2xl border-dark-100 bg-dark-350">
       <div className="p-16">
@@ -44,8 +55,13 @@ export function UserInfoBox({ contact }: Readonly<UserInfoBoxProps>) {
             <Icon name="pen-with-message" iconSize={32} />
             Message
           </CustomButton>
-          <CustomButton variant="outline" type="button" className="text-blue-200">
-            <Icon name="remove-circle-outline" iconSize={32} />
+          <CustomButton
+            variant="outline"
+            type="button"
+            className="text-blue-200"
+            onClick={isContactAdded ? handleRemoveContactClick : handleAddContactClick}
+          >
+            <Icon name={isContactAdded ? "remove-circle-outline" : "add-circle-outline"} iconSize={32} />
           </CustomButton>
         </div>
       </div>
