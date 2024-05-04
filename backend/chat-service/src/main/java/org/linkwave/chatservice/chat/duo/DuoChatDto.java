@@ -13,6 +13,6 @@ import org.linkwave.chatservice.chat.ChatDto;
 @SuperBuilder
 public class DuoChatDto extends ChatDto {
 
-    private UserDto userDto;
+    private UserDto user;
 
 }

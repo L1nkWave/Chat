@@ -203,7 +203,7 @@ public class ChatServiceImpl implements ChatService {
                                 : memberId
                         );
 
-                        ((DuoChatDto) chatDto).setUserDto(
+                        ((DuoChatDto) chatDto).setUser(
                                 UserDto.builder().id(memberId).build()
                         );
                     }
@@ -255,10 +255,10 @@ public class ChatServiceImpl implements ChatService {
 
                 if (chat instanceof DuoChatDto duoChat) {
                     duoChat.setAvatarAvailable(user.getAvatarPath() != null);
-                    final Long companionId = duoChat.getUserDto().getId();
+                    final Long companionId = duoChat.getUser().getId();
                     final UserDto companionUserDto = usersMap.get(companionId);
                     if (companionUserDto != null) {
-                        duoChat.setUserDto(companionUserDto);
+                        duoChat.setUser(companionUserDto);
                     }
                 }
 
