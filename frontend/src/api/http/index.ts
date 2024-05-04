@@ -9,7 +9,6 @@ export const instance: AxiosInstance = axios.create({
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
-    "ngrok-skip-browser-warning": true,
   },
 });
 
@@ -21,7 +20,7 @@ instance.interceptors.request.use(
     newConfig.headers.Authorization = `Bearer ${store.getState().auth.accessToken}`;
     return newConfig;
   },
-  error => {
-    return Promise.reject(error);
+  () => {
+    return Promise.reject(new Error("Network timeout"));
   }
 );
