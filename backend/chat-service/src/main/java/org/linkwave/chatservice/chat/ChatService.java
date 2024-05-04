@@ -1,7 +1,6 @@
 package org.linkwave.chatservice.chat;
 
 import org.linkwave.chatservice.chat.duo.Chat;
-import org.linkwave.chatservice.chat.duo.ChatDto;
 import org.linkwave.chatservice.chat.duo.NewChatRequest;
 import org.linkwave.chatservice.chat.group.GroupChat;
 import org.linkwave.chatservice.chat.group.GroupChatDetailsDto;
@@ -146,6 +145,8 @@ public interface ChatService {
      * @param avatar image content
      */
     void changeGroupChatAvatar(String chatId, @NonNull MultipartFile avatar);
+
+    boolean isAvatarSet(GroupChat chat);
 
     /**
      * Retrieve a group chat avatar as array of bytes.
