@@ -11,7 +11,7 @@ export function Avatar({ item, className, online, status = true, ...props }: Ava
         className={`object-cover rounded-full ${className}`}
         width={64}
         height={64}
-        src={item.avatarPath ?? defaultUserAvatar(item.id)}
+        src={defaultUserAvatar(item.id)}
         {...props}
       />
       {status && online && (
