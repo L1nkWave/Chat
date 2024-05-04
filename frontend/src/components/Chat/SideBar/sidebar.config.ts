@@ -4,16 +4,16 @@ export const SIDEBAR_ITEM: SidebarItem = {
   variant: "square",
   iconSize: 42,
   buttons: {
-    chat: {
+    chats: {
       icon: "chat-outline",
     },
     "add-chat": {
       icon: "add-chat-outline",
     },
-    "find-people": {
-      icon: "find-people-outline",
+    "find-contacts": {
+      icon: "find-contacts-outline",
     },
-    contact: {
+    contacts: {
       icon: "group-outline",
     },
     setting: {
