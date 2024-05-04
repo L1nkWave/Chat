@@ -1,4 +1,4 @@
-import { ChatParams, ContactParams } from "@/api/http/users/users.types";
+import { ChatParams, ContactParams } from "@/api/http/contacts/contacts.types";
 import {
   InteractiveChatParams,
   InteractiveContactParams,

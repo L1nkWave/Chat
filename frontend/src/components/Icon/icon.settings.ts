@@ -21,5 +21,6 @@ export const iconMapping = {
   "pen-with-message": Icons.PenWithMessageIcon,
   "remove-circle-outline": Icons.RemoveCircleOutlineIcon,
   "add-chat-outline": Icons.AddChatOutlineIcon,
-  "find-people-outline": Icons.FindPeopleOutlineIcon,
+  "find-contacts-outline": Icons.FindContactsOutlineIcon,
+  "add-circle-outline": Icons.AddCircleOutlineIcon,
 };

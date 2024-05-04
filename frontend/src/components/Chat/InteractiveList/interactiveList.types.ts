@@ -1,6 +1,7 @@
-import { ChatParams, ContactParams } from "@/api/http/users/users.types";
+import { ChatParams, ContactParams, UserParams } from "@/api/http/contacts/contacts.types";
+import { ListStateEnum } from "@/components/Chat/chat.types";
 
-export type InteractiveListVariant = "contacts" | "chats";
+export type InteractiveListVariant = ListStateEnum.CONTACTS | ListStateEnum.CHATS | ListStateEnum.FIND_CONTACTS;
 
 export type Contacts = ContactParams[];
 
@@ -16,8 +17,15 @@ export type InteractiveChatParams = {
   onChatClick?: (id: ChatParams) => void;
 };
 
+export type InteractiveGlobalContactParams = {
+  currentGlobalUser?: UserParams;
+  globalContacts?: UserParams[];
+  onGlobalContactClick?: (id: UserParams) => void;
+};
+
 export type InteractiveListProps = {
   interactiveListVariant: InteractiveListVariant;
   interactiveContact?: InteractiveContactParams;
   interactiveChat?: InteractiveChatParams;
+  interactiveFindContacts?: InteractiveGlobalContactParams;
 };

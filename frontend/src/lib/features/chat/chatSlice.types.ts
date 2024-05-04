@@ -2,6 +2,6 @@ import { InteractiveListVariant } from "@/components/Chat/InteractiveList/intera
 import { MainBoxVariant } from "@/components/Chat/MainBox/mainBox.types";
 
 export type ChatStateParams = {
-  currentMainBox: MainBoxVariant;
-  currentInteractiveList: InteractiveListVariant;
+  currentMainBoxState: MainBoxVariant;
+  currentInteractiveListState: InteractiveListVariant;
 };

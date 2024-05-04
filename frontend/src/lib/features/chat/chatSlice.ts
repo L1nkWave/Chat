@@ -8,14 +8,14 @@ const chatSlice = createSlice({
   name: CHAT_SLICE_NAME,
   initialState: chatInitialState,
   reducers: {
-    setCurrentMainBox: (state, action: PayloadAction<MainBoxVariant>) => {
-      return { ...state, currentMainBox: action.payload };
+    setCurrentMainBoxState: (state, action: PayloadAction<MainBoxVariant>) => {
+      return { ...state, currentMainBoxState: action.payload };
     },
-    setCurrentInteractiveList: (state, action: PayloadAction<InteractiveListVariant>) => {
-      return { ...state, currentInteractiveList: action.payload };
+    setCurrentInteractiveListState: (state, action: PayloadAction<InteractiveListVariant>) => {
+      return { ...state, currentInteractiveListState: action.payload };
     },
   },
 });
 
-export const { setCurrentMainBox, setCurrentInteractiveList } = chatSlice.actions;
+export const { setCurrentMainBoxState, setCurrentInteractiveListState } = chatSlice.actions;
 export const chatReducer = chatSlice.reducer;
