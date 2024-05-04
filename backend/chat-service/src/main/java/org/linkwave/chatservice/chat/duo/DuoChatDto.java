@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
-import org.linkwave.chatservice.api.users.UserDto;
 import org.linkwave.chatservice.chat.ChatDto;
 
 @NoArgsConstructor
@@ -13,6 +12,6 @@ import org.linkwave.chatservice.chat.ChatDto;
 @SuperBuilder
 public class DuoChatDto extends ChatDto {
 
-    private UserDto user;
+    private CompanionDto user;
 
 }

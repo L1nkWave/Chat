@@ -12,6 +12,7 @@ import org.linkwave.chatservice.api.users.UserServiceClient;
 import org.linkwave.chatservice.api.ws.LoadChatRequest;
 import org.linkwave.chatservice.api.ws.WSServiceClient;
 import org.linkwave.chatservice.chat.duo.Chat;
+import org.linkwave.chatservice.chat.duo.CompanionDto;
 import org.linkwave.chatservice.chat.duo.DuoChatDto;
 import org.linkwave.chatservice.chat.duo.NewChatRequest;
 import org.linkwave.chatservice.chat.group.GroupChat;
