@@ -28,7 +28,7 @@ export function ChatItem({ chat, onClick, className }: Readonly<ChatItemProps>) 
       <div>
         <p className="text-gray-300 text-sm">16:50</p>
         <div className="flex justify-center items-center bg-blue-300 rounded-lg mt-1">
-          {chat.type && <p className="text-white text-xs p-1">{1}</p>}
+          {!!chat.createdAt && <p className="text-white text-xs p-1">{1}</p>}
         </div>
       </div>
     </button>

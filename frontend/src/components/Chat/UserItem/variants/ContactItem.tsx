@@ -19,7 +19,7 @@ export function ContactItem({ contact, className, onClick, currentContact }: Rea
     <button
       onClick={handleClick}
       type="button"
-      className={`${isActive ? "bg-dark-200" : "bg-dark-300"} hover:bg-dark-200 flex flex-row outline-none p-4 rounded-lg ${className || ""}`}
+      className={`${isActive ? "bg-dark-200" : "bg-dark-300"} hover:bg-dark-200 flex flex-row outline-none p-4 rounded-lg ${className ?? ""}`}
     >
       <div className="w-14 h-14">
         <Avatar item={contact.user} alt="Contact Avatar" online={contact.user.online} />
