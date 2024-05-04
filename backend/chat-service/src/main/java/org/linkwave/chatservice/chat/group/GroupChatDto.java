@@ -2,15 +2,20 @@ package org.linkwave.chatservice.chat.group;
 
 import com.fasterxml.jackson.annotation.JsonView;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.experimental.SuperBuilder;
+import org.linkwave.chatservice.chat.ChatDto;
 import org.linkwave.chatservice.chat.duo.Chat;
-import org.linkwave.chatservice.chat.duo.ChatDto;
 
 import static org.linkwave.chatservice.chat.duo.Chat.Type.GROUP;
-import static org.linkwave.chatservice.common.DtoViews.*;
+import static org.linkwave.chatservice.common.DtoViews.Detailed;
+import static org.linkwave.chatservice.common.DtoViews.New;
 
+@NoArgsConstructor
 @Setter
 @Getter
+@SuperBuilder
 public class GroupChatDto extends ChatDto {
 
     @JsonView(Detailed.class)
@@ -18,8 +23,5 @@ public class GroupChatDto extends ChatDto {
 
     @JsonView({New.class, Detailed.class})
     private String name;
-
-    @JsonView(Detailed.class)
-    private String avatarPath;
 
 }

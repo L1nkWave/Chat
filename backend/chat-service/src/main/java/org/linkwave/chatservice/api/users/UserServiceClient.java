@@ -23,4 +23,11 @@ public interface UserServiceClient {
             @RequestHeader("Authorization") String authHeader
     );
 
+    @GetMapping("/contacts")
+    List<ContactDto> getContacts(
+            @RequestParam String username,
+            @RequestParam int offset, @RequestParam int limit,
+            @RequestHeader("Authorization") String authHeader
+    );
+
 }

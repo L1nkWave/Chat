@@ -1,7 +1,6 @@
 package org.linkwave.chatservice.chat;
 
 import org.linkwave.chatservice.chat.duo.Chat;
-import org.linkwave.chatservice.chat.duo.ChatDto;
 import org.linkwave.chatservice.chat.duo.NewChatRequest;
 import org.linkwave.chatservice.chat.group.GroupChat;
 import org.linkwave.chatservice.chat.group.GroupChatDetailsDto;
@@ -81,7 +80,16 @@ public interface ChatService {
      */
     void updateChat(@NonNull Chat chat);
 
-    Map<String, List<ChatMember>> getChatsMembers(Long userId, List<String> chatId);
+    /**
+     * Returns members for each chat that user (userId) is a member of. Every chat from the {@code chatIds} list
+     * is checked to determine if user is a member too. When it is, the members of that chat is retrieved, otherwise
+     * the chat is gonna to be skipped.
+     *
+     * @param userId id of the user
+     * @param chatIds chats to return members for
+     * @return map where key is chat id, and value is list of members of this chat
+     */
+    Map<String, List<ChatMember>> getChatsMembers(Long userId, List<String> chatIds);
 
     /**
      * Used to get to know if user is a member of specific chat.
@@ -116,6 +124,14 @@ public interface ChatService {
 
     boolean isAdmin(Long memberId, @NonNull Chat chat);
 
+    /**
+     * Checks whether member has specified role in the chat.
+     *
+     * @param chat duo / group chat
+     * @param memberId member that is needed to check role for
+     * @param role role is needed to check
+     * @throws ChatMemberPermissionsDenied when member not found or does not have the specified role
+     */
     void checkMemberRole(@NonNull Chat chat, Long memberId, ChatRole role) throws ChatMemberPermissionsDenied;
 
     ChatMemberDto addGroupChatMember(String chatId, @NonNull RequestInitiator initiator);
@@ -146,6 +162,12 @@ public interface ChatService {
      * @param avatar image content
      */
     void changeGroupChatAvatar(String chatId, @NonNull MultipartFile avatar);
+
+    /**
+     * @param chat non-null group chat object
+     * @return true if avatar is set, otherwise false
+     */
+    boolean isAvatarSet(@NonNull GroupChat chat);
 
     /**
      * Retrieve a group chat avatar as array of bytes.

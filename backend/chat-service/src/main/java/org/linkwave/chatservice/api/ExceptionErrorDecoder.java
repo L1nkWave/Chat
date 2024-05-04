@@ -20,12 +20,16 @@ public class ExceptionErrorDecoder implements ErrorDecoder {
     @SneakyThrows
     @Override
     public RuntimeException decode(String method, @NonNull Response response) {
-        final var errorAttributes = objectMapper.readValue(response.body().asInputStream(), Map.class);
-        final HttpStatus httpStatus = HttpStatus.valueOf(response.status());
-        if (httpStatus.is4xxClientError()) {
-            return new ApiResponseClientErrorException(errorAttributes.get("message").toString());
+        try {
+            final var errorAttributes = objectMapper.readValue(response.body().asInputStream(), Map.class);
+            final HttpStatus httpStatus = HttpStatus.valueOf(response.status());
+            if (httpStatus.is4xxClientError()) {
+                return new ApiResponseClientErrorException(errorAttributes.get("message").toString());
+            }
+            return new ServiceErrorException();
+        } catch (Exception e) {
+            return new ServiceErrorException("Internal server error");
         }
-        return new ServiceErrorException();
     }
 
 }

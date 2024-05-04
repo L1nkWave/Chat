@@ -6,12 +6,14 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.chatservice.api.ApiResponseClientErrorException;
 import org.linkwave.chatservice.api.ServiceErrorException;
+import org.linkwave.chatservice.api.users.ContactDto;
 import org.linkwave.chatservice.api.users.UserDto;
 import org.linkwave.chatservice.api.users.UserServiceClient;
 import org.linkwave.chatservice.api.ws.LoadChatRequest;
 import org.linkwave.chatservice.api.ws.WSServiceClient;
 import org.linkwave.chatservice.chat.duo.Chat;
-import org.linkwave.chatservice.chat.duo.ChatDto;
+import org.linkwave.chatservice.chat.duo.CompanionDto;
+import org.linkwave.chatservice.chat.duo.DuoChatDto;
 import org.linkwave.chatservice.chat.duo.NewChatRequest;
 import org.linkwave.chatservice.chat.group.GroupChat;
 import org.linkwave.chatservice.chat.group.GroupChatDetailsDto;
@@ -124,7 +126,7 @@ public class ChatServiceImpl implements ChatService {
         } catch (FeignException e) {
             log.debug("-> createChat(): chat[{}] not loaded", newChat.getId());
         }
-        return modelMapper.map(newChat, ChatDto.class);
+        return modelMapper.map(newChat, DuoChatDto.class);
     }
 
     @Override
@@ -183,28 +185,7 @@ public class ChatServiceImpl implements ChatService {
         final Set<Long> usersIds = new HashSet<>();
         final List<ChatDto> selectedChats = userChats
                 .stream()
-                .map(chat -> {
-                    final Class<? extends ChatDto> cls = chat instanceof GroupChat
-                            ? GroupChatDto.class
-                            : ChatDto.class;
-
-                    final ChatDto chatDto = modelMapper.map(chat, cls);
-                    final Message lastMessage = chat.getLastMessage();
-                    if (lastMessage == null) {
-                        return chatDto;
-                    }
-
-                    final MessageDto messageDto = lastMessage.convert(modelMapper);
-
-                    // save author ID for filling user data in the future
-                    messageDto.setAuthor(MessageAuthorDto.builder()
-                            .id(lastMessage.getAuthorId())
-                            .build());
-                    chatDto.setLastMessage(messageDto);
-
-                    usersIds.add(lastMessage.getAuthorId());
-                    return chatDto;
-                })
+                .map(chat -> mapChats(chat, usersIds, initiator))
                 .toList();
 
         final Map<Long, UserDto> usersMap = new LinkedHashMap<>();
@@ -218,6 +199,9 @@ public class ChatServiceImpl implements ChatService {
                         .forEach(user -> usersMap.put(user.getId(), user))
         );
 
+        // pull contacts
+        final Map<Long, ContactDto> contactsMap = fetchAllContacts(initiator);
+
         selectedChats.forEach(chat -> {
             final MessageDto lastMessage = chat.getLastMessage();
             if (lastMessage == null) {
@@ -228,12 +212,89 @@ public class ChatServiceImpl implements ChatService {
             if (user != null) { // if user is found, add user details
                 author.setUsername(user.getUsername());
                 author.setName(user.getName());
+
+                if (chat instanceof DuoChatDto duoChat) {
+                    duoChat.setAvatarAvailable(user.getAvatarPath() != null);
+
+                    // inject companion dto
+                    final Long companionId = duoChat.getUser().getId();
+                    final UserDto userDto = usersMap.get(companionId);
+                    if (userDto != null) {
+                        duoChat.setUser(modelMapper.map(userDto, CompanionDto.class));
+                    }
+                }
+
+                // try to replace with contact alias
+                if (!user.getId().equals(initiator.userId())) {
+                    final ContactDto contact = contactsMap.get(user.getId());
+                    if (contact != null) {
+                        author.setUsername(contact.getAlias());
+                    }
+                }
             }
         });
 
         log.debug("-> getUserChats(): performed {} api-requests", batches);
 
         return Pair.of(chatsTotalCount, selectedChats);
+    }
+
+    @NonNull
+    private Map<Long, ContactDto> fetchAllContacts(@NonNull RequestInitiator initiator) {
+        final String username = ""; // any username is matched
+        int offset = 0;
+
+        final List<ContactDto> allContacts = new LinkedList<>();
+        List<ContactDto> contacts;
+
+        do {
+            contacts = userServiceClient.getContacts(username, offset, DEFAULT_BATCH_SIZE, initiator.bearer());
+            allContacts.addAll(contacts);
+            offset += DEFAULT_BATCH_SIZE;
+        } while (contacts.size() == DEFAULT_BATCH_SIZE);
+        return allContacts.stream()
+                .collect(toMap(contact -> contact.getUser().getId(), identity()));
+    }
+
+    private ChatDto mapChats(Chat chat, Set<Long> usersIds, RequestInitiator initiator) {
+        final boolean isGroupChat = chat instanceof GroupChat;
+        final Class<? extends ChatDto> cls = isGroupChat
+                ? GroupChatDto.class
+                : DuoChatDto.class;
+
+        final ChatDto chatDto = modelMapper.map(chat, cls);
+
+        if (isGroupChat) {
+            chatDto.setAvatarAvailable(isAvatarSet((GroupChat) chat));
+        } else {
+            // pull user info for duo chat
+            final List<ChatMember> members = chat.getMembers();
+            Long memberId = members.get(0).getId();
+            usersIds.add(memberId.equals(initiator.userId())
+                    ? memberId = members.get(1).getId()
+                    : memberId
+            );
+
+            ((DuoChatDto) chatDto).setUser(
+                    CompanionDto.builder().id(memberId).build()
+            );
+        }
+
+        final Message lastMessage = chat.getLastMessage();
+        if (lastMessage == null) {
+            return chatDto;
+        }
+
+        final MessageDto messageDto = lastMessage.convert(modelMapper);
+
+        // save author ID for filling user data in the future
+        messageDto.setAuthor(MessageAuthorDto.builder()
+                .id(lastMessage.getAuthorId())
+                .build());
+        chatDto.setLastMessage(messageDto);
+
+        usersIds.add(lastMessage.getAuthorId());
+        return chatDto;
     }
 
     @Override
@@ -250,8 +311,8 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
-    public Map<String, List<ChatMember>> getChatsMembers(Long userId, List<String> chatId) {
-        return chatRepository.findAllById(chatId)
+    public Map<String, List<ChatMember>> getChatsMembers(Long userId, List<String> chatIds) {
+        return chatRepository.findAllById(chatIds)
                 .stream()
                 .filter(chat -> isMember(userId, chat))
                 .collect(toMap(Chat::getId, Chat::getMembers));
@@ -518,11 +579,16 @@ public class ChatServiceImpl implements ChatService {
         updateChat(chat);
     }
 
+    @Override
+    public boolean isAvatarSet(@NonNull GroupChat chat) {
+        return chat.getAvatarPath() != null;
+    }
+
     @SneakyThrows
     @Override
     public byte[] getGroupChatAvatar(String chatId) {
         final GroupChat groupChat = findGroupChat(chatId);
-        if (groupChat.getAvatarPath() == null) {
+        if (!isAvatarSet(groupChat)) {
             throw new ResourceNotFoundException();
         }
         final Path avatarPath = Path.of(CHAT_AVATAR_PATH.toString(), chatId, groupChat.getAvatarPath());

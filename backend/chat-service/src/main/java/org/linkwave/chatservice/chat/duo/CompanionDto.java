@@ -1,29 +1,23 @@
-package org.linkwave.chatservice.api.users;
+package org.linkwave.chatservice.chat.duo;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.ZonedDateTime;
 
+@NoArgsConstructor
+@AllArgsConstructor
 @Getter
 @Setter
-@EqualsAndHashCode
 @Builder
-public class UserDto {
+public class CompanionDto {
 
     private Long id;
     private String username;
     private String name;
-    private ZonedDateTime createdAt;
     private ZonedDateTime lastSeen;
 
     @JsonProperty("online")
     private boolean isOnline;
-
-    private String avatarPath;
-    private String bio;
 
 }
