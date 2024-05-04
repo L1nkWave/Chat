@@ -7,7 +7,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.chatservice.chat.duo.Chat;
-import org.linkwave.chatservice.chat.duo.ChatDto;
 import org.linkwave.chatservice.chat.duo.NewChatRequest;
 import org.linkwave.chatservice.chat.group.GroupChatDetailsDto;
 import org.linkwave.chatservice.chat.group.GroupChatDto;
