@@ -3,11 +3,12 @@ import { ListStateEnum } from "@/components/Chat/chat.types";
 
 export type InteractiveListVariant = ListStateEnum.CONTACTS | ListStateEnum.CHATS | ListStateEnum.FIND_CONTACTS;
 
-export type Contacts = ContactParams[];
+export type ContactsMap = Map<number, ContactParams>;
+export type UserMap = Map<number, UserParams>;
 
 export type InteractiveContactParams = {
   currentContact?: ContactParams;
-  contacts?: Contacts;
+  contacts?: ContactsMap;
   onContactClick?: (id: ContactParams) => void;
 };
 
@@ -19,7 +20,7 @@ export type InteractiveChatParams = {
 
 export type InteractiveGlobalContactParams = {
   currentGlobalUser?: UserParams;
-  globalContacts?: UserParams[];
+  globalContacts?: UserMap;
   onGlobalContactClick?: (id: UserParams) => void;
 };
 

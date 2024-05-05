@@ -9,13 +9,13 @@ export function ContactList({
   onContactClick: handleContactClick,
   currentContact,
 }: Readonly<InteractiveContactParams>) {
-  if (!contacts || contacts.length === 0) {
+  if (!contacts || contacts.size === 0) {
     return <ScrollList className="justify-center items-center">No contacts</ScrollList>;
   }
 
   return (
     <ScrollList>
-      {contacts?.map(contact => (
+      {Array.from(contacts.values()).map(contact => (
         <ContactItem
           contact={contact}
           onClick={handleContactClick}

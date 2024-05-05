@@ -13,5 +13,5 @@ export function useAccessTokenEffect(callback: EffectCallback, dependencies: Dep
       return;
     }
     callback();
-  }, [accessToken, router, callback, dependencies]);
+  }, [accessToken, router, ...dependencies]);
 }

@@ -12,7 +12,7 @@ export function GlobalContactList({
 }: Readonly<InteractiveGlobalContactParams>) {
   let currentGlobalContact: ContactParams | undefined;
 
-  if (!globalContacts || globalContacts.length === 0) {
+  if (!globalContacts || globalContacts.size === 0) {
     return <ScrollList className="justify-center items-center">No contacts</ScrollList>;
   }
 
@@ -32,7 +32,7 @@ export function GlobalContactList({
 
   return (
     <ScrollList>
-      {globalContacts?.map(globalUserParams => {
+      {Array.from(globalContacts.values()).map(globalUserParams => {
         const contact: ContactParams = {
           alias: undefined,
           addedAt: undefined,
