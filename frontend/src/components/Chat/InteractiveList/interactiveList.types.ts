@@ -5,6 +5,7 @@ export type InteractiveListVariant = ListStateEnum.CONTACTS | ListStateEnum.CHAT
 
 export type ContactsMap = Map<number, ContactParams>;
 export type UserMap = Map<number, UserParams>;
+export type ChatMap = Map<string, ChatParams>;
 
 export type InteractiveContactParams = {
   currentContact?: ContactParams;
@@ -14,7 +15,7 @@ export type InteractiveContactParams = {
 
 export type InteractiveChatParams = {
   currentChat?: ChatParams;
-  chats?: ChatParams[];
+  chats?: ChatMap;
   onChatClick?: (id: ChatParams) => void;
 };
 

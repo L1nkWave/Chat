@@ -7,16 +7,26 @@ import { Icon } from "@/components/Icon/Icon";
 import { LastSeen } from "@/components/LastSeen/LastSeen";
 import { getContactName } from "@/helpers/contactHelpers";
 
-export function UserInfoBox({ contact, onRemoveContactClick, onAddContactClick }: Readonly<UserInfoBoxProps>) {
+export function UserInfoBox({
+  contact,
+  onRemoveContactClick,
+  onAddContactClick,
+  onMessageButtonClick,
+}: Readonly<UserInfoBoxProps>) {
   const isContactAdded = !!contact.addedAt;
   const handleRemoveContactClick = () => {
-    if (contact.user.id && onRemoveContactClick) {
+    if (contact && onRemoveContactClick) {
       onRemoveContactClick(contact.user.id.toString());
     }
   };
   const handleAddContactClick = () => {
-    if (contact.user.id && onAddContactClick) {
+    if (contact && onAddContactClick) {
       onAddContactClick(contact.user.id.toString(), contact.user.name);
+    }
+  };
+  const handleMessageButtonClick = () => {
+    if (contact && onMessageButtonClick) {
+      onMessageButtonClick(contact.user.id.toString());
     }
   };
   return (
@@ -51,7 +61,12 @@ export function UserInfoBox({ contact, onRemoveContactClick, onAddContactClick }
           <CustomButton variant="outline" type="button" className="text-blue-200">
             <Icon name="left-angle" iconSize={32} />
           </CustomButton>
-          <CustomButton variant="outline" type="button" className="text-blue-200 text-2xl px-10">
+          <CustomButton
+            variant="outline"
+            type="button"
+            className="text-blue-200 text-2xl px-10"
+            onClick={handleMessageButtonClick}
+          >
             <Icon name="pen-with-message" iconSize={32} />
             Message
           </CustomButton>

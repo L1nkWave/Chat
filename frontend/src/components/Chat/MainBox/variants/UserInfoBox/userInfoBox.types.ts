@@ -4,4 +4,5 @@ export type UserInfoBoxProps = {
   contact: ContactParams;
   onAddContactClick?: (userId: string, alias: string) => void;
   onRemoveContactClick?: (userId: string) => void;
+  onMessageButtonClick?: (chatId: string) => void;
 };

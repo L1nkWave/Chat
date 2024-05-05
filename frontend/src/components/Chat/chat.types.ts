@@ -5,3 +5,10 @@ export enum ListStateEnum {
   CONTACTS = "contacts",
   SETTING = "setting",
 }
+
+export enum MainBoxStateEnum {
+  CHAT = "chat",
+  USER_INFO = "user-info",
+  SETTINGS = "settings",
+  EMPTY = "empty",
+}

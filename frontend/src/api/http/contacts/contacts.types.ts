@@ -17,7 +17,7 @@ export type ContactParams = {
 
 export type MessageParams = {
   action: string;
-  author: Omit<UserParams, "">;
+  author: UserParams;
   createdAt: string;
   edited: boolean;
   id: string;
@@ -28,7 +28,7 @@ export type MessageParams = {
 
 export type ChatParams = {
   createdAt: string;
-  id: number;
+  id: string;
   lastMessage: MessageParams;
   type: number;
 };
