@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useContext, useState } from "react";
+import React, { useCallback, useContext, useState } from "react";
 import { toast } from "react-toastify";
 
 import { addDuoChat, getChats } from "@/api/http/chat/chat";
@@ -8,13 +8,15 @@ import { addContact, getContacts, removeContact, searchContacts } from "@/api/ht
 import { ChatParams, ContactParams, UserParams } from "@/api/http/contacts/contacts.types";
 import { ListStateEnum } from "@/components/Chat/chat.types";
 import { InteractiveList } from "@/components/Chat/InteractiveList/InteractiveList";
-import { Contacts } from "@/components/Chat/InteractiveList/interactiveList.types";
+import { ContactsMap, UserMap } from "@/components/Chat/InteractiveList/interactiveList.types";
 import { MainBox } from "@/components/Chat/MainBox/MainBox";
 import { SideBar } from "@/components/Chat/SideBar/SideBar";
 import { SIDEBAR_ITEM } from "@/components/Chat/SideBar/sidebar.config";
 import { SidebarButtonName } from "@/components/Chat/SideBar/sidebar.types";
 import { CustomButton } from "@/components/CustomButton/CustomButton";
 import { SocketContext } from "@/context/SocketContext/SocketContext";
+import { MessageAction } from "@/context/SocketContext/socketContext.types";
+import { lastSeenDateNow } from "@/helpers/contactHelpers";
 import { useAccessTokenEffect } from "@/hooks/useAccessTokenEffect";
 import { setCurrentInteractiveListState, setCurrentMainBoxState } from "@/lib/features/chat/chatSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
@@ -26,55 +28,76 @@ export function Chat() {
 
   const { message } = useContext(SocketContext);
 
-  const [contacts, setContacts] = useState<Contacts>([]);
+  const [contacts, setContacts] = useState<ContactsMap>(new Map());
   const [contact, setContact] = useState<ContactParams | undefined>(undefined);
 
-  const [globalUsers, setGlobalUsers] = useState<UserParams[]>([]);
+  const [globalUsers, setGlobalUsers] = useState<UserMap>(new Map());
   const [globalUser, setGlobalUser] = useState<UserParams | undefined>(undefined);
 
   const [chats, setChats] = useState<ChatParams[]>([]);
 
   const [currentSidebarItem, setCurrentSidebarItem] = useState<string>("chat" as SidebarButtonName);
 
-  useAccessTokenEffect(() => {
-    const fetchContacts = async () => {
-      try {
-        const fetchedContacts = await getContacts();
-        setContacts(fetchedContacts);
-      } catch (error) {
-        toast.error("Error fetching contacts");
-      }
-    };
-    fetchContacts();
-  }, [contacts]);
+  const fetchGlobalContacts = useCallback(async () => {
+    try {
+      const fetchedContacts = await searchContacts();
+      setGlobalUsers(fetchedContacts);
+    } catch (error) {
+      toast.error("Error fetching global users");
+    }
+  }, []);
+
+  const fetchContacts = useCallback(async () => {
+    try {
+      const fetchedContacts = await getContacts();
+      setContacts(fetchedContacts);
+    } catch (error) {
+      toast.error("Error fetching contacts");
+    }
+  }, []);
 
   useAccessTokenEffect(() => {
-    const fetchGlobalContacts = async () => {
-      try {
-        const fetchedContacts = await searchContacts();
-        setGlobalUsers(fetchedContacts);
-      } catch (error) {
-        toast.error("Error fetching global users");
-      }
-    };
-    fetchGlobalContacts();
+    fetchContacts();
   }, [globalUsers]);
+
+  useAccessTokenEffect(() => {
+    fetchGlobalContacts();
+  }, []);
 
   useAccessTokenEffect(() => {
     const fetchChats = async () => {
       try {
         const fetchedChats = await getChats();
         setChats(fetchedChats);
-        console.log("Chats:", fetchedChats);
       } catch (error) {
         toast.error("Error fetching chats");
       }
     };
     fetchChats();
-  }, [chats]);
+  }, []);
 
   useAccessTokenEffect(() => {
-    console.log(message);
+    console.log("message", message);
+    if (message?.action === MessageAction.OFFLINE) {
+      setContacts(prevContacts => {
+        const updatedContact = prevContacts.get(message.senderId);
+        if (updatedContact) {
+          updatedContact.user.online = false;
+          updatedContact.user.lastSeen = lastSeenDateNow();
+          return new Map(prevContacts).set(message.senderId, updatedContact);
+        }
+        return prevContacts;
+      });
+    } else if (message?.action === MessageAction.ONLINE) {
+      setContacts(prevContacts => {
+        const updatedContact = prevContacts.get(message.senderId);
+        if (updatedContact) {
+          updatedContact.user.online = true;
+          return new Map(prevContacts).set(message.senderId, updatedContact);
+        }
+        return prevContacts;
+      });
+    }
   }, [message]);
 
   const handleContactClick = (currentContact: ContactParams) => {
@@ -90,20 +113,55 @@ export function Chat() {
   };
 
   const handleAddContact = async (userId: string, alias: string) => {
+    const addDuoChatWithTryCatch = async () => {
+      try {
+        await addDuoChat(userId);
+      } catch (error) {
+        // TODO: catch this somehow!
+      }
+    };
+
     try {
       await addContact(userId, alias);
-      await addDuoChat(userId);
-      setGlobalUsers(prevGlobalUsers =>
-        prevGlobalUsers.filter(prevGlobalUser => prevGlobalUser.id.toString() !== userId)
-      );
+      await addDuoChatWithTryCatch();
+
+      setGlobalUsers(prevGlobalUsers => {
+        const updatedUsers = new Map(prevGlobalUsers);
+        updatedUsers.delete(parseInt(userId, 10));
+        return updatedUsers;
+      });
+
+      if (globalUser) {
+        setContact({
+          alias: globalUser.name,
+          addedAt: new Date().toISOString(),
+          user: globalUser,
+        });
+      }
+      setGlobalUser(undefined);
+
+      await fetchContacts();
     } catch (error) {
       toast.error("Error adding contact");
     }
   };
+
   const handleRemoveContact = async (userId: string) => {
     try {
       await removeContact(userId);
-      setContacts(prevContacts => prevContacts.filter(prevContact => prevContact.user.id.toString() !== userId));
+
+      setContacts(prevContacts => {
+        const updatedContacts = new Map(prevContacts);
+        updatedContacts.delete(parseInt(userId, 10));
+        return updatedContacts;
+      });
+
+      if (contact) {
+        setGlobalUser(contact.user);
+      }
+      setContact(undefined);
+
+      await fetchGlobalContacts();
     } catch (error) {
       toast.error("Error adding contact");
     }
