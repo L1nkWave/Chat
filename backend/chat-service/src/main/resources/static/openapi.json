@@ -18,7 +18,9 @@
   "paths": {
     "/v1/chats": {
       "get": {
-        "tags": ["Chat"],
+        "tags": [
+          "Chat"
+        ],
         "summary": "Retrieve a portion of user chats",
         "security": [
           {
@@ -78,7 +80,9 @@
         }
       },
       "post": {
-        "tags": ["Chat"],
+        "tags": [
+          "Chat"
+        ],
         "summary": "Create duo chat",
         "security": [
           {
@@ -124,6 +128,50 @@
         }
       }
     },
+    "/v1/chats/{recipientId}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/recipientIdInPath"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "Returns ID of duo chat for pair of users",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ID of duo chat between both users",
+            "content": {
+              "text/plain": {
+                "example": "66365000f05ddd21579d2b45"
+              }
+            }
+          },
+          "404": {
+            "description": "Duo chat does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/chats/12",
+                  "message": "Requested chat not found",
+                  "status": 404,
+                  "timestamp": 1711102257.635504100
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/chats/{id}/exists": {
       "parameters": [
         {
@@ -134,7 +182,9 @@
         }
       ],
       "get": {
-        "tags": ["Chat"],
+        "tags": [
+          "Chat"
+        ],
         "summary": "Check if duo chat exists between request initiator and recipient",
         "security": [
           {
@@ -178,7 +228,9 @@
     },
     "/v1/chats/ids": {
       "get": {
-        "tags": ["Chat"],
+        "tags": [
+          "Chat"
+        ],
         "summary": "Get ids of all user chats",
         "security": [
           {
@@ -214,7 +266,9 @@
     },
     "/v1/chats/group": {
       "post": {
-        "tags": ["Chat"],
+        "tags": [
+          "Chat"
+        ],
         "summary": "Create group chat",
         "security": [
           {
@@ -251,7 +305,9 @@
         }
       ],
       "get": {
-        "tags": ["Chat"],
+        "tags": [
+          "Chat"
+        ],
         "summary": "Get group chat details by ID",
         "security": [
           {
@@ -279,7 +335,9 @@
         }
       ],
       "get": {
-        "tags": ["Chat"],
+        "tags": [
+          "Chat"
+        ],
         "summary": "Check if request initiator is a member of group chat",
         "security": [
           {
@@ -328,7 +386,9 @@
         }
       ],
       "post": {
-        "tags": ["Chat"],
+        "tags": [
+          "Chat"
+        ],
         "summary": "Add request initiator to members of the group chat",
         "security": [
           {
@@ -365,7 +425,9 @@
         }
       },
       "delete": {
-        "tags": ["Chat"],
+        "tags": [
+          "Chat"
+        ],
         "summary": "Remove request initiator from group chat members",
         "security": [
           {
@@ -402,7 +464,9 @@
         }
       ],
       "get": {
-        "tags": ["Chat"],
+        "tags": [
+          "Chat"
+        ],
         "summary": "Retrieve the group chat avatar",
         "security": [
           {
@@ -439,7 +503,9 @@
         }
       },
       "post": {
-        "tags": ["Chat"],
+        "tags": [
+          "Chat"
+        ],
         "summary": "Multipart request to upload group chat avatar",
         "security": [
           {
@@ -512,7 +578,9 @@
         }
       },
       "delete": {
-        "tags": ["Chat"],
+        "tags": [
+          "Chat"
+        ],
         "summary": "Delete uploaded group chat avatar",
         "security": [
           {
@@ -549,7 +617,9 @@
         }
       ],
       "get": {
-        "tags": ["Message"],
+        "tags": [
+          "Message"
+        ],
         "summary": "Get all chat messages",
         "security": [
           {
@@ -591,7 +661,9 @@
         }
       },
       "post": {
-        "tags": ["Message"],
+        "tags": [
+          "Message"
+        ],
         "summary": "Save a message that only consists of action as content",
         "security": [
           {
@@ -656,7 +728,9 @@
         }
       ],
       "post": {
-        "tags": ["Message"],
+        "tags": [
+          "Message"
+        ],
         "summary": "Save a text message to the chat",
         "security": [
           {
@@ -709,7 +783,9 @@
         }
       ],
       "post": {
-        "tags": ["Message"],
+        "tags": [
+          "Message"
+        ],
         "summary": "Upload a file as message to the chat",
         "security": [
           {
@@ -752,7 +828,7 @@
                   "$ref": "#/components/schemas/ApiError"
                 },
                 "examples": {
-                  "File is missing" : {
+                  "File is missing": {
                     "value": {
                       "path": "/api/v1/chats/662ce8cc905e8b2151fca5e2/messages/file",
                       "message": "Uploaded file can not be empty",
@@ -790,7 +866,9 @@
         }
       ],
       "get": {
-        "tags": ["Message"],
+        "tags": [
+          "Message"
+        ],
         "summary": "Get file from the message",
         "security": [
           {
@@ -835,7 +913,9 @@
         }
       ],
       "get": {
-        "tags": ["Message"],
+        "tags": [
+          "Message"
+        ],
         "summary": "Check if file message was initiated by request initiator",
         "security": [
           {
@@ -908,7 +988,9 @@
         }
       ],
       "post": {
-        "tags": ["Message"],
+        "tags": [
+          "Message"
+        ],
         "summary": "Read a range of chat messages",
         "security": [
           {
@@ -1615,6 +1697,15 @@
       },
       "recipientId": {
         "in": "query",
+        "name": "recipient ID",
+        "schema": {
+          "type": "integer"
+        },
+        "description": "User ID",
+        "example": 26
+      },
+      "recipientIdInPath": {
+        "in": "path",
         "name": "recipient ID",
         "schema": {
           "type": "integer"

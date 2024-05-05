@@ -56,6 +56,11 @@ public class ChatController {
         return chatService.getUserChats(userDetails().id());
     }
 
+    @GetMapping("/{recipientId}")
+    public String getDuoChatId(@PathVariable Long recipientId) {
+        return chatService.findChat(userDetails().id(), recipientId).getId();
+    }
+
     @PostMapping
     @ResponseStatus(CREATED)
     @JsonView(New.class)

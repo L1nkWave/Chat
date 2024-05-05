@@ -172,6 +172,11 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
+    public Chat findChat(Long userId, Long userId2) {
+        return chatRepository.findChatWithPair(userId, userId2).orElseThrow(ChatNotFoundException::new);
+    }
+
+    @Override
     public GroupChat findGroupChat(String id) {
         return chatRepository.findGroupChatById(id).orElseThrow(ChatNotFoundException::new);
     }

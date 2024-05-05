@@ -46,6 +46,16 @@ public interface ChatService {
     Chat findChat(String id) throws ChatNotFoundException;
 
     /**
+     * Returns duo chat for both users. The users' order does not matter.
+     *
+     * @param userId id of the 1st user
+     * @param userId2 id of the 2nd user
+     * @return chat object
+     * @throws ChatNotFoundException when chat for both users not found
+     */
+    Chat findChat(Long userId, Long userId2) throws ChatNotFoundException;
+
+    /**
      * Inter-service method to find a group chat by specified ID.
      *
      * @param id chat's identification
