@@ -20,4 +20,7 @@ public class CompanionDto {
     @JsonProperty("online")
     private boolean isOnline;
 
+    @JsonProperty("deleted")
+    private boolean isDeleted;
+
 }
