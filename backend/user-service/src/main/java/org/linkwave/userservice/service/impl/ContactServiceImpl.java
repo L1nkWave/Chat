@@ -32,6 +32,7 @@ public class ContactServiceImpl implements ContactService {
     private final ContactRepository contactRepository;
     private final ModelMapper modelMapper;
 
+    @Transactional(readOnly = true)
     @Override
     public Pair<Integer, List<ContactDto>> getContactsByUsername(Long userId, String username, int offset, int limit) {
 
