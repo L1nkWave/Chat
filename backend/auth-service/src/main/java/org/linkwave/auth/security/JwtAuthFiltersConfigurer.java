@@ -4,9 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.auth.repository.DeactivatedTokenRepository;
+import org.linkwave.auth.security.filter.JwtDeleteUserFilter;
 import org.linkwave.auth.security.filter.JwtLogoutFilter;
 import org.linkwave.auth.security.filter.JwtTokensInitializerFilter;
 import org.linkwave.auth.security.filter.JwtTokensRefreshFilter;
+import org.linkwave.auth.service.UserService;
 import org.linkwave.shared.auth.JwtAccessParser;
 import org.linkwave.shared.auth.JwtAccessSerializer;
 import org.linkwave.auth.security.jwt.JwtRefreshParser;
@@ -33,6 +35,7 @@ public class JwtAuthFiltersConfigurer extends AbstractHttpConfigurer<JwtAuthFilt
     private JwtAccessSerializer jwtAccessSerializer;
     private JwtRefreshParser jwtRefreshParser;
     private JwtAccessParser jwtAccessParser;
+    private UserService userService;
 
     @Override
     public void configure(@NonNull HttpSecurity builder) {
@@ -52,10 +55,13 @@ public class JwtAuthFiltersConfigurer extends AbstractHttpConfigurer<JwtAuthFilt
 
         final var jwtLogoutFilter = new JwtLogoutFilter(objectMapper, jwtAccessParser, tokenRepository);
 
+        final var jwtDeleteUserFilter = new JwtDeleteUserFilter(objectMapper, jwtAccessParser, userService);
+
         // add filters to filter chain
-        builder.addFilterAfter(jwtTokensInitializerFilter, ExceptionTranslationFilter.class);
-        builder.addFilterAfter(jwtTokensRefreshFilter, ExceptionTranslationFilter.class);
-        builder.addFilterAfter(jwtLogoutFilter, ExceptionTranslationFilter.class);
+        builder.addFilterBefore(jwtTokensInitializerFilter, ExceptionTranslationFilter.class);
+        builder.addFilterBefore(jwtTokensRefreshFilter, ExceptionTranslationFilter.class);
+        builder.addFilterBefore(jwtLogoutFilter, ExceptionTranslationFilter.class);
+        builder.addFilterBefore(jwtDeleteUserFilter, ExceptionTranslationFilter.class);
     }
 
     /*
@@ -86,6 +92,11 @@ public class JwtAuthFiltersConfigurer extends AbstractHttpConfigurer<JwtAuthFilt
 
     public JwtAuthFiltersConfigurer setJwtAccessParser(JwtAccessParser jwtAccessParser) {
         this.jwtAccessParser = jwtAccessParser;
+        return this;
+    }
+
+    public JwtAuthFiltersConfigurer setUserService(UserService userService) {
+        this.userService = userService;
         return this;
     }
 }

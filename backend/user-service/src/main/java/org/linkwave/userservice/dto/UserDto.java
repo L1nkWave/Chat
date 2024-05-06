@@ -19,6 +19,8 @@ public class UserDto {
     private ZonedDateTime lastSeen;
     private boolean isOnline;
     private String avatarPath;
+    private boolean isDeleted;
+    private boolean isBlocked;
     private String bio;
 
 }

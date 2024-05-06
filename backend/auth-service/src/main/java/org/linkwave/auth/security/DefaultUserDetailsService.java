@@ -22,6 +22,8 @@ public class DefaultUserDetailsService implements UserDetailsService {
                         user.getId(),
                         user.getUsername(),
                         user.getPassword(),
+                        user.isDeleted(),
+                        user.isBlocked(),
                         user.getRoles().stream()
                                 .map(Role::getName)
                                 .map(SimpleGrantedAuthority::new)
