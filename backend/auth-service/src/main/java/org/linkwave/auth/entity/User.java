@@ -41,7 +41,7 @@ public class User {
     @Column(nullable = false)
     private boolean isOnline;
 
-    @Column(nullable = false, columnDefinition = "timestamptz default now()")
+    @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE default now()")
     @Builder.Default
     private ZonedDateTime lastSeen = now().plusSeconds(1L);
 

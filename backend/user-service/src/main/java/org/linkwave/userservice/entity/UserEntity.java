@@ -46,11 +46,11 @@ public class UserEntity {
     @ColumnDefault("false")
     private boolean isBlocked;
 
-    @Column(nullable = false, columnDefinition = "timestamptz default now()")
+    @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE default now()")
     @Builder.Default
     private ZonedDateTime createdAt = now();
 
-    @Column(nullable = false, columnDefinition = "timestamptz default now()")
+    @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE default now()")
     @Builder.Default
     private ZonedDateTime lastSeen = now().plusSeconds(1L);
 
