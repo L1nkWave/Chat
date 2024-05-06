@@ -16,8 +16,12 @@ public class TokenCleaner {
 
     private final DeactivatedTokenRepository tokenRepository;
 
+    /**
+     *   Cleans all added tokens to database in specified interval.<br/>
+     *   Fixed rate as 61 was chosen in order to wait of refresh token expiration.
+     */
     @Transactional
-    @Scheduled(timeUnit = TimeUnit.MINUTES, fixedRate = 10)
+    @Scheduled(timeUnit = TimeUnit.MINUTES, fixedRate = 61)
     public void clean() {
         log.debug("-> clean()");
         tokenRepository.removeAllExpiredTokens();
