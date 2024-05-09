@@ -18,6 +18,7 @@
   "paths": {
     "/api/v1/auth/login": {
       "post": {
+        "summary": "Log into account",
         "requestBody": {
           "content": {
             "application/json": {
@@ -68,6 +69,7 @@
     },
     "/api/v1/auth/logout": {
       "post": {
+        "summary": "Log out from an account",
         "security": [
           {
             "BearerAuth": []
@@ -123,6 +125,7 @@
     },
     "/api/v1/auth/refresh-tokens": {
       "post": {
+        "summary": "Refresh tokens based on existing refresh token",
         "responses": {
           "200": {
             "description": "Log out user and block his tokens",
@@ -194,8 +197,68 @@
         }
       }
     },
+    "/api/v1/users": {
+      "delete": {
+        "summary": "Delete a user account",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserDeleteRequest"
+              },
+              "example": {
+                "password": "123qwerty"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Account was successfully deleted"
+          },
+          "400": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/users",
+                  "message": "Credentials not valid",
+                  "status": 400,
+                  "timestamp": 1715001971.916428300
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/users",
+                  "message": "Access token is unavailable",
+                  "status": 401,
+                  "timestamp": 1715001906.764552100
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/validate-token": {
       "get": {
+        "summary": "Validate access token",
         "security": [
           {
             "BearerAuth": []
@@ -290,6 +353,17 @@
         "example": {
           "username": "@emmtlor",
           "password": "qwerty123"
+        }
+      },
+      "UserDeleteRequest": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "nullable": false,
+            "maxLength": 64,
+            "minLength": 3
+          }
         }
       },
       "TokensDto": {

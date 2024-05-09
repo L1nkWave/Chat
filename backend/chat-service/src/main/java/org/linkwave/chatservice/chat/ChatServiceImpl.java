@@ -84,7 +84,10 @@ public class ChatServiceImpl implements ChatService {
         }
 
         // check recipient existence
-        userServiceClient.getUser(recipientId, initiator.bearer());
+        final UserDto recipient = userServiceClient.getUser(recipientId, initiator.bearer());
+        if (recipient.isDeleted()) {
+            throw new BadCredentialsException("Invalid recipient id");
+        }
 
         final Chat newChat;
         try {
@@ -217,6 +220,7 @@ public class ChatServiceImpl implements ChatService {
             if (user != null) { // if user is found, add user details
                 author.setUsername(user.getUsername());
                 author.setName(user.getName());
+                author.setDeleted(user.isDeleted());
 
                 if (chat instanceof DuoChatDto duoChat) {
                     duoChat.setAvatarAvailable(user.getAvatarPath() != null);
@@ -418,6 +422,9 @@ public class ChatServiceImpl implements ChatService {
 
         // check user existence
         final UserDto user = userServiceClient.getUser(userId, initiator.bearer());
+        if (user.isDeleted()) {
+            throw new BadCredentialsException("Invalid user ID id");
+        }
 
         final ChatMember newMember = groupChat.addMember(userId);
         final var message = MemberMessage.builder()

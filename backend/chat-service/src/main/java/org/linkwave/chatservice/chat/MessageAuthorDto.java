@@ -1,5 +1,6 @@
 package org.linkwave.chatservice.chat;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 
 @NoArgsConstructor
@@ -12,5 +13,8 @@ public class MessageAuthorDto {
     private Long id;
     private String username;
     private String name;
+
+    @JsonProperty("deleted")
+    private boolean isDeleted;
 
 }

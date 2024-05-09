@@ -1136,7 +1136,8 @@
             "author": {
               "id": 1,
               "username": "@mathewmcc",
-              "name": "Matthew McConaughey"
+              "name": "Matthew McConaughey",
+              "deleted": false
             },
             "reactions": [],
             "text": "Hi everyone!",
@@ -1182,7 +1183,8 @@
             "username": "@emmtlor",
             "name": "Emma Taylor",
             "lastSeen": 1707606183.446933000,
-            "online": false
+            "online": false,
+            "deleted": false
           },
           "lastMessage": {
             "id": "66055236cb761a59d173d978",
@@ -1191,7 +1193,8 @@
             "author": {
               "id": 1,
               "username": "@mathewmcc",
-              "name": "Matthew McConaughey"
+              "name": "Matthew McConaughey",
+              "deleted": false
             },
             "reactions": [],
             "text": "Hi everyone!",
@@ -1263,7 +1266,8 @@
             "author": {
               "id": 1,
               "username": "@mathewmcc",
-              "name": "Matthew McConaughey"
+              "name": "Matthew McConaughey",
+              "deleted": false
             },
             "reactions": [],
             "text": "Hi everyone!",
@@ -1515,12 +1519,17 @@
           "name": {
             "type": "string",
             "nullable": true
+          },
+          "deleted": {
+            "type": "boolean",
+            "nullable": false
           }
         },
         "example": {
           "id": 1,
           "username": "mathew",
-          "name": "Matthew McConaughey"
+          "name": "Matthew McConaughey",
+          "deleted": false
         }
       },
       "MessageReaction": {
@@ -1631,6 +1640,10 @@
           "online": {
             "type": "boolean",
             "nullable": false
+          },
+          "deleted": {
+            "type": "boolean",
+            "nullable": false
           }
         },
         "example": {
@@ -1638,7 +1651,8 @@
           "username": "@emmtlor",
           "name": "Emma Taylor",
           "lastSeen": 1707606183.446933000,
-          "online": false
+          "online": false,
+          "deleted": false
         }
       }
     },

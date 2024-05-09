@@ -24,6 +24,13 @@ public class UserDto {
     private boolean isOnline;
 
     private String avatarPath;
+
+    @JsonProperty("deleted")
+    private boolean isDeleted;
+
+    @JsonProperty("blocked")
+    private boolean isBlocked;
+
     private String bio;
 
 }

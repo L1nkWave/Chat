@@ -169,6 +169,8 @@
                     "lastSeen": 1707597104.417882000,
                     "avatarPath": null,
                     "bio": null,
+                    "deleted": false,
+                    "blocked": true,
                     "online": false
                   },
                   {
@@ -178,6 +180,8 @@
                     "lastSeen": 1707597134.622333000,
                     "avatarPath": null,
                     "bio": null,
+                    "deleted": false,
+                    "blocked": false,
                     "online": false
                   },
                   {
@@ -187,6 +191,8 @@
                     "lastSeen": 1707597134.622333000,
                     "avatarPath": null,
                     "bio": null,
+                    "deleted": true,
+                    "blocked": false,
                     "online": false
                   }
                 ]
@@ -736,6 +742,14 @@
             "type": "string",
             "nullable": true
           },
+          "deleted": {
+            "type": "boolean",
+            "nullable": false
+          },
+          "blocked": {
+            "type": "boolean",
+            "nullable": false
+          },
           "bio": {
             "type": "string",
             "nullable": true
@@ -748,6 +762,8 @@
           "createdAt": 1707606183.446933000,
           "lastSeen": 1707606183.446933000,
           "avatarPath": null,
+          "deleted": false,
+          "blocked": false,
           "bio": null,
           "online": false
         }

@@ -2,6 +2,7 @@ package org.linkwave.auth.security;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.linkwave.auth.service.UserService;
 import org.linkwave.shared.auth.JwtAccessParser;
 import org.linkwave.shared.auth.JwtAccessSerializer;
 import org.linkwave.auth.security.jwt.JwtRefreshParser;
@@ -53,7 +54,8 @@ public class SecurityConfig {
                                            JwtRefreshSerializer refreshSerializer,
                                            JwtAccessSerializer accessSerializer,
                                            JwtRefreshParser refreshParser,
-                                           JwtAccessParser accessParser) throws Exception {
+                                           JwtAccessParser accessParser,
+                                           UserService userService) throws Exception {
         httpSecurity
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(AbstractHttpConfigurer::disable)
@@ -73,7 +75,8 @@ public class SecurityConfig {
                 .setJwtRefreshSerializer(refreshSerializer)
                 .setJwtAccessSerializer(accessSerializer)
                 .setJwtRefreshParser(refreshParser)
-                .setJwtAccessParser(accessParser);
+                .setJwtAccessParser(accessParser)
+                .setUserService(userService);
 
 
         final var filterChain = httpSecurity.build();

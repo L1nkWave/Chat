@@ -73,6 +73,7 @@ public class DefaultUserService implements UserService {
         userRepository.save(newUser);
     }
 
+    @Transactional(readOnly = true)
     @Override
     public UserDto getUser(Long id) {
         log.debug("-> getUser()");
@@ -87,6 +88,7 @@ public class DefaultUserService implements UserService {
         user.setLastSeen(ZonedDateTime.now());
     }
 
+    @Transactional(readOnly = true)
     @Override
     public Pair<Long, List<UserDto>> getUsersByUsernameWithoutContacts(
             @NonNull DefaultUserDetails userDetails,
@@ -108,6 +110,7 @@ public class DefaultUserService implements UserService {
         );
     }
 
+    @Transactional(readOnly = true)
     @Override
     public List<UserDto> getUsers(@NonNull List<Long> usersIds) {
         return userRepository.findAllById(usersIds)
