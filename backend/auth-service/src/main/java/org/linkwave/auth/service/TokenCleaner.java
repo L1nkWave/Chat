@@ -7,7 +7,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.concurrent.TimeUnit;
+
+import static java.time.temporal.ChronoUnit.HOURS;
 
 @Slf4j
 @Service
@@ -17,14 +20,14 @@ public class TokenCleaner {
     private final DeactivatedTokenRepository tokenRepository;
 
     /**
-     *   Cleans all added tokens to database in specified interval.<br/>
-     *   Fixed rate as 61 was chosen in order to wait of refresh token expiration.
+     *   Cleans all added tokens to database in specified interval.
      */
     @Transactional
-    @Scheduled(timeUnit = TimeUnit.MINUTES, fixedRate = 61)
+    @Scheduled(timeUnit = TimeUnit.MINUTES, fixedRate = 30)
     public void clean() {
         log.debug("-> clean()");
-        tokenRepository.removeAllExpiredTokens();
+        final Instant hourAgo = Instant.now().minus(1L, HOURS);
+        tokenRepository.removeAllExpiredTokens(hourAgo);
     }
 
 }

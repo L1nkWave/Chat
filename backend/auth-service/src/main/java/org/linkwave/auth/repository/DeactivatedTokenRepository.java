@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Repository
@@ -13,9 +14,9 @@ public interface DeactivatedTokenRepository extends JpaRepository<DeactivatedTok
 
     @Modifying
     @Query(
-            value = "delete from deactivated_tokens where expiration < now()",
+            value = "delete from deactivated_tokens where expiration < :timeAgo",
             nativeQuery = true
     )
-    void removeAllExpiredTokens();
+    void removeAllExpiredTokens(Instant timeAgo);
 
 }
