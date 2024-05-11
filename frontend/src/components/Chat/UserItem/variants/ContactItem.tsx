@@ -29,8 +29,8 @@ export function ContactItem({ contact, className, onClick, currentContact }: Rea
         <LastSeen
           className="text-sm font-medium"
           iconSize={20}
-          online={contact.user.online}
           lastSeen={contact.user.lastSeen}
+          online={contact.user.online}
         />
       </div>
     </button>
