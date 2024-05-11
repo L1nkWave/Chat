@@ -28,6 +28,7 @@ public class ContactEntity {
     @Builder.Default
     private ZonedDateTime addedAt = ZonedDateTime.now();
 
+    @Column(nullable = false, length = 64)
     private String alias;
 
 }
