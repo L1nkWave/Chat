@@ -8,11 +8,11 @@ export type IconProps = {
   iconSize?: number;
 } & DetailedHTMLProps<HTMLAttributes<HTMLSpanElement>, HTMLSpanElement>;
 
-export function Icon({ name, iconSize, ...props }: Readonly<IconProps>) {
+export function Icon({ name, iconSize, color, ...props }: Readonly<IconProps>) {
   const SelectedIcon = iconMapping[name];
 
   return (
-    <span className="flex" style={{ width: iconSize ?? DEFAULT_ICON_SIZE }} {...props}>
+    <span className="flex" style={{ width: iconSize ?? DEFAULT_ICON_SIZE, color }} {...props}>
       <SelectedIcon />
     </span>
   );
