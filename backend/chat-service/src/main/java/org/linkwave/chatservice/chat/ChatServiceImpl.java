@@ -248,23 +248,6 @@ public class ChatServiceImpl implements ChatService {
         return Pair.of(chatsTotalCount, selectedChats);
     }
 
-    @NonNull
-    private Map<Long, ContactDto> fetchAllContacts(@NonNull RequestInitiator initiator) {
-        final String username = ""; // any username is matched
-        int offset = 0;
-
-        final List<ContactDto> allContacts = new LinkedList<>();
-        List<ContactDto> contacts;
-
-        do {
-            contacts = userServiceClient.getContacts(username, offset, DEFAULT_BATCH_SIZE, initiator.bearer());
-            allContacts.addAll(contacts);
-            offset += DEFAULT_BATCH_SIZE;
-        } while (contacts.size() == DEFAULT_BATCH_SIZE);
-        return allContacts.stream()
-                .collect(toMap(contact -> contact.getUser().getId(), identity()));
-    }
-
     private ChatDto mapChats(Chat chat, Set<Long> usersIds, RequestInitiator initiator) {
         final boolean isGroupChat = chat instanceof GroupChat;
         final Class<? extends ChatDto> cls = isGroupChat
