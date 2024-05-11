@@ -43,5 +43,5 @@ export function MainBox({
   } else if (contact && mainBoxVariant === MainBoxStateEnum.CHAT) {
     variant = <ChatBox contact={contact} />;
   }
-  return <div className="flex w-full bg-dark-450 rounded-r-2xl">{variant}</div>;
+  return <div className="flex w-full h-screen bg-dark-550 rounded-r-2xl">{variant}</div>;
 }
