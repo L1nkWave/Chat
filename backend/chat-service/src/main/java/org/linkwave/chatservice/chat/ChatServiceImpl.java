@@ -6,7 +6,6 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.chatservice.api.ApiResponseClientErrorException;
 import org.linkwave.chatservice.api.ServiceErrorException;
-import org.linkwave.chatservice.api.users.ContactDto;
 import org.linkwave.chatservice.api.users.UserDto;
 import org.linkwave.chatservice.api.users.UserServiceClient;
 import org.linkwave.chatservice.api.ws.LoadChatRequest;
@@ -207,8 +206,14 @@ public class ChatServiceImpl implements ChatService {
                         .forEach(user -> usersMap.put(user.getId(), user))
         );
 
-        // pull contacts
-        final Map<Long, ContactDto> contactsMap = fetchAllContacts(initiator);
+        // pull contacts & set aliases
+        userServiceClient.fetchAllContacts(initiator, DEFAULT_BATCH_SIZE)
+                .forEach((userId, dto) -> {
+                    final UserDto userDto = usersMap.get(userId);
+                    if (userDto != null) {
+                        userDto.setName(dto.getAlias());
+                    }
+                });
 
         selectedChats.forEach(chat -> {
             final MessageDto lastMessage = chat.getLastMessage();
@@ -216,31 +221,22 @@ public class ChatServiceImpl implements ChatService {
                 return;
             }
             final MessageAuthorDto author = lastMessage.getAuthor();
-            final UserDto user = usersMap.get(author.getId());
-            if (user != null) { // if user is found, add user details
+
+            if (chat instanceof DuoChatDto duoChat) {
+                final Long companionId = duoChat.getUser().getId();
+                final UserDto user = usersMap.get(companionId);
+
+                if (user != null) {
+                    duoChat.setAvatarAvailable(user.getAvatarPath() != null);
+                    duoChat.setUser(modelMapper.map(user, CompanionDto.class));
+                }
+            } else { // add author details for group chats only
+                final UserDto user = usersMap.get(author.getId());
                 author.setUsername(user.getUsername());
                 author.setName(user.getName());
-                author.setDeleted(user.isDeleted());
-
-                if (chat instanceof DuoChatDto duoChat) {
-                    duoChat.setAvatarAvailable(user.getAvatarPath() != null);
-
-                    // inject companion dto
-                    final Long companionId = duoChat.getUser().getId();
-                    final UserDto userDto = usersMap.get(companionId);
-                    if (userDto != null) {
-                        duoChat.setUser(modelMapper.map(userDto, CompanionDto.class));
-                    }
-                }
-
-                // try to replace with contact alias
-                if (!user.getId().equals(initiator.userId())) {
-                    final ContactDto contact = contactsMap.get(user.getId());
-                    if (contact != null) {
-                        author.setUsername(contact.getAlias());
-                    }
-                }
+                author.setIsDeleted(user.isDeleted());
             }
+
         });
 
         log.debug("-> getUserChats(): performed {} api-requests", batches);
