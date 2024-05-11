@@ -92,15 +92,18 @@ public class DefaultUserService implements UserService {
     @Override
     public Pair<Long, List<UserDto>> getUsersByUsernameWithoutContacts(
             @NonNull DefaultUserDetails userDetails,
-            String username, int offset, int limit) {
+            String username, int offset, int limit
+    ) {
 
         log.debug("-> getUsersByUsername(): username = {}, offset = {}, limit = {}", username, offset, limit);
 
-        final List<UserEntity> selectedUsers = userRepository.getUsersByUsernameStartsWith(
-                userDetails.id(), username, offset, limit
+        final String usernamePattern = "%" + username + "%";
+
+        final List<UserEntity> selectedUsers = userRepository.getUsersByUsernameContains(
+                userDetails.id(), usernamePattern, offset, limit
         );
 
-        final long totalUsersCount = userRepository.getUsersCountByUsernameStartsWith(userDetails.id(), username);
+        final long totalUsersCount = userRepository.getUsersCountByUsernameContains(userDetails.id(), usernamePattern);
 
         return Pair.of(
                 totalUsersCount,
