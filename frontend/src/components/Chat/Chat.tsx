@@ -4,8 +4,9 @@ import React, { useCallback, useContext, useState } from "react";
 import { toast } from "react-toastify";
 
 import { addDuoChat, getChatByUserId, getChats } from "@/api/http/chat/chat";
-import { addContact, getContacts, removeContact, searchContacts } from "@/api/http/contacts/contacts";
+import { addContact, getContacts, removeContact } from "@/api/http/contacts/contacts";
 import { ContactParams, UserParams } from "@/api/http/contacts/contacts.types";
+import { searchUser } from "@/api/http/user/user";
 import { ListStateEnum, MainBoxStateEnum } from "@/components/Chat/chat.types";
 import { InteractiveList } from "@/components/Chat/InteractiveList/InteractiveList";
 import { ChatMap, ContactsMap, UserMap } from "@/components/Chat/InteractiveList/interactiveList.types";
@@ -40,7 +41,7 @@ export function Chat() {
 
   const fetchGlobalContacts = useCallback(async () => {
     try {
-      const fetchedContacts = await searchContacts();
+      const fetchedContacts = await searchUser();
       setGlobalUsers(fetchedContacts);
     } catch (error) {
       toast.error("Error fetching global users");
@@ -130,17 +131,12 @@ export function Chat() {
         updatedUsers.delete(parseInt(userId, 10));
         return updatedUsers;
       });
+      await fetchContacts();
 
       if (globalUser) {
-        setContact({
-          alias: globalUser.name,
-          addedAt: new Date().toISOString(),
-          user: globalUser,
-        });
+        setContact(contacts.get(globalUser.id));
       }
       setGlobalUser(undefined);
-
-      await fetchContacts();
     } catch (error) {
       toast.error("Error adding contact");
     }
