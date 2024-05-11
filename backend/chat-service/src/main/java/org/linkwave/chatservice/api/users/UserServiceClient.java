@@ -32,7 +32,7 @@ public interface UserServiceClient {
 
     @GetMapping("/contacts")
     List<ContactDto> getContacts(
-            @RequestParam String username,
+            @RequestParam String search,
             @RequestParam int offset, @RequestParam int limit,
             @RequestHeader("Authorization") String authHeader
     );
