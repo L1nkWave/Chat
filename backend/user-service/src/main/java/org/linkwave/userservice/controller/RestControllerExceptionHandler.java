@@ -1,6 +1,7 @@
 package org.linkwave.userservice.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.shared.dto.ApiError;
 import org.linkwave.userservice.exception.LimitExceededException;
@@ -58,6 +59,16 @@ public class RestControllerExceptionHandler extends ResponseEntityExceptionHandl
     public ApiError handleBadRequestError(RuntimeException ex, HttpServletRequest request) {
         log.debug("-> handleRuntimeExceptions(...): path={}, msg={}", request.getRequestURI(), ex.getMessage());
         return new ApiError(request.getRequestURI(), ex.getMessage(), BAD_REQUEST.value(), now());
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    @ResponseStatus(BAD_REQUEST)
+    public ApiError handleConstraintError(RuntimeException ex, HttpServletRequest request) {
+        final String message = ex.getMessage();
+        log.debug("-> handleConstraintError(...): path={}, msg={}", request.getRequestURI(), message);
+        final String parameter = message.substring(0, message.indexOf(":"));
+        final int simpleParamNamePos = parameter.lastIndexOf(".") + 1;
+        return new ApiError(request.getRequestURI(), message.substring(simpleParamNamePos), BAD_REQUEST.value(), now());
     }
 
     @ExceptionHandler(IllegalStateException.class)
