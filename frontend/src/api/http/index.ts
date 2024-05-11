@@ -17,7 +17,7 @@ instance.interceptors.request.use(
   config => {
     const newConfig = config;
 
-    newConfig.headers.Authorization = `Bearer ${store.getState().auth.accessToken}`;
+    newConfig.headers.Authorization = `Bearer ${store.getState().user.accessToken}`;
     return newConfig;
   },
   () => {
