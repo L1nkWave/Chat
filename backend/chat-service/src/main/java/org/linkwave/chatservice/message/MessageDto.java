@@ -28,7 +28,7 @@ public class MessageDto {
 
     @JsonProperty("isRead")
     @JsonView({Detailed.class})
-    private boolean isRead;
+    private Boolean isRead;
 
     @JsonView({Detailed.class})
     private List<MessageReaction> reactions;

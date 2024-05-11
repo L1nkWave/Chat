@@ -15,6 +15,6 @@ public class MessageAuthorDto {
     private String name;
 
     @JsonProperty("deleted")
-    private boolean isDeleted;
+    private Boolean isDeleted;
 
 }
