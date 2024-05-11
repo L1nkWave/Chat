@@ -16,7 +16,7 @@ export function Avatar({ item, className, online, status = true, ...props }: Ava
       />
       {status && online && (
         <div className="flex justify-end items-end">
-          <Status className="absolute" />
+          <Status className="absolute" online={online} />
         </div>
       )}
     </span>
