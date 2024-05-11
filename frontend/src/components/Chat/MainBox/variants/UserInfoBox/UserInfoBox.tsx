@@ -5,6 +5,7 @@ import { UserInfoBoxProps } from "@/components/Chat/MainBox/variants/UserInfoBox
 import { CustomButton } from "@/components/CustomButton/CustomButton";
 import { Icon } from "@/components/Icon/Icon";
 import { LastSeen } from "@/components/LastSeen/LastSeen";
+import { Status } from "@/components/Status/Status";
 import { getContactName } from "@/helpers/contactHelpers";
 
 export function UserInfoBox({
@@ -36,13 +37,17 @@ export function UserInfoBox({
           <Avatar className="w-32 h-32" item={contact.user} alt="Avatar" />
           <div className="px-10 flex flex-col justify-center">
             <h1 className="text-3xl text-gray-200">{getContactName(contact)}</h1>
-            <LastSeen
-              online={contact.user.online}
-              lastSeen={contact.user.lastSeen}
-              iconSize={24}
-              className="font-semibold"
-              textColor="text-blue-300"
-            />
+            {contact.user.online ? (
+              <Status online={contact.user.online} textStatus classNameTextContainer="font-semibold" />
+            ) : (
+              <LastSeen
+                lastSeen={contact.user.lastSeen}
+                iconSize={24}
+                className="font-semibold"
+                textColor="text-blue-300"
+                online={contact.user.online}
+              />
+            )}
           </div>
         </div>
 
