@@ -15,7 +15,7 @@ export function LastSeen({
 }: Readonly<LastSeenProps>) {
   let lastSeenDate;
 
-  if (typeof lastSeen === "number") {
+  if (!online) {
     const convertedLastSeen = lastSeen * 1000;
     if (isToday(convertedLastSeen)) {
       lastSeenDate = `Today ${formatDate(convertedLastSeen, DateFormat.HOURS_AND_MINUTES)}`;
@@ -23,12 +23,11 @@ export function LastSeen({
       lastSeenDate = formatDate(convertedLastSeen, DateFormat.EUROPEAN);
     }
   }
-
   return (
     <div className="flex flex-row">
       <span className={`${textColor} ${className}`}>
         {online ? (
-          UserStatus.ONLINE
+          <span className="flex items-center text-gray-300">{UserStatus.ONLINE}</span>
         ) : (
           <span className="flex items-center">
             <Icon name="time-outline" iconSize={iconSize} className="mr-1" /> {lastSeenDate}

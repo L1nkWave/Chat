@@ -1,12 +1,12 @@
 import { configureStore } from "@reduxjs/toolkit";
 
 import { chatReducer } from "@/lib/features/chat/chatSlice";
-import { authReducer } from "@/lib/features/user/userSlice";
+import { userReducer } from "@/lib/features/user/userSlice";
 
 export const makeStore = () =>
   configureStore({
     reducer: {
-      auth: authReducer,
+      user: userReducer,
       chat: chatReducer,
     },
     middleware: getDefaultMiddleware => getDefaultMiddleware(),

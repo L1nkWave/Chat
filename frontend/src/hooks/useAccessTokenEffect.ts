@@ -4,7 +4,7 @@ import { DependencyList, EffectCallback, useEffect } from "react";
 import { useAppSelector } from "@/lib/hooks";
 
 export function useAccessTokenEffect(callback: EffectCallback, dependencies: DependencyList) {
-  const { accessToken } = useAppSelector(state => state.auth);
+  const { accessToken } = useAppSelector(state => state.user);
   const router = useRouter();
 
   useEffect(() => {

@@ -23,4 +23,6 @@ export const iconMapping = {
   "add-chat-outline": Icons.AddChatOutlineIcon,
   "find-contacts-outline": Icons.FindContactsOutlineIcon,
   "add-circle-outline": Icons.AddCircleOutlineIcon,
+  "folder-outline": Icons.FolderOutlineIcon,
+  "send-outline": Icons.SendOutlineIcon,
 };

@@ -11,13 +11,9 @@ export async function getContacts() {
   return contacts;
 }
 
-export async function searchContacts(username: string = "", limit: number = 10, offset: number = 0) {
-  const { data } = await instance.get<UserParams[]>(`users?username=${username}&limit=${limit}&offset=${offset}`);
-  const users = new Map<number, UserParams>();
-  data.forEach(user => {
-    users.set(user.id, user);
-  });
-  return users;
+export async function getContactById(contactId: string) {
+  const { data } = await instance.get<ContactParams>(`users/contacts/${contactId}`);
+  return data;
 }
 
 export async function addContact(userId: string, alias: string) {

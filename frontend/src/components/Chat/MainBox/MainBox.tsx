@@ -1,7 +1,9 @@
 import React from "react";
 
 import { ContactParams } from "@/api/http/contacts/contacts.types";
+import { MainBoxStateEnum } from "@/components/Chat/chat.types";
 import { MainBoxProps } from "@/components/Chat/MainBox/mainBox.types";
+import { ChatBox } from "@/components/Chat/MainBox/variants/ChatBox/ChatBox";
 import { EmptyBox } from "@/components/Chat/MainBox/variants/EmptyBox/EmptyBox";
 import { UserInfoBox } from "@/components/Chat/MainBox/variants/UserInfoBox/UserInfoBox";
 
@@ -11,18 +13,20 @@ export function MainBox({
   globalUser,
   onAddContactClick: handleAddContactClick,
   onRemoveContactClick: handleRemoveContactClick,
+  onMessageButtonClick: handleMessageButtonClick,
 }: Readonly<MainBoxProps>) {
   let variant = <EmptyBox />;
-  if (mainBoxVariant === "user-info" && contact) {
+  if (mainBoxVariant === MainBoxStateEnum.USER_INFO && contact) {
     variant = (
       <UserInfoBox
         contact={contact}
         onAddContactClick={handleAddContactClick}
         onRemoveContactClick={handleRemoveContactClick}
+        onMessageButtonClick={handleMessageButtonClick}
       />
     );
   }
-  if (mainBoxVariant === "user-info" && globalUser) {
+  if (mainBoxVariant === MainBoxStateEnum.USER_INFO && globalUser) {
     const globalContact: ContactParams = {
       alias: undefined,
       addedAt: undefined,
@@ -33,10 +37,11 @@ export function MainBox({
         contact={globalContact}
         onAddContactClick={handleAddContactClick}
         onRemoveContactClick={handleRemoveContactClick}
+        onMessageButtonClick={handleMessageButtonClick}
       />
     );
-  } else if (mainBoxVariant === "chat") {
-    variant = <div>Chat</div>;
+  } else if (contact && mainBoxVariant === MainBoxStateEnum.CHAT) {
+    variant = <ChatBox contact={contact} />;
   }
-  return <div className="flex w-full bg-dark-450 rounded-r-2xl">{variant}</div>;
+  return <div className="flex w-full h-screen bg-dark-550 rounded-r-2xl">{variant}</div>;
 }

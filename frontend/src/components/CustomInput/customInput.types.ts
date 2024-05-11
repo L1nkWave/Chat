@@ -6,5 +6,6 @@ export type CustomInputProps = {
   icon?: IconName;
   label?: string;
   error?: string | false;
+  innerContainerClassName?: string;
   containerClassName?: string;
 } & DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>;
