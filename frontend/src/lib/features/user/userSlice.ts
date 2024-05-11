@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
+import { UserParams } from "@/api/http/contacts/contacts.types";
 import { USER_SLICE_NAME, userInitialState } from "@/lib/features/user/userSlice.config";
 
 const userSlice = createSlice({
@@ -9,8 +10,11 @@ const userSlice = createSlice({
     setAccessToken: (state, action: PayloadAction<string | null>) => {
       return { ...state, accessToken: action.payload };
     },
+    setCurrentUser: (state, action: PayloadAction<UserParams | null>) => {
+      return { ...state, currentUser: action.payload };
+    },
   },
 });
 
-export const { setAccessToken } = userSlice.actions;
-export const authReducer = userSlice.reducer;
+export const { setAccessToken, setCurrentUser } = userSlice.actions;
+export const userReducer = userSlice.reducer;
