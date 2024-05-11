@@ -24,12 +24,12 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
                                         from users u
                                         join contacts c on u.id = c.user_id_1
                                         where u.id = :requestUserId)
-                        and starts_with(username, :username)
+                        and upper(username) like upper(:usernamePattern)
                     """,
             nativeQuery = true
     )
-    long getUsersCountByUsernameStartsWith(Long requestUserId,
-                                           String username);
+    long getUsersCountByUsernameContains(Long requestUserId,
+                                         String usernamePattern);
 
     @Query(
             value = """
@@ -40,15 +40,14 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
                                         from users u
                                         join contacts c on u.id = c.user_id_1
                                         where u.id = :requestUserId)
-                        and starts_with(username, :username)
+                        and upper(username) like upper(:usernamePattern)
+                    order by name
                     offset :offset limit :limit
                     """,
             nativeQuery = true
     )
-    List<UserEntity> getUsersByUsernameStartsWith(Long requestUserId,
-                                                  String username,
-                                                  int offset,
-                                                  int limit);
+    List<UserEntity> getUsersByUsernameContains(Long requestUserId, String usernamePattern,
+                                                int offset, int limit);
 
     @Query("select u from UserEntity u join fetch u.roles where u.id = :id")
     Optional<UserEntity> findUserWithRoles(Long id);

@@ -63,10 +63,10 @@ public class ContactServiceImplTest {
         final int offset = 8;
         final int limit = 10;
 
-        final var searchUsername = "toxic";
-        final var searchUsernamePattern = "toxic%";
+        final var search = "toxic";
+        final var searchPattern = "%toxic%";
 
-        final List<UserEntity> users = generateUsers(usersCount, searchUsername, role);
+        final List<UserEntity> users = generateUsers(usersCount, search, role);
         final List<ContactEntity> contacts = users.stream()
                 .map(user -> ContactEntity.builder()
                         .ownerId(userId)
@@ -80,9 +80,9 @@ public class ContactServiceImplTest {
                 modelMapper.map(contacts.get(9), ContactDto.class)
         );
 
-        when(contactRepository.getContactsByUsernameStartsWith(userId, searchUsernamePattern)).thenReturn(contacts);
+        when(contactRepository.getContactsByUsernameNameAliasContains(userId, searchPattern)).thenReturn(contacts);
 
-        final Pair<Integer, List<ContactDto>> result = contactService.getContactsByUsername(userId, searchUsername, offset, limit);
+        final Pair<Integer, List<ContactDto>> result = contactService.getContactsBySearch(userId, search, offset, limit);
 
         assertThat(result).isNotNull();
         assertThat(result.getFirst()).isEqualTo(users.size());

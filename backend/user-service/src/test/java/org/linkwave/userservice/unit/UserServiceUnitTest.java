@@ -201,8 +201,9 @@ class UserServiceUnitTest {
         final int offset = 5;
         final int limit = 5;
 
-        final String searchUsername = "toxic";
-        final List<UserEntity> users = generateUsers(usersCount, searchUsername, USER_ROLE);
+        final String username = "toxic";
+        final String usernamePattern = "%toxic%";
+        final List<UserEntity> users = generateUsers(usersCount, usernamePattern, USER_ROLE);
         final List<UserEntity> expectedUsers = users.stream()
                 .skip(offset)
                 .limit(5)
@@ -212,21 +213,21 @@ class UserServiceUnitTest {
                 .map(user -> modelMapper.map(user, UserDto.class))
                 .toList();
 
-        when(userRepository.getUsersByUsernameStartsWith(userDetails.id(), searchUsername, offset, limit))
+        when(userRepository.getUsersByUsernameContains(userDetails.id(), usernamePattern, offset, limit))
                 .thenReturn(expectedUsers);
 
-        when(userRepository.getUsersCountByUsernameStartsWith(userDetails.id(), searchUsername))
+        when(userRepository.getUsersCountByUsernameContains(userDetails.id(), usernamePattern))
                 .thenReturn((long) users.size());
 
-        final Pair<Long, List<UserDto>> result = userService.getUsersByUsernameWithoutContacts(userDetails, searchUsername, offset, limit);
+        final Pair<Long, List<UserDto>> result = userService.getUsersByUsernameWithoutContacts(userDetails, username, offset, limit);
 
         assertThat(result).isNotNull();
         assertThat(result.getFirst()).isEqualTo(users.size());
         assertThat(result.getSecond()).isNotEmpty();
         assertThat(result.getSecond()).isEqualTo(expectedUsersDto);
 
-        verify(userRepository, times(1)).getUsersByUsernameStartsWith(userDetails.id(), searchUsername, offset, limit);
-        verify(userRepository, times(1)).getUsersCountByUsernameStartsWith(userDetails.id(), searchUsername);
+        verify(userRepository, times(1)).getUsersByUsernameContains(userDetails.id(), usernamePattern, offset, limit);
+        verify(userRepository, times(1)).getUsersCountByUsernameContains(userDetails.id(), usernamePattern);
     }
 
     @AfterEach

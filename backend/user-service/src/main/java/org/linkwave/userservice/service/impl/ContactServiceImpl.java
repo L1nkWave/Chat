@@ -34,21 +34,22 @@ public class ContactServiceImpl implements ContactService {
 
     @Transactional(readOnly = true)
     @Override
-    public Pair<Integer, List<ContactDto>> getContactsByUsername(Long userId, String username, int offset, int limit) {
+    public Pair<Integer, List<ContactDto>> getContactsBySearch(Long userId, String search, int offset, int limit) {
 
-        log.debug("-> getContactsUsername(): username = {}, offset = {}, limit = {}", username, offset, limit);
+        log.debug("-> getContactsUsername(): search = {}, offset = {}, limit = {}", search, offset, limit);
 
         // convert to SQL pattern
-        final var usernamePattern = username + "%";
+        final var searchPattern = "%" + search + "%";
 
         // find contacts by pattern
-        final List<ContactEntity> contacts = contactRepository.getContactsByUsernameStartsWith(userId, usernamePattern);
+        final List<ContactEntity> contacts =
+                contactRepository.getContactsByUsernameNameAliasContains(userId, searchPattern);
 
         // cut up & map contacts
         final List<ContactDto> mappedContacts = contacts.stream()
+                .sorted(comparing(ContactEntity::getAlias))
                 .skip(offset)
                 .limit(limit)
-                .sorted(comparing(ContactEntity::getAlias))
                 .map(contact -> ContactDto.builder()
                         .user(modelMapper.map(contact.getUser(), UserDto.class))
                         .addedAt(contact.getAddedAt())

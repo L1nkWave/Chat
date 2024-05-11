@@ -166,7 +166,7 @@ public class UserControllerTests {
                 );
     }
 
-    @Disabled("Function STARTS_WITH is not supported in H2")
+    @Disabled("H2 Syntax query exception")
     @Test
     void shouldRetrieveUsersWithUsernameAndOffsetAndLimit() throws Exception {
 
