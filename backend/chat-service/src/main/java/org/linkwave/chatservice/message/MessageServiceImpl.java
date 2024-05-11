@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.chatservice.api.ServiceErrorException;
+import org.linkwave.chatservice.api.users.UserDto;
+import org.linkwave.chatservice.api.users.UserServiceClient;
 import org.linkwave.chatservice.api.ws.WSServiceClient;
 import org.linkwave.chatservice.chat.ChatRole;
 import org.linkwave.chatservice.chat.ChatService;
@@ -14,6 +16,7 @@ import org.linkwave.chatservice.common.ResourceNotFoundException;
 import org.linkwave.chatservice.common.UnacceptableRequestDataException;
 import org.linkwave.chatservice.message.file.CreatedFileMessage;
 import org.linkwave.chatservice.message.file.FileMessage;
+import org.linkwave.chatservice.message.member.MemberMessage;
 import org.linkwave.chatservice.message.text.EditTextMessage;
 import org.linkwave.chatservice.message.text.NewTextMessage;
 import org.linkwave.chatservice.message.text.TextMessage;
@@ -22,6 +25,7 @@ import org.linkwave.chatservice.user.User;
 import org.linkwave.chatservice.user.UserService;
 import org.linkwave.shared.storage.FileStorageService;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.util.Pair;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.TransactionException;
@@ -32,12 +36,14 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.*;
+import java.util.stream.Collectors;
 
-import static java.util.Comparator.comparing;
 import static java.util.function.Predicate.not;
 import static java.util.stream.StreamSupport.stream;
+import static org.linkwave.chatservice.common.ListUtils.iterateChunks;
 import static org.linkwave.chatservice.message.Action.*;
 
 @Slf4j
@@ -46,8 +52,10 @@ import static org.linkwave.chatservice.message.Action.*;
 public class MessageServiceImpl implements MessageService {
 
     public static final Path MESSAGE_FILE_PATH = Path.of("api", "chats");
+    public static final int DEFAULT_BATCH_SIZE = 50;
 
     private final WSServiceClient wsClient;
+    private final UserServiceClient userServiceClient;
     private final ChatService chatService;
     private final UserService userService;
     private final TransactionTemplate txnTemplate;
@@ -285,14 +293,56 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
-    public List<Message> getChatMessages(Long userId, String chatId) {
+    public Pair<Long, Map<LocalDate, List<MessageDto>>> getChatMessages(
+            @NonNull RequestInitiator initiator, String chatId, int offset, int limit
+    ) {
         final Chat chat = chatService.findChat(chatId);
-        if (!chatService.isMember(userId, chat)) {
+        if (!chatService.isMember(initiator.userId(), chat)) {
             throw new PrivacyViolationException();
         }
-        return chat.getMessages().stream()
-                .sorted(comparing(Message::getCreatedAt).reversed())
-                .toList();
+
+        final long chatMessagesTotalCount = messageRepository.getChatMessagesCount(chatId);
+        final List<Message> messageList = messageRepository.getMessages(chatId, offset, limit);
+
+        // collect users to pull
+        final Set<Long> usersIds = new HashSet<>();
+        messageList.forEach(message -> {
+            if (message instanceof MemberMessage memberMessage) {
+                usersIds.add(memberMessage.getMemberId());
+            }
+            usersIds.add(message.getAuthorId());
+        });
+
+        final Map<Long, UserDto> usersMap = new LinkedHashMap<>();
+
+        // pull users
+        iterateChunks(
+                new ArrayList<>(usersIds),
+                DEFAULT_BATCH_SIZE,
+                ids -> userServiceClient
+                        .getUsers(ids, initiator.bearer())
+                        .forEach(user -> usersMap.put(user.getId(), user))
+        );
+
+        // pull contacts & set aliases
+        userServiceClient.fetchAllContacts(initiator, DEFAULT_BATCH_SIZE)
+                .forEach((userId, dto) -> {
+                    final UserDto userDto = usersMap.get(userId);
+                    if (userDto != null) {
+                        userDto.setName(dto.getAlias());
+                    }
+                });
+
+        final Map<LocalDate, List<MessageDto>> messages = messageList.stream()
+                .map(message -> ((FetchMessageMapping) message).mapForFetch(modelMapper, initiator.userId(), usersMap))
+                .collect(Collectors.groupingBy(
+                        message -> LocalDate.ofInstant(message.getCreatedAt(), ZoneId.systemDefault()),
+                        Collectors.toList()
+                ));
+
+        final TreeMap<LocalDate, List<MessageDto>> treeMap = new TreeMap<>(Comparator.reverseOrder());
+        treeMap.putAll(messages);
+        return Pair.of(chatMessagesTotalCount, treeMap);
     }
 
     @Override

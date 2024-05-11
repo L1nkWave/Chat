@@ -6,11 +6,14 @@ import org.linkwave.chatservice.message.text.EditTextMessage;
 import org.linkwave.chatservice.message.text.NewTextMessage;
 import org.linkwave.chatservice.message.text.UpdatedTextMessage;
 import org.linkwave.chatservice.user.User;
+import org.springframework.data.util.Pair;
 import org.springframework.lang.NonNull;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 public interface MessageService {
     MessageDto saveMessage(Long senderId, String chatId, Action action);
@@ -37,7 +40,7 @@ public interface MessageService {
 
     boolean isMessageSender(Message message, Long memberId);
 
-    List<Message> getChatMessages(Long userId, String chatId);
+    Pair<Long, Map<LocalDate, List<MessageDto>>> getChatMessages(RequestInitiator initiator, String chatId, int offset, int limit);
 
     ReadMessages readMessages(Long memberId, String chatId, Instant lastReadMessageTimestamp);
 
