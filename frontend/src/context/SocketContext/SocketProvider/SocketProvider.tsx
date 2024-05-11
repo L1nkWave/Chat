@@ -13,7 +13,7 @@ import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 
 export function SocketProvider({ children }: Readonly<PropsWithChildren>) {
   const dispatch = useAppDispatch();
-  const { accessToken } = useAppSelector(state => state.auth);
+  const { accessToken } = useAppSelector(state => state.user);
   const route = useRouter();
   const [webSocket, setWebSocket] = useState<WebSocket | null>(null);
   const [message, setMessage] = useState<MessageContextParams>();

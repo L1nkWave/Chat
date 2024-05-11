@@ -22,8 +22,12 @@ export function InteractiveList({
 }: Readonly<InteractiveListProps>) {
   let interactiveList;
   const { webSocket } = useContext(SocketContext);
-  const { accessToken } = useAppSelector(state => state.auth);
+  const { accessToken, currentUser } = useAppSelector(state => state.user);
   const router = useRouter();
+  if (!currentUser) {
+    router.replace("/sign-in");
+    return null;
+  }
 
   const handleLogout = async () => {
     if (!webSocket || !accessToken) {
@@ -73,20 +77,10 @@ export function InteractiveList({
         {interactiveList}
         <div className="bg-dark-400 px-8 py-4 left-0 bottom-0 w-full flex justify-between items-center h-auto">
           <div className="flex items-center gap-2">
-            <Avatar
-              item={{
-                id: 1,
-                avatarPath: undefined,
-              }}
-              alt="Avatar"
-              status={false}
-            />
+            <Avatar item={currentUser} alt="Avatar" status={false} />
             <div className="flex flex-col gap-0">
-              <p className="text-lg">Name</p>
-              <div className="flex items-center text-gray-300">
-                <Status />
-                Active
-              </div>
+              <p className="text-lg">{currentUser.name}</p>
+              <Status online={currentUser.online} textStatus />
             </div>
           </div>
           <CustomButton

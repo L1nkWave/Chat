@@ -7,10 +7,10 @@ import { ScrollList } from "@/components/ScrollList/ScrollList";
 export function ChatList({ chats }: Readonly<InteractiveChatParams>) {
   return (
     <ScrollList>
-      {!chats || (chats && chats.length === 0) ? (
+      {!chats || (chats && chats.size === 0) ? (
         <div className="h-full bg-dark-500 flex items-center justify-center">No chats</div>
       ) : (
-        chats.map(chat => <ChatItem key={chat.id} chat={chat} />)
+        Array.from(chats.values()).map(chat => <ChatItem key={chat.id} chat={chat} />)
       )}
     </ScrollList>
   );

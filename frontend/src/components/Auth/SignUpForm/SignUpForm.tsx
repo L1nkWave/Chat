@@ -52,7 +52,8 @@ export function SignUpForm() {
         placeholder={fullNameInput.placeholder}
         label={fullNameInput.label}
         className="text-base"
-        containerClassName="w-3/5"
+        containerClassName="w-3/5 mb-6"
+        innerContainerClassName="rounded-lg"
         icon={fullNameInput.icon}
         value={formik.values.fullName}
         onChange={formik.handleChange}
@@ -63,7 +64,8 @@ export function SignUpForm() {
         placeholder={usernameInput.placeholder}
         label={usernameInput.label}
         className="text-base"
-        containerClassName="w-3/5"
+        containerClassName="w-3/5 mb-6"
+        innerContainerClassName="rounded-lg"
         icon={usernameInput.icon}
         value={formik.values.username}
         onChange={formik.handleChange}
@@ -75,7 +77,8 @@ export function SignUpForm() {
         placeholder={passwordInput.placeholder}
         type={passwordInput.type}
         className="text-base"
-        containerClassName="w-3/5"
+        containerClassName="w-3/5 mb-6"
+        innerContainerClassName="rounded-lg"
         label={passwordInput.label}
         icon={passwordInput.icon}
         value={formik.values.password}

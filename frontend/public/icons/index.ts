@@ -1,7 +1,10 @@
 export { default as AddChatOutlineIcon } from "./add-chat-outline.svg";
 export { default as AddCircleOutlineIcon } from "./add-circle-outline.svg";
 export { default as ChatPlusOutlineIcon } from "./chat-plus-outline.svg";
+export { default as CheckIcon } from "./check.svg";
+export { default as CutCheckIcon } from "./cut-check.svg";
 export { default as FindContactsOutlineIcon } from "./find-people-outline.svg";
+export { default as FolderOutlineIcon } from "./folder-outline.svg";
 export { default as FormOutlineIcon } from "./form-outline.svg";
 export { default as GroupOutlineIcon } from "./group-outline.svg";
 export { default as LeftAngleIcon } from "./left-angle.svg";
@@ -11,6 +14,7 @@ export { default as LockOutlineIcon } from "./lock-outline.svg";
 export { default as PenWithMessageIcon } from "./pen-with-message.svg";
 export { default as PinOutlineIcon } from "./pin-outline.svg";
 export { default as RemoveCircleOutlineIcon } from "./remove-circle-outline.svg";
+export { default as SendOutlineIcon } from "./send-outline.svg";
 export { default as SettingOutlineIcon } from "./setting-outline.svg";
 export { default as SignOutCircleIcon } from "./sign-out-circle.svg";
 export { default as TimeOutlineIcon } from "./time-outline.svg";

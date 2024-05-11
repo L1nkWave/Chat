@@ -3,12 +3,13 @@
 import React, { useCallback, useContext, useState } from "react";
 import { toast } from "react-toastify";
 
-import { addDuoChat, getChats } from "@/api/http/chat/chat";
-import { addContact, getContacts, removeContact, searchContacts } from "@/api/http/contacts/contacts";
-import { ChatParams, ContactParams, UserParams } from "@/api/http/contacts/contacts.types";
-import { ListStateEnum } from "@/components/Chat/chat.types";
+import { addDuoChat, getChatByUserId, getChats } from "@/api/http/chat/chat";
+import { addContact, getContacts, removeContact } from "@/api/http/contacts/contacts";
+import { ContactParams, UserParams } from "@/api/http/contacts/contacts.types";
+import { searchUser } from "@/api/http/user/user";
+import { ListStateEnum, MainBoxStateEnum } from "@/components/Chat/chat.types";
 import { InteractiveList } from "@/components/Chat/InteractiveList/InteractiveList";
-import { ContactsMap, UserMap } from "@/components/Chat/InteractiveList/interactiveList.types";
+import { ChatMap, ContactsMap, UserMap } from "@/components/Chat/InteractiveList/interactiveList.types";
 import { MainBox } from "@/components/Chat/MainBox/MainBox";
 import { SideBar } from "@/components/Chat/SideBar/SideBar";
 import { SIDEBAR_ITEM } from "@/components/Chat/SideBar/sidebar.config";
@@ -34,13 +35,13 @@ export function Chat() {
   const [globalUsers, setGlobalUsers] = useState<UserMap>(new Map());
   const [globalUser, setGlobalUser] = useState<UserParams | undefined>(undefined);
 
-  const [chats, setChats] = useState<ChatParams[]>([]);
+  const [chats, setChats] = useState<ChatMap>(new Map());
 
   const [currentSidebarItem, setCurrentSidebarItem] = useState<string>("chat" as SidebarButtonName);
 
   const fetchGlobalContacts = useCallback(async () => {
     try {
-      const fetchedContacts = await searchContacts();
+      const fetchedContacts = await searchUser();
       setGlobalUsers(fetchedContacts);
     } catch (error) {
       toast.error("Error fetching global users");
@@ -58,7 +59,7 @@ export function Chat() {
 
   useAccessTokenEffect(() => {
     fetchContacts();
-  }, [globalUsers]);
+  }, []);
 
   useAccessTokenEffect(() => {
     fetchGlobalContacts();
@@ -103,13 +104,13 @@ export function Chat() {
   const handleContactClick = (currentContact: ContactParams) => {
     setGlobalUser(undefined);
     setContact(currentContact);
-    dispatch(setCurrentMainBoxState("user-info"));
+    dispatch(setCurrentMainBoxState(MainBoxStateEnum.USER_INFO));
   };
 
   const handleGlobalContactClick = (currentGlobalUser: UserParams) => {
     setContact(undefined);
     setGlobalUser(currentGlobalUser);
-    dispatch(setCurrentMainBoxState("user-info"));
+    dispatch(setCurrentMainBoxState(MainBoxStateEnum.USER_INFO));
   };
 
   const handleAddContact = async (userId: string, alias: string) => {
@@ -130,17 +131,12 @@ export function Chat() {
         updatedUsers.delete(parseInt(userId, 10));
         return updatedUsers;
       });
+      await fetchContacts();
 
       if (globalUser) {
-        setContact({
-          alias: globalUser.name,
-          addedAt: new Date().toISOString(),
-          user: globalUser,
-        });
+        setContact(contacts.get(globalUser.id));
       }
       setGlobalUser(undefined);
-
-      await fetchContacts();
     } catch (error) {
       toast.error("Error adding contact");
     }
@@ -165,6 +161,12 @@ export function Chat() {
     } catch (error) {
       toast.error("Error adding contact");
     }
+  };
+
+  const handleMessageButtonClick = async (userId: string) => {
+    const chatId = await getChatByUserId(userId);
+    console.log(chatId);
+    dispatch(setCurrentMainBoxState(MainBoxStateEnum.CHAT));
   };
 
   SIDEBAR_ITEM.buttons[ListStateEnum.CONTACTS].onClick = () => {
@@ -228,6 +230,7 @@ export function Chat() {
         globalUser={globalUser}
         onAddContactClick={handleAddContact}
         onRemoveContactClick={handleRemoveContact}
+        onMessageButtonClick={handleMessageButtonClick}
       />
     </div>
   );
