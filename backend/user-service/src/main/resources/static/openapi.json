@@ -206,11 +206,23 @@
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 },
-                "example": {
-                  "path": "/api/v1/users?username=@user&offset=1&limit=3",
-                  "message": "Access token is invalid",
-                  "status": 400,
-                  "timestamp": 1705653700.223180100
+                "examples": {
+                  "Invalid token": {
+                    "value": {
+                      "path": "/api/v1/users?username=@user&offset=1&limit=3",
+                      "message": "Access token is invalid",
+                      "status": 400,
+                      "timestamp": 1705653700.223180100
+                    }
+                  },
+                  "Invalid pagination params": {
+                    "value": {
+                      "path": "/api/v1/users/contacts",
+                      "message": "offset: must be greater than 0",
+                      "status": 400,
+                      "timestamp": 1715427319.248288600
+                    }
+                  }
                 }
               }
             }
@@ -435,10 +447,10 @@
         "tags": [
           "Contacts"
         ],
-        "summary": "Retrieve a portion of contacts that have usernames that start with specified one",
+        "summary": "Retrieve a portion of contacts that have username, name or alias that matched with search parameter",
         "parameters": [
           {
-            "$ref": "#/components/parameters/username"
+            "$ref": "#/components/parameters/search"
           },
           {
             "$ref": "#/components/parameters/offset"
@@ -508,17 +520,29 @@
             }
           },
           "400": {
-            "description": "Access token is invalid",
+            "description": "Bad request",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiError"
                 },
-                "example": {
-                  "path": "/api/v1/users/contacts?username=@user&offset=1&limit=3",
-                  "message": "Access token is invalid",
-                  "status": 400,
-                  "timestamp": 1705653700.223180100
+                "examples": {
+                  "Invalid token": {
+                    "value": {
+                      "path": "/api/v1/users/contacts?search=@user&offset=1&limit=3",
+                      "message": "Access token is invalid",
+                      "status": 400,
+                      "timestamp": 1705653700.223180100
+                    }
+                  },
+                  "Invalid pagination params": {
+                    "value": {
+                      "path": "/api/v1/users/contacts",
+                      "message": "offset: must be greater than 0",
+                      "status": 400,
+                      "timestamp": 1715427319.248288600
+                    }
+                  }
                 }
               }
             }
@@ -854,11 +878,22 @@
         "description": "Value that is used for matching and returning records",
         "example": "@user"
       },
+      "search": {
+        "in": "query",
+        "name": "search",
+        "schema": {
+          "type": "string"
+        },
+        "description": "Value that is used for matching and returning records",
+        "example": "@user"
+      },
       "offset": {
         "in": "query",
         "name": "offset",
         "schema": {
-          "type": "integer"
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
         },
         "description": "The number of items to skip before starting to collect the result set",
         "example": 1
@@ -867,7 +902,9 @@
         "in": "query",
         "name": "limit",
         "schema": {
-          "type": "integer"
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
         },
         "description": "The number of items are needed to retrieve",
         "example": 3
