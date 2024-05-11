@@ -25,6 +25,8 @@ export function ThemeToggle() {
       placeholder="Change Theme"
       toggled={isLightTheme}
       onToggle={handleToggleTheme}
+      onPointerEnterCapture={undefined}
+      onPointerLeaveCapture={undefined}
     />
   );
 }
