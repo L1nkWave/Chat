@@ -1,6 +1,6 @@
 "use client";
 
-import "./homePageParallax.css";
+import "./homePageParallax.styles.css";
 
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/dist/ScrollTrigger";
