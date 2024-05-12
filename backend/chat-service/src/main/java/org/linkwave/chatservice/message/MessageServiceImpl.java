@@ -36,10 +36,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static java.util.function.Predicate.not;
 import static java.util.stream.StreamSupport.stream;
@@ -293,7 +290,7 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
-    public Pair<Long, Map<LocalDate, List<MessageDto>>> getChatMessages(
+    public Pair<Long, List<MessageDto>> getChatMessages(
             @NonNull RequestInitiator initiator, String chatId, int offset, int limit
     ) {
         final Chat chat = chatService.findChat(chatId);
@@ -333,16 +330,12 @@ public class MessageServiceImpl implements MessageService {
                     }
                 });
 
-        final Map<LocalDate, List<MessageDto>> messages = messageList.stream()
-                .map(message -> ((FetchMessageMapping) message).mapForFetch(modelMapper, initiator.userId(), usersMap))
-                .collect(Collectors.groupingBy(
-                        message -> LocalDate.ofInstant(message.getCreatedAt(), ZoneId.systemDefault()),
-                        Collectors.toList()
-                ));
+        final List<MessageDto> messages = messageList.stream()
+                .map(message -> ((FetchMessageMapping) message))
+                .map(mapping -> mapping.mapForFetch(modelMapper, initiator.userId(), usersMap))
+                .toList();
 
-        final TreeMap<LocalDate, List<MessageDto>> treeMap = new TreeMap<>(Comparator.reverseOrder());
-        treeMap.putAll(messages);
-        return Pair.of(chatMessagesTotalCount, treeMap);
+        return Pair.of(chatMessagesTotalCount, messages);
     }
 
     @Override

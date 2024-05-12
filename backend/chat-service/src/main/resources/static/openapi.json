@@ -641,105 +641,113 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "example": {
-                    "2024-05-11": [
+                  "items": {
+                    "anyOf": [
                       {
-                        "id": "663f3af68786790ad28989be",
-                        "action": "KICK",
-                        "createdAt": 1715419894.550000000,
-                        "author": {
-                          "id": 1,
-                          "username": "@mathewmcc",
-                          "name": "Matthew McConaughey",
-                          "deleted": null
-                        },
-                        "reactions": [],
-                        "memberId": 34,
-                        "username": "@matthewjohnson",
-                        "name": "Matiyuk",
-                        "isRead": false,
-                        "deleted": false
+                        "$ref": "#/components/schemas/MessageDto"
                       },
                       {
-                        "id": "663f3af38786790ad28989bd",
-                        "action": "JOIN",
-                        "createdAt": 1715419891.384000000,
-                        "author": {
-                          "id": 34,
-                          "username": "@matthewjohnson",
-                          "name": "Matiyuk",
-                          "deleted": null
-                        },
-                        "reactions": [],
-                        "isRead": null
+                        "$ref": "#/components/schemas/TextMessageDto"
                       },
                       {
-                        "id": "663f3ab08786790ad28989bc",
-                        "action": "LEAVE",
-                        "createdAt": 1715419824.371000000,
-                        "author": {
-                          "id": 34,
-                          "username": "@matthewjohnson",
-                          "name": "Matiyuk",
-                          "deleted": null
-                        },
-                        "reactions": [],
-                        "isRead": null
-                      }
-                    ],
-                    "2024-05-09": [
-                      {
-                        "id": "663d1f569069bb7a7d3f50de",
-                        "action": "MESSAGE",
-                        "createdAt": 1715281750.706000000,
-                        "author": {
-                          "id": 1,
-                          "username": "@mathewmcc",
-                          "name": "Matthew McConaughey",
-                          "deleted": null
-                        },
-                        "reactions": [],
-                        "text": "after hahaharld!",
-                        "edited": false,
-                        "isRead": false
-                      }
-                    ],
-                    "2024-05-08": [
-                      {
-                        "id": "662d143a0ac16c656ec61c92",
-                        "action": "FILE",
-                        "createdAt": 1714230330.051000000,
-                        "author": {
-                          "id": 34,
-                          "username": "@matthewjohnson",
-                          "name": "Matiyuk",
-                          "deleted": null
-                        },
-                        "reactions": [],
-                        "filename": "animals – копія.csv",
-                        "contentType": "text/csv",
-                        "size": 46,
-                        "isRead": null
+                        "$ref": "#/components/schemas/FileMessageDto"
                       },
                       {
-                        "id": "662d056bb3a0766edf978f22",
-                        "action": "ADD",
-                        "createdAt": 1714226538.964000000,
-                        "author": {
-                          "id": 1,
-                          "username": "@mathewmcc",
-                          "name": "Matthew McConaughey",
-                          "deleted": null
-                        },
-                        "reactions": [],
-                        "memberId": 34,
-                        "username": "@matthewjohnson",
-                        "name": "Matiyuk",
-                        "isRead": true,
-                        "deleted": false
+                        "$ref": "#/components/schemas/MemberMessageDto"
                       }
                     ]
-                  }
+                  },
+                  "example": [
+                    {
+                      "id": "664067a65338496ee8cc0abf",
+                      "action": "ADD",
+                      "createdAt": 1715496870.089000000,
+                      "author": {
+                        "id": 1,
+                        "username": "@mathewmcc",
+                        "name": "Matthew McConaughey",
+                        "deleted": false
+                      },
+                      "reactions": [],
+                      "memberId": 34,
+                      "username": "@matthewjohnson",
+                      "name": "Matiyuk",
+                      "isRead": false,
+                      "deleted": false
+                    },
+                    {
+                      "id": "664067095338496ee8cc0abe",
+                      "action": "LEAVE",
+                      "createdAt": 1715496712.989000000,
+                      "author": {
+                        "id": 34,
+                        "username": "@matthewjohnson",
+                        "name": "Matiyuk",
+                        "deleted": false
+                      },
+                      "reactions": [],
+                      "isRead": null
+                    },
+                    {
+                      "id": "664065905338496ee8cc0abd",
+                      "action": "FILE",
+                      "createdAt": 1715496336.778000000,
+                      "author": {
+                        "id": 1,
+                        "username": "@mathewmcc",
+                        "name": "Matthew McConaughey",
+                        "deleted": false
+                      },
+                      "reactions": [],
+                      "filename": "Screenshot_1.png",
+                      "contentType": "image/png",
+                      "size": 300275,
+                      "isRead": false
+                    },
+                    {
+                      "id": "6640640c5338496ee8cc0abc",
+                      "action": "MESSAGE",
+                      "createdAt": 1715495948.026000000,
+                      "author": {
+                        "id": 1,
+                        "username": "@mathewmcc",
+                        "name": "Matthew McConaughey",
+                        "deleted": false
+                      },
+                      "reactions": [],
+                      "text": "939",
+                      "edited": false,
+                      "isRead": false
+                    },
+                    {
+                      "id": "663fc3813c60a57263542abc",
+                      "action": "MESSAGE",
+                      "createdAt": 1715454849.217000000,
+                      "author": {
+                        "id": 34,
+                        "username": "@matthewjohnson",
+                        "name": "Matiyuk",
+                        "deleted": false
+                      },
+                      "reactions": [],
+                      "text": "string",
+                      "edited": false,
+                      "isRead": null
+                    },
+                    {
+                      "id": "663fc35a3c60a57263542abb",
+                      "action": "JOIN",
+                      "createdAt": 1715454810.868000000,
+                      "author": {
+                        "id": 34,
+                        "username": "@matthewjohnson",
+                        "name": "Matiyuk",
+                        "deleted": false
+                      },
+                      "reactions": [],
+                      "isRead": null
+                    }
+                  ]
                 }
               }
             }
@@ -1509,8 +1517,9 @@
           "author": {
             "$ref": "#/components/schemas/MessageAuthorDto"
           },
-          "read": {
-            "type": "boolean"
+          "isRead": {
+            "type": "boolean",
+            "nullable": true
           },
           "reactions": {
             "type": "array",
@@ -1564,7 +1573,7 @@
           },
           "isRead": {
             "type": "boolean",
-            "nullable": false
+            "nullable": true
           },
           "reactions": {
             "type": "array",
@@ -1580,12 +1589,135 @@
           "author": {
             "id": 1,
             "username": "@mathewmcc",
-            "name": "Matthew McConaughey"
+            "name": "Matthew McConaughey",
+            "deleted": false
           },
           "reactions": [],
           "text": "Hi everyone!",
           "edited": false,
           "isRead": true
+        }
+      },
+      "FileMessageDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": false
+          },
+          "action": {
+            "type": "string",
+            "nullable": false
+          },
+          "createdAt": {
+            "type": "number",
+            "nullable": false
+          },
+          "author": {
+            "$ref": "#/components/schemas/MessageAuthorDto"
+          },
+          "isRead": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "reactions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MessageReaction"
+            }
+          },
+          "filename": {
+            "type": "string",
+            "nullable": false
+          },
+          "contentType": {
+            "type": "string",
+            "nullable": false
+          },
+          "size": {
+            "type": "integer",
+            "nullable": false,
+            "minimum": 0
+          }
+        },
+        "example": {
+          "id": "664065905338496ee8cc0abd",
+          "action": "FILE",
+          "createdAt": 1715496336.778000000,
+          "author": {
+            "id": 1,
+            "username": "@mathewmcc",
+            "name": "Matthew McConaughey",
+            "deleted": null
+          },
+          "reactions": [],
+          "filename": "Screenshot_1.png",
+          "contentType": "image/png",
+          "size": 300275,
+          "isRead": false
+        }
+      },
+      "MemberMessageDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": false
+          },
+          "action": {
+            "type": "string",
+            "nullable": false
+          },
+          "createdAt": {
+            "type": "number",
+            "nullable": false
+          },
+          "author": {
+            "$ref": "#/components/schemas/MessageAuthorDto"
+          },
+          "isRead": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "reactions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MessageReaction"
+            }
+          },
+          "memberId": {
+            "type": "integer",
+            "nullable": false
+          },
+          "username": {
+            "type": "string",
+            "nullable": false
+          },
+          "name": {
+            "type": "string",
+            "nullable": false
+          },
+          "deleted": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "example": {
+          "id": "664067a65338496ee8cc0abf",
+          "action": "ADD",
+          "createdAt": 1715496870.089000000,
+          "author": {
+            "id": 1,
+            "username": "@mathewmcc",
+            "name": "Matthew McConaughey",
+            "deleted": null
+          },
+          "reactions": [],
+          "memberId": 34,
+          "username": "@matthewjohnson",
+          "name": "Matiyuk",
+          "isRead": false,
+          "deleted": false
         }
       },
       "MessageAuthorDto": {

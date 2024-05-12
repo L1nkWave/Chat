@@ -57,7 +57,9 @@ public class Message implements DtoConverter<MessageDto>, FetchMessageMapping {
         final UserDto authorUserDto = users.get(authorId);
 
         if (authorUserDto != null) {
-            message.setAuthor(modelMapper.map(authorUserDto, MessageAuthorDto.class));
+            final MessageAuthorDto messageAuthorDto = modelMapper.map(authorUserDto, MessageAuthorDto.class);
+            messageAuthorDto.setIsDeleted(authorUserDto.isDeleted());
+            message.setAuthor(messageAuthorDto);
         }
         if (authorId.equals(fetcherUserId)) {
             message.setIsRead(this.isRead);

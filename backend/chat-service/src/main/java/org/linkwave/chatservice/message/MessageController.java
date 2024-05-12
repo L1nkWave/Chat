@@ -19,9 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
 import static org.linkwave.chatservice.common.RequestUtils.requestInitiator;
 import static org.linkwave.chatservice.common.RequestUtils.userDetails;
@@ -91,13 +89,13 @@ public class MessageController {
     }
 
     @GetMapping("/{chatId}/messages")
-    public Map<LocalDate, List<MessageDto>> getMessages(
+    public List<MessageDto> getMessages(
             @PathVariable String chatId, @RequestParam int offset, @RequestParam int limit,
             @NonNull HttpServletRequest request, @NonNull HttpServletResponse response
     ) {
         log.debug("-> getMessages(): offset = {}, limit={}", offset, limit);
 
-        final Pair<Long, Map<LocalDate, List<MessageDto>>> chatMessages = messageService.getChatMessages(
+        final Pair<Long, List<MessageDto>> chatMessages = messageService.getChatMessages(
                 requestInitiator(request), chatId, offset, limit
         );
         response.addHeader(TOTAL_COUNT.getValue(), String.valueOf(chatMessages.getFirst()));
