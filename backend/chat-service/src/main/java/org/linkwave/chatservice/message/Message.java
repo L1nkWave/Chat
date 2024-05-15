@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.querydsl.core.annotations.QueryEntity;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.linkwave.chatservice.api.users.UserDto;
+import org.linkwave.chatservice.chat.MessageAuthorDto;
 import org.linkwave.chatservice.chat.duo.Chat;
 import org.linkwave.chatservice.common.DtoConverter;
 import org.modelmapper.ModelMapper;
@@ -14,6 +16,7 @@ import org.springframework.lang.NonNull;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @QueryEntity
 @Document("messages")
@@ -22,7 +25,7 @@ import java.util.List;
 @EqualsAndHashCode(of = {"id", "action", "createdAt", "authorId"})
 @ToString(exclude = "chat")
 @SuperBuilder
-public class Message implements DtoConverter<MessageDto> {
+public class Message implements DtoConverter<MessageDto>, FetchMessageMapping {
 
     private String id;
     private Action action;
@@ -46,4 +49,22 @@ public class Message implements DtoConverter<MessageDto> {
         return modelMapper.map(this, MessageDto.class);
     }
 
+    @Override
+    public MessageDto mapForFetch(@NonNull ModelMapper modelMapper, Long fetcherUserId,
+                                  @NonNull Map<Long, UserDto> users) {
+        final MessageDto message = convert(modelMapper);
+        final Long authorId = message.getAuthor().getId();
+        final UserDto authorUserDto = users.get(authorId);
+
+        if (authorUserDto != null) {
+            final MessageAuthorDto messageAuthorDto = modelMapper.map(authorUserDto, MessageAuthorDto.class);
+            messageAuthorDto.setIsDeleted(authorUserDto.isDeleted());
+            message.setAuthor(messageAuthorDto);
+        }
+        if (authorId.equals(fetcherUserId)) {
+            message.setIsRead(this.isRead);
+        }
+
+        return message;
+    }
 }

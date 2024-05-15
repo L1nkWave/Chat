@@ -2,14 +2,17 @@ package org.linkwave.chatservice.message;
 
 import com.fasterxml.jackson.annotation.JsonView;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.linkwave.chatservice.common.DtoViews.New;
 import org.linkwave.chatservice.common.UnacceptableRequestDataException;
 import org.linkwave.chatservice.message.file.CreatedFileMessage;
 import org.linkwave.chatservice.message.text.EditTextMessage;
 import org.linkwave.chatservice.message.text.NewTextMessage;
 import org.linkwave.chatservice.message.text.UpdatedTextMessage;
+import org.springframework.data.util.Pair;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
@@ -20,9 +23,10 @@ import java.util.List;
 
 import static org.linkwave.chatservice.common.RequestUtils.requestInitiator;
 import static org.linkwave.chatservice.common.RequestUtils.userDetails;
+import static org.linkwave.shared.utils.Headers.TOTAL_COUNT;
 import static org.springframework.http.HttpStatus.*;
-import static org.springframework.http.ResponseEntity.ok;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/chats")
 @RequiredArgsConstructor
@@ -85,8 +89,17 @@ public class MessageController {
     }
 
     @GetMapping("/{chatId}/messages")
-    public ResponseEntity<List<Message>> getMessages(@PathVariable String chatId) {
-        return ok(messageService.getChatMessages(userDetails().id(), chatId));
+    public List<MessageDto> getMessages(
+            @PathVariable String chatId, @RequestParam int offset, @RequestParam int limit,
+            @NonNull HttpServletRequest request, @NonNull HttpServletResponse response
+    ) {
+        log.debug("-> getMessages(): offset = {}, limit={}", offset, limit);
+
+        final Pair<Long, List<MessageDto>> chatMessages = messageService.getChatMessages(
+                requestInitiator(request), chatId, offset, limit
+        );
+        response.addHeader(TOTAL_COUNT.getValue(), String.valueOf(chatMessages.getFirst()));
+        return chatMessages.getSecond();
     }
 
     @PatchMapping("/messages/{id}/text")
