@@ -25,4 +25,5 @@ export const iconMapping = {
   "add-circle-outline": Icons.AddCircleOutlineIcon,
   "folder-outline": Icons.FolderOutlineIcon,
   "send-outline": Icons.SendOutlineIcon,
+  "angle-down": Icons.AngleDownIcon,
 };

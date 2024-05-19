@@ -1,5 +1,6 @@
 export { default as AddChatOutlineIcon } from "./add-chat-outline.svg";
 export { default as AddCircleOutlineIcon } from "./add-circle-outline.svg";
+export { default as AngleDownIcon } from "./angle-down.svg";
 export { default as ChatPlusOutlineIcon } from "./chat-plus-outline.svg";
 export { default as CheckIcon } from "./check.svg";
 export { default as CutCheckIcon } from "./cut-check.svg";
