@@ -1,5 +1,5 @@
 import { instance } from "@/api/http";
-import { ChatParams } from "@/api/http/contacts/contacts.types";
+import { ChatParams, MessageParams } from "@/api/http/contacts/contacts.types";
 
 export async function addDuoChat(userId: string) {
   const body = {
@@ -21,4 +21,13 @@ export async function getChats(offset: number = 0, limit: number = 10) {
     chats.set(chat.id, chat);
   });
   return chats;
+}
+
+export async function getMessagesByChatId(chatId: string, limit: number = 40, offset: number = 0) {
+  const { data } = await instance.get<MessageParams[]>(`chats/${chatId}/messages?limit=${limit}&offset=${offset}`);
+  const messages = new Map<string, MessageParams>();
+  data.forEach(chat => {
+    messages.set(chat.id, chat);
+  });
+  return messages;
 }

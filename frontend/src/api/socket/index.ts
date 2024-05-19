@@ -1,5 +1,3 @@
-import { ChatType } from "@/api/socket/index.types";
-
 const socketUrl = process.env.NEXT_PUBLIC_WEB_SOCKET_URL;
 
 export const connectToSocket = (token: string) => {
@@ -10,10 +8,14 @@ export const connectToSocket = (token: string) => {
   return socket;
 };
 
-export const sendChatMessage = (socket: WebSocket, message: string, chatType: ChatType, chatId: number | string) => {
-  socket.send(`path=/chat/${chatId}/send
+export const sendChatMessage = (socket: WebSocket, chatId: string, message: string, tempId: string) => {
+  const path = `path=/chat/${chatId}/send`;
+  const payload = JSON.stringify({
+    tmpMessageId: tempId,
+    text: message,
+  });
+
+  socket.send(`${path}
   
-  
-    ${message}
-  `);
+   ${payload}`);
 };

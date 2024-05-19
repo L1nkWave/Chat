@@ -7,6 +7,7 @@ export type UserParams = {
   username: string;
   createdAt: string;
   avatarPath?: string;
+  deleted?: boolean;
 };
 
 export type ContactParams = {
@@ -18,7 +19,7 @@ export type ContactParams = {
 export type MessageParams = {
   action: string;
   author: UserParams;
-  createdAt: string;
+  createdAt: number;
   edited: boolean;
   id: string;
   isRead: boolean;
@@ -27,8 +28,10 @@ export type MessageParams = {
 };
 
 export type ChatParams = {
-  createdAt: string;
   id: string;
+  type: string;
+  createdAt: number;
   lastMessage: MessageParams;
-  type: number;
+  user: UserParams;
+  avatarAvailable: boolean;
 };
