@@ -3,6 +3,7 @@ export enum MessageAction {
   OFFLINE = "OFFLINE",
   BIND = "BIND",
   MESSAGE = "MESSAGE",
+  UNREAD_MESSAGES = "UNREAD_MESSAGES",
 }
 
 export type MessageActionParams = {
@@ -28,7 +29,12 @@ export type MessageLikeMessage = {
   text: string;
 } & MessageActionParams;
 
-export type SocketMessageType = OnlineOfflineMessage | BindMessage | MessageLikeMessage;
+export type UnreadMessagesMessage = {
+  timestamp: number;
+  chats: Record<string, number>;
+} & MessageActionParams;
+
+export type SocketMessageType = OnlineOfflineMessage | BindMessage | MessageLikeMessage | UnreadMessagesMessage;
 
 export type SocketContextProps = {
   webSocket?: WebSocket | null;
