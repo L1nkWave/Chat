@@ -1,6 +1,6 @@
 :root {
     --scrollbar-thumb-color: rgba(38, 69, 101, 0.3);
-    --scrollbar-track-color: rgba(40, 44, 53, 0.2);
+    --scrollbar-track-color: transparent;
 }
 
 /* width */

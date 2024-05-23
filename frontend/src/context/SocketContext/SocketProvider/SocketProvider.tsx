@@ -4,19 +4,22 @@ import { useRouter } from "next/navigation";
 import { PropsWithChildren, useEffect, useMemo, useState } from "react";
 
 import { refreshToken } from "@/api/http/auth/auth";
+import { AuthTypes } from "@/api/http/auth/auth.types";
 import { connectToSocket } from "@/api/socket";
 import { SocketContext } from "@/context/SocketContext/SocketContext";
-import { MessageContextParams, SocketContextProps } from "@/context/SocketContext/socketContext.types";
-import { RECONNECT_TIMEOUT } from "@/context/SocketContext/SocketProvider/socketProvider.config";
-import { setAccessToken } from "@/lib/features/user/userSlice";
+import { SocketContextProps, SocketMessageType } from "@/context/SocketContext/socketContext.types";
+import { isTokenExpired } from "@/helpers/DecodeToken/decodeToken";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+
+const MAX_RECONNECT_ATTEMPTS = 3;
 
 export function SocketProvider({ children }: Readonly<PropsWithChildren>) {
   const dispatch = useAppDispatch();
   const { accessToken } = useAppSelector(state => state.user);
   const route = useRouter();
   const [webSocket, setWebSocket] = useState<WebSocket | null>(null);
-  const [message, setMessage] = useState<MessageContextParams>();
+  const [socketMessage, setSocketMessage] = useState<SocketMessageType>();
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
 
   useEffect(() => {
     if (!accessToken) {
@@ -26,15 +29,23 @@ export function SocketProvider({ children }: Readonly<PropsWithChildren>) {
 
     const newSocket = connectToSocket(accessToken);
 
-    newSocket.onclose = () => {
-      setTimeout(async () => {
+    newSocket.onclose = async () => {
+      if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
         try {
-          const data = await refreshToken();
-          dispatch(setAccessToken(data.accessToken));
+          let data: AuthTypes = { accessToken, refreshExpiration: 0 };
+          if (isTokenExpired(accessToken)) {
+            data = await refreshToken();
+          }
+          const newWebSocket = connectToSocket(data.accessToken);
+          setWebSocket(newWebSocket);
+          setReconnectAttempts(prevAttempts => prevAttempts + 1);
         } catch (error) {
-          setWebSocket(null);
+          console.error("Failed to refresh token:", error);
+          route.push("/sign-in");
         }
-      }, RECONNECT_TIMEOUT);
+      } else {
+        route.push("/sign-in");
+      }
     };
 
     newSocket.onerror = () => {
@@ -47,7 +58,7 @@ export function SocketProvider({ children }: Readonly<PropsWithChildren>) {
     };
 
     newSocket.onmessage = event => {
-      setMessage(JSON.parse(event.data));
+      setSocketMessage(JSON.parse(event.data));
     };
 
     setWebSocket(newSocket);
@@ -57,14 +68,14 @@ export function SocketProvider({ children }: Readonly<PropsWithChildren>) {
         newSocket.close();
       }
     };
-  }, [accessToken, dispatch, route]);
+  }, [accessToken, dispatch, route, reconnectAttempts]);
 
   const value = useMemo<SocketContextProps>(() => {
     return {
       webSocket,
-      message,
+      socketMessage,
     };
-  }, [message, webSocket]);
+  }, [socketMessage, webSocket]);
 
   return <SocketContext.Provider value={value}>{children}</SocketContext.Provider>;
 }

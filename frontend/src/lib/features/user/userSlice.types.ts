@@ -7,13 +7,13 @@ export enum UserStatus {
   OFFLINE = "Disconnected",
 }
 
-export type UserStateParams = {
-  accessToken: string | null;
-  currentUser: UserParams | null;
-};
-
 export type TokenParams = {
   "token-id": string;
   "user-id": string;
   authorities: string[];
 } & JwtPayload;
+
+export type UserStateParams = {
+  accessToken: string | null;
+  currentUser: UserParams | null;
+};

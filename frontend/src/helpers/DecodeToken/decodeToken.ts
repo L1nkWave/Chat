@@ -9,3 +9,10 @@ export const decodeToken = (token: string) => {
     return null;
   }
 };
+
+export const isTokenExpired = (token: string) => {
+  const decodedToken = decodeToken(token);
+  if (!decodedToken) return true;
+
+  return Date.now() >= decodedToken.exp * 1000;
+};

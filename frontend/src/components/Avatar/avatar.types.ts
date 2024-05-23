@@ -9,4 +9,5 @@ export type AvatarProps = {
   item: ItemParams;
   status?: boolean;
   online?: boolean;
+  statusClassName?: string;
 } & Omit<ImageProps, "src">;

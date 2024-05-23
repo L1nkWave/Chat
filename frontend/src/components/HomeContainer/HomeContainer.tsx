@@ -18,7 +18,7 @@ export function HomeContainer({ children }: Readonly<HomeContainerProps>) {
         scrollTrigger: {
           trigger: containerRef.current,
           start: "1000 top",
-          end: "5000 top",
+          end: "4000 top",
           scrub: true,
           onUpdate: self => {
             const newColor = gsap.utils.interpolate(`${COLORS.blue["100"]}65`, COLORS.blue["700"], self.progress);
@@ -35,7 +35,7 @@ export function HomeContainer({ children }: Readonly<HomeContainerProps>) {
       <div className="bg-blue-600/60">
         <div
           ref={containerRef}
-          className="px-32 text-white"
+          className="px-32 text-white pb-16 flex flex-col gap-40"
           style={{
             background: `${background}`,
           }}

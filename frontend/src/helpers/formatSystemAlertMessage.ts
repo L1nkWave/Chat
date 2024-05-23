@@ -1,4 +1,4 @@
-export const formatMessage = (input: string | undefined): string | undefined => {
+export const formatSystemAlertMessage = (input: string | undefined): string | undefined => {
   if (!input) {
     return input;
   }

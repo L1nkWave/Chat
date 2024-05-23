@@ -1,5 +1,7 @@
-import { UserParams } from "@/api/http/contacts/contacts.types";
+import { ContactParams } from "@/api/http/contacts/contacts.types";
+import { ContactClickHandler } from "@/components/Chat/types/handlers.types";
 
 export type ChatHeaderProps = {
-  user: UserParams;
+  contact: ContactParams;
+  onChatHeaderClick?: ContactClickHandler;
 };

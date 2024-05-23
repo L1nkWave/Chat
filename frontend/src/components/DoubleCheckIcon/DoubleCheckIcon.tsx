@@ -8,7 +8,7 @@ export function DoubleCheckIcon({
   iconSize,
   cutCheckIconColor,
   checkIconColor,
-}: DoubleCheckIconProps) {
+}: Readonly<DoubleCheckIconProps>) {
   const divisor = 2.8;
   let iconShift: number;
 
