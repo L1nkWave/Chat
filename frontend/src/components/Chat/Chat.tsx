@@ -2,32 +2,48 @@
 
 import React, { useCallback, useContext, useState } from "react";
 import { toast } from "react-toastify";
+import { v4 as uuidv4 } from "uuid";
 
-import { addDuoChat, getChatByUserId, getChats } from "@/api/http/chat/chat";
+import { addDuoChat, AddDuoChatParams, getChatByUserId, getChats, getMessagesByChatId } from "@/api/http/chat/chat";
 import { addContact, getContacts, removeContact } from "@/api/http/contacts/contacts";
-import { ContactParams, UserParams } from "@/api/http/contacts/contacts.types";
-import { searchUser } from "@/api/http/user/user";
+import { ChatParams, ContactParams, UserParams } from "@/api/http/contacts/contacts.types";
+import { getUserById, searchUser } from "@/api/http/user/user";
+import { checkUnreadMessages, sendChatMessage } from "@/api/socket";
+import {
+  bindSocketHandlers,
+  messageHandler,
+  offlineHandler,
+  onlineHandler,
+  unreadMessagesHandler,
+} from "@/components/Chat/chat.socketHandlers";
 import { ListStateEnum, MainBoxStateEnum } from "@/components/Chat/chat.types";
 import { InteractiveList } from "@/components/Chat/InteractiveList/InteractiveList";
-import { ChatMap, ContactsMap, UserMap } from "@/components/Chat/InteractiveList/interactiveList.types";
+import { ChatMap, ContactsMap, MessagesMap, UserMap } from "@/components/Chat/InteractiveList/interactiveList.types";
 import { MainBox } from "@/components/Chat/MainBox/MainBox";
 import { SideBar } from "@/components/Chat/SideBar/SideBar";
 import { SIDEBAR_ITEM } from "@/components/Chat/SideBar/sidebar.config";
 import { SidebarButtonName } from "@/components/Chat/SideBar/sidebar.types";
 import { CustomButton } from "@/components/CustomButton/CustomButton";
 import { SocketContext } from "@/context/SocketContext/SocketContext";
-import { MessageAction } from "@/context/SocketContext/socketContext.types";
-import { lastSeenDateNow } from "@/helpers/contactHelpers";
-import { useAccessTokenEffect } from "@/hooks/useAccessTokenEffect";
+import {
+  BindMessage,
+  MessageAction,
+  MessageLikeMessage,
+  OnlineOfflineMessage,
+  UnreadMessagesMessage,
+} from "@/context/SocketContext/socketContext.types";
+import { SoundContext } from "@/context/SoundContext/SoundContext";
+import { useAccessTokenEffect, useAccessTokenLayoutEffect } from "@/hooks/useAccessTokenEffect";
 import { setCurrentInteractiveListState, setCurrentMainBoxState } from "@/lib/features/chat/chatSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 
 export function Chat() {
   const dispatch = useAppDispatch();
 
+  const { messageSound } = useContext(SoundContext);
+  const { webSocket } = useContext(SocketContext);
   const { currentMainBoxState, currentInteractiveListState } = useAppSelector(state => state.chat);
-
-  const { message } = useContext(SocketContext);
+  const { socketMessage } = useContext(SocketContext);
 
   const [contacts, setContacts] = useState<ContactsMap>(new Map());
   const [contact, setContact] = useState<ContactParams | undefined>(undefined);
@@ -36,6 +52,8 @@ export function Chat() {
   const [globalUser, setGlobalUser] = useState<UserParams | undefined>(undefined);
 
   const [chats, setChats] = useState<ChatMap>(new Map());
+  const [chatId, setChatId] = useState<string | undefined>(undefined);
+  const [currentMessages, setCurrentMessages] = useState<MessagesMap>(new Map());
 
   const [currentSidebarItem, setCurrentSidebarItem] = useState<string>("chat" as SidebarButtonName);
 
@@ -57,6 +75,15 @@ export function Chat() {
     }
   }, []);
 
+  const fetchChats = useCallback(async () => {
+    try {
+      const fetchedChats = await getChats();
+      setChats(fetchedChats);
+    } catch (error) {
+      toast.error("Error fetching chats");
+    }
+  }, []);
+
   useAccessTokenEffect(() => {
     fetchContacts();
   }, []);
@@ -66,44 +93,60 @@ export function Chat() {
   }, []);
 
   useAccessTokenEffect(() => {
-    const fetchChats = async () => {
-      try {
-        const fetchedChats = await getChats();
-        setChats(fetchedChats);
-      } catch (error) {
-        toast.error("Error fetching chats");
-      }
-    };
     fetchChats();
   }, []);
 
   useAccessTokenEffect(() => {
-    console.log("message", message);
-    if (message?.action === MessageAction.OFFLINE) {
-      setContacts(prevContacts => {
-        const updatedContact = prevContacts.get(message.senderId);
-        if (updatedContact) {
-          updatedContact.user.online = false;
-          updatedContact.user.lastSeen = lastSeenDateNow();
-          return new Map(prevContacts).set(message.senderId, updatedContact);
-        }
-        return prevContacts;
-      });
-    } else if (message?.action === MessageAction.ONLINE) {
-      setContacts(prevContacts => {
-        const updatedContact = prevContacts.get(message.senderId);
-        if (updatedContact) {
-          updatedContact.user.online = true;
-          return new Map(prevContacts).set(message.senderId, updatedContact);
-        }
-        return prevContacts;
-      });
+    if (currentMainBoxState !== MainBoxStateEnum.CHAT) {
+      setChatId(undefined);
     }
-  }, [message]);
+  }, [currentMainBoxState]);
 
-  const handleContactClick = (currentContact: ContactParams) => {
+  useAccessTokenEffect(() => {
+    if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+      setTimeout(() => {
+        checkUnreadMessages(webSocket);
+      }, 300);
+    }
+  }, [webSocket?.readyState, fetchChats]);
+
+  useAccessTokenLayoutEffect(() => {
+    console.log("socketMessage", socketMessage);
+    if (!socketMessage) {
+      return;
+    }
+    if (socketMessage.action === MessageAction.OFFLINE) {
+      offlineHandler(socketMessage as OnlineOfflineMessage, setChats, contact, setContact, setContacts);
+    } else if (socketMessage.action === MessageAction.ONLINE) {
+      onlineHandler(socketMessage as OnlineOfflineMessage, setChats, contact, setContact, setContacts);
+    } else if (socketMessage.action === MessageAction.BIND) {
+      bindSocketHandlers(socketMessage as BindMessage, currentMessages, setCurrentMessages);
+    } else if (socketMessage.action === MessageAction.MESSAGE) {
+      messageHandler(
+        socketMessage as MessageLikeMessage,
+        chatId,
+        currentMessages,
+        chats,
+        fetchChats,
+        setChats,
+        setCurrentMessages
+      );
+      checkUnreadMessages(webSocket as WebSocket);
+      if (chatId !== (socketMessage as MessageLikeMessage).chatId) {
+        messageSound();
+      }
+    } else if (socketMessage.action === MessageAction.UNREAD_MESSAGES) {
+      unreadMessagesHandler(socketMessage as UnreadMessagesMessage, setChats);
+    }
+  }, [socketMessage]);
+
+  const handleContactClick = async (currentContact: ContactParams) => {
     setGlobalUser(undefined);
-    setContact(currentContact);
+    const fetchedUser = await getUserById(currentContact.user.id.toString());
+    setContact({
+      ...currentContact,
+      user: fetchedUser,
+    });
     dispatch(setCurrentMainBoxState(MainBoxStateEnum.USER_INFO));
   };
 
@@ -137,6 +180,8 @@ export function Chat() {
         setContact(contacts.get(globalUser.id));
       }
       setGlobalUser(undefined);
+
+      await fetchChats();
     } catch (error) {
       toast.error("Error adding contact");
     }
@@ -158,15 +203,88 @@ export function Chat() {
       setContact(undefined);
 
       await fetchGlobalContacts();
+      await fetchChats();
     } catch (error) {
       toast.error("Error adding contact");
     }
   };
 
+  const handleSendMessageButtonClick = async (author: UserParams, chatMessage: string) => {
+    if (webSocket && chatId) {
+      const tempId = uuidv4();
+      const newMessage = {
+        id: tempId,
+        text: chatMessage,
+        author,
+        createdAt: Date.now() / 1000,
+        action: MessageAction.MESSAGE,
+        edited: false,
+        isRead: false,
+        sending: true,
+        reactions: [],
+      };
+      setCurrentMessages(prevMessages => {
+        const updatedMessages = new Map();
+        updatedMessages.set(tempId, newMessage);
+        prevMessages.forEach((message, key) => updatedMessages.set(key, message));
+        return updatedMessages;
+      });
+
+      setChats(prevChat => {
+        const updatedChats = new Map(prevChat);
+        const currentChat = prevChat.get(chatId);
+        if (currentChat) {
+          updatedChats.set(chatId, {
+            ...currentChat,
+            lastMessage: newMessage,
+            createdAt: Date.now() / 1000,
+          });
+        }
+        return updatedChats;
+      });
+      sendChatMessage(webSocket, chatId, chatMessage, tempId);
+    }
+  };
+
   const handleMessageButtonClick = async (userId: string) => {
-    const chatId = await getChatByUserId(userId);
-    console.log(chatId);
+    let newChatId: AddDuoChatParams;
+    try {
+      newChatId = {
+        id: await getChatByUserId(userId),
+        createdAt: Date.now() / 1000,
+      };
+    } catch (error) {
+      newChatId = await addDuoChat(userId);
+    }
+    if (!contact && globalUser) {
+      setContact({
+        addedAt: undefined,
+        alias: globalUser.name,
+        user: globalUser,
+      });
+      setGlobalUser(undefined);
+    }
+
+    setChatId(newChatId.id);
+    setCurrentMessages(await getMessagesByChatId(newChatId.id));
+    if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+      setTimeout(() => {
+        checkUnreadMessages(webSocket);
+      }, 300);
+    }
     dispatch(setCurrentMainBoxState(MainBoxStateEnum.CHAT));
+  };
+
+  const handleChatClick = async (currentChat: ChatParams) => {
+    setContact({
+      addedAt: undefined,
+      alias: currentChat.user.name,
+      user: currentChat.user,
+    });
+    setChatId(currentChat.id);
+    setCurrentMessages(new Map());
+    dispatch(setCurrentMainBoxState(MainBoxStateEnum.CHAT));
+    setCurrentMessages(await getMessagesByChatId(currentChat.id));
   };
 
   SIDEBAR_ITEM.buttons[ListStateEnum.CONTACTS].onClick = () => {
@@ -188,7 +306,6 @@ export function Chat() {
   SIDEBAR_ITEM.buttons.setting.onClick = () => {
     console.log("setting");
   };
-
   return (
     <div className="w-screen flex px-64">
       <SideBar>
@@ -217,6 +334,7 @@ export function Chat() {
         }}
         interactiveChat={{
           chats,
+          onChatClick: handleChatClick,
         }}
         interactiveFindContacts={{
           currentGlobalUser: globalUser,
@@ -228,9 +346,12 @@ export function Chat() {
         mainBoxVariant={currentMainBoxState}
         contact={contact}
         globalUser={globalUser}
+        messages={Array.from(currentMessages.values())}
         onAddContactClick={handleAddContact}
         onRemoveContactClick={handleRemoveContact}
         onMessageButtonClick={handleMessageButtonClick}
+        onSendMessageClick={handleSendMessageButtonClick}
+        onHeaderClick={handleContactClick}
       />
     </div>
   );
