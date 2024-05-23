@@ -6,6 +6,7 @@ import localFont from "next/font/local";
 import React from "react";
 
 import { ToastManager } from "@/components/ToastManager/ToastManager";
+import { SocketProvider } from "@/context/SoundContext/SoundProvider";
 import StoreProvider from "@/context/StoreProvider/StoreProvider";
 import { ThemeProvider } from "@/context/ThemeProvider/ThemeProvider";
 
@@ -47,10 +48,12 @@ export default function RootLayout({
     <html lang="en" className="no-scrollbar" suppressHydrationWarning>
       <body className={`${ggSans.className} bg-white h-screen dark:bg-dark-400 dark:text-white`}>
         <StoreProvider>
-          <ThemeProvider>
-            <ToastManager />
-            {children}
-          </ThemeProvider>
+          <SocketProvider>
+            <ThemeProvider>
+              <ToastManager />
+              {children}
+            </ThemeProvider>
+          </SocketProvider>
         </StoreProvider>
       </body>
     </html>
