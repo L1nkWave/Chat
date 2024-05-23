@@ -1,3 +1,4 @@
 import { DetailedHTMLProps, HTMLAttributes, PropsWithChildren } from "react";
 
-export type ScrollListProps = DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement> & PropsWithChildren;
+export type ScrollListProps = DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement> &
+  PropsWithChildren;
