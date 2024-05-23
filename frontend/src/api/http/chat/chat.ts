@@ -1,11 +1,17 @@
 import { instance } from "@/api/http";
 import { ChatParams, MessageParams } from "@/api/http/contacts/contacts.types";
 
+export type AddDuoChatParams = {
+  id: string;
+  createdAt: number;
+};
+
 export async function addDuoChat(userId: string) {
   const body = {
     recipient: userId,
   };
-  const { data } = await instance.post(`chats`, body);
+  const { data } = await instance.post<AddDuoChatParams>(`chats`, body);
+  console.log("add", data);
   return data;
 }
 
@@ -20,6 +26,7 @@ export async function getChats(offset: number = 0, limit: number = 10) {
   data.forEach(chat => {
     chats.set(chat.id, chat);
   });
+  console.log(chats);
   return chats;
 }
 

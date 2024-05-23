@@ -1,5 +1,14 @@
-import { instance } from "@/api/http";
+import axios from "axios";
+
 import { AuthTypes } from "@/api/http/auth/auth.types";
+
+export const authInstance = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  timeout: 10000,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
 
 export async function signUp(name: string, username: string, password: string) {
   const body = {
@@ -8,7 +17,7 @@ export async function signUp(name: string, username: string, password: string) {
     password,
   };
 
-  const { data } = await instance.post("users/register", body);
+  const { data } = await authInstance.post("users/register", body);
   return data;
 }
 
@@ -18,16 +27,11 @@ export async function signIn(username: string, password: string) {
     password,
   };
 
-  const { data } = await instance.post<AuthTypes>("auth/login", body, { withCredentials: true });
+  const { data } = await authInstance.post<AuthTypes>("auth/login", body, { withCredentials: true });
   return data;
 }
 
 export async function refreshToken() {
-  const { data } = await instance.post<AuthTypes>("auth/refresh-tokens", {}, { withCredentials: true });
-  return data;
-}
-
-export async function logout() {
-  const { data } = await instance.post<AuthTypes>("auth/logout", {}, { withCredentials: true });
+  const { data } = await authInstance.post<AuthTypes>("auth/refresh-tokens", {}, { withCredentials: true });
   return data;
 }

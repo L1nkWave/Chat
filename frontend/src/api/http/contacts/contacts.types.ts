@@ -25,10 +25,12 @@ export type MessageParams = {
   isRead: boolean;
   reactions: string[];
   text: string;
+  sending?: boolean;
 };
 
 export type ChatParams = {
   id: string;
+  unreadMessages: number;
   type: string;
   createdAt: number;
   lastMessage: MessageParams;

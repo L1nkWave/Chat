@@ -11,11 +11,6 @@ export async function getContacts() {
   return contacts;
 }
 
-export async function getContactById(contactId: string) {
-  const { data } = await instance.get<ContactParams>(`users/contacts/${contactId}`);
-  return data;
-}
-
 export async function addContact(userId: string, alias: string) {
   const body = {
     userId,
