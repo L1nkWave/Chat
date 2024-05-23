@@ -4,9 +4,9 @@ import { AvatarProps } from "@/components/Avatar/avatar.types";
 import { Status } from "@/components/Status/Status";
 import { defaultUserAvatar } from "@/helpers/defaultUserAvatar";
 
-export function Avatar({ item, className, online, status = true, ...props }: AvatarProps) {
+export function Avatar({ item, statusClassName, className, online, status = true, ...props }: AvatarProps) {
   return (
-    <span>
+    <span className="relative flex h-full">
       <Image
         className={`object-cover rounded-full ${className}`}
         width={64}
@@ -15,9 +15,10 @@ export function Avatar({ item, className, online, status = true, ...props }: Ava
         {...props}
       />
       {status && online && (
-        <div className="flex justify-end items-end">
-          <Status className="absolute" online={online} />
-        </div>
+        <Status
+          className={`absolute bottom-1.5 left-12 transform translate-x-1/2 translate-y-1/2 ${statusClassName ?? statusClassName}`}
+          online={online}
+        />
       )}
     </span>
   );
