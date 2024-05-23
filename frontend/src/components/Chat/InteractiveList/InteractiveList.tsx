@@ -1,8 +1,8 @@
 import { useRouter } from "next/navigation";
-import React, { useContext } from "react";
+import React, { useContext, useEffect } from "react";
 import { toast } from "react-toastify";
 
-import { logout } from "@/api/http/auth/auth";
+import { logout } from "@/api/http";
 import { Avatar } from "@/components/Avatar/Avatar";
 import { ListStateEnum } from "@/components/Chat/chat.types";
 import { InteractiveListProps } from "@/components/Chat/InteractiveList/interactiveList.types";
@@ -24,10 +24,12 @@ export function InteractiveList({
   const { webSocket } = useContext(SocketContext);
   const { accessToken, currentUser } = useAppSelector(state => state.user);
   const router = useRouter();
-  if (!currentUser) {
-    router.replace("/sign-in");
-    return null;
-  }
+
+  useEffect(() => {
+    if (!currentUser) {
+      router.replace("/sign-in");
+    }
+  }, [currentUser, router]);
 
   const handleLogout = async () => {
     if (!webSocket || !accessToken) {
@@ -49,6 +51,10 @@ export function InteractiveList({
     }
   };
 
+  if (!currentUser) {
+    return null; // Return null to prevent rendering while redirecting
+  }
+
   if (interactiveListVariant === ListStateEnum.CONTACTS) {
     interactiveList = (
       <ContactList
@@ -58,7 +64,7 @@ export function InteractiveList({
       />
     );
   } else if (interactiveListVariant === ListStateEnum.CHATS) {
-    interactiveList = <ChatList chats={interactiveChat?.chats} />;
+    interactiveList = <ChatList chats={interactiveChat?.chats} onChatClick={interactiveChat?.onChatClick} />;
   } else if (interactiveListVariant === ListStateEnum.FIND_CONTACTS) {
     interactiveList = (
       <GlobalContactList
@@ -72,7 +78,7 @@ export function InteractiveList({
   }
 
   return (
-    <div className="h-screen flex flex-col min-w-72 w-[55%]">
+    <div className="h-screen flex flex-col min-w-72 w-[55%] z-40">
       <div className="h-screen flex flex-col">
         {interactiveList}
         <div className="bg-dark-400 px-8 py-4 left-0 bottom-0 w-full flex justify-between items-center h-auto">
@@ -85,10 +91,10 @@ export function InteractiveList({
           </div>
           <CustomButton
             onClick={handleLogout}
-            className="px-1 py-1 text-blue-300 dark:bg-dark-250 w-10 text-2x"
+            className="px-2.5 py-2.5 dark:text-blue-300 dark:bg-dark-250 text-2x"
             iconSize={32}
             variant="square"
-            icon="sign-out-circle"
+            icon="broken-link-outline"
           />
         </div>
       </div>
