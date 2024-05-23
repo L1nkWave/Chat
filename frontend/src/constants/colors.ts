@@ -33,6 +33,7 @@ export const COLORS = {
   red: {
     50: "#ff5555",
     100: "#ff4444",
+    200: "#992E2E",
   },
   green: "#4DC886",
   black: "#000",
