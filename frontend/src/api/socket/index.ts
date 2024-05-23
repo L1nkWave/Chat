@@ -19,3 +19,17 @@ export const sendChatMessage = (socket: WebSocket, chatId: string, message: stri
   
    ${payload}`);
 };
+
+export const checkUnreadMessages = (socket: WebSocket) => {
+  const path = `path=/chat/unread_messages`;
+  socket.send(path);
+};
+
+export const readMessages = (socket: WebSocket, chatId: string, timestamp: number) => {
+  const path = `path=/chat/${chatId}/read`;
+  const payload = JSON.stringify({ timestamp });
+  socket.send(`${path}
+  
+    ${payload}
+  `);
+};
