@@ -26,4 +26,9 @@ export const iconMapping = {
   "folder-outline": Icons.FolderOutlineIcon,
   "send-outline": Icons.SendOutlineIcon,
   "angle-down": Icons.AngleDownIcon,
+  "chat-plus-outline": Icons.ChatPlusOutlineIcon,
+  "line-horizontal": Icons.LineHorizontalIcon,
+  "clock-outline": Icons.TimeOutlineIcon,
+  "broken-link-outline": Icons.BrokenLinkOutlineIcon,
+  "close-outline": Icons.CloseOutlineIcon,
 };
