@@ -4,6 +4,7 @@ import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.linkwave.chatservice.api.ApiResponseClientErrorException;
 import org.linkwave.chatservice.api.ServiceErrorException;
 import org.linkwave.chatservice.api.users.UserDto;
@@ -13,11 +14,9 @@ import org.linkwave.chatservice.api.ws.WSServiceClient;
 import org.linkwave.chatservice.chat.duo.Chat;
 import org.linkwave.chatservice.chat.duo.CompanionDto;
 import org.linkwave.chatservice.chat.duo.DuoChatDto;
+import org.linkwave.chatservice.chat.duo.DuoChatDto.DuoChatDtoBuilder;
 import org.linkwave.chatservice.chat.duo.NewChatRequest;
-import org.linkwave.chatservice.chat.group.GroupChat;
-import org.linkwave.chatservice.chat.group.GroupChatDetailsDto;
-import org.linkwave.chatservice.chat.group.GroupChatDto;
-import org.linkwave.chatservice.chat.group.NewGroupChatRequest;
+import org.linkwave.chatservice.chat.group.*;
 import org.linkwave.chatservice.common.*;
 import org.linkwave.chatservice.message.Action;
 import org.linkwave.chatservice.message.Message;
@@ -44,9 +43,12 @@ import java.time.Instant;
 import java.util.*;
 
 import static java.lang.String.format;
+import static java.util.Objects.nonNull;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 import static org.linkwave.chatservice.chat.ChatRole.ADMIN;
+import static org.linkwave.chatservice.chat.duo.Chat.Type.DUO;
+import static org.linkwave.chatservice.chat.duo.Chat.Type.GROUP;
 import static org.linkwave.chatservice.common.ListUtils.iterateChunks;
 
 @Slf4j
@@ -179,8 +181,94 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
+    public Chat findDuoChat(String id) {
+        final Optional<Chat> duoChat = chatRepository.findDuoChat(id);
+        return duoChat.orElseThrow(ChatNotFoundException::new);
+    }
+
+    @Override
     public GroupChat findGroupChat(String id) {
         return chatRepository.findGroupChatById(id).orElseThrow(ChatNotFoundException::new);
+    }
+
+    @Override
+    public ChatDto getGenericChat(String id, @NonNull RequestInitiator initiator) {
+        final Chat chat = findChat(id);
+        if (!isMember(initiator.userId(), chat)) {
+            throw new PrivacyViolationException();
+        }
+        final List<Long> usersIds = chat.getMembers()
+                .stream()
+                .map(ChatMember::getId)
+                .filter(memberId -> !memberId.equals(initiator.userId()))
+                .toList();
+
+        final Map<Long, UserDto> usersMap = getLongUserDtoMap(initiator, usersIds);
+
+        if (chat instanceof GroupChat groupChat) {
+            final List<ChatMemberDto> mappedMembers = chat.getMembers().stream()
+                    .filter(member -> usersMap.containsKey(member.getId()))
+                    .map(member -> {
+                        final UserDto userDto = usersMap.get(member.getId());
+                        return ChatMemberDto.builder()
+                                .id(member.getId())
+                                .role(member.getRole())
+                                .joinedAt(member.getJoinedAt())
+                                .details(modelMapper.map(userDto, ChatMemberDetailsDto.class))
+                                .build();
+                    })
+                    .toList();
+
+            return GroupChatDetailedDto.builder()
+                    .id(groupChat.getId())
+                    .type(GROUP)
+                    .createdAt(groupChat.getCreatedAt())
+                    .isAvatarAvailable(nonNull(groupChat.getAvatarPath()))
+                    .name(groupChat.getName())
+                    .membersLimit(groupChat.getMembersLimit())
+                    .description(groupChat.getDescription())
+                    .isPrivate(groupChat.isPrivate())
+                    .members(mappedMembers)
+                    .build();
+        } else {
+            final Optional<UserDto> optionalUserDto = usersMap.values().stream().findAny();
+            final DuoChatDtoBuilder<?, ?> duoChatDtoBuilder = DuoChatDto.builder()
+                    .id(chat.getId())
+                    .type(DUO)
+                    .createdAt(chat.getCreatedAt());
+
+            if (optionalUserDto.isPresent()) {
+                final UserDto userDto = optionalUserDto.get();
+                duoChatDtoBuilder
+                        .isAvatarAvailable(nonNull(userDto.getAvatarPath()))
+                        .user(modelMapper.map(userDto, CompanionDto.class));
+            }
+            return duoChatDtoBuilder.build();
+        }
+    }
+
+    @NotNull
+    private Map<Long, UserDto> getLongUserDtoMap(RequestInitiator initiator, List<Long> usersIds) {
+        final Map<Long, UserDto> usersMap = new HashMap<>();
+
+        iterateChunks(
+                usersIds,
+                DEFAULT_BATCH_SIZE,
+                ids -> userServiceClient
+                        .getUsers(ids, initiator.bearer())
+                        .forEach(user -> usersMap.put(user.getId(), user))
+        );
+
+        // pull contacts & set aliases
+        userServiceClient.fetchAllContacts(initiator, DEFAULT_BATCH_SIZE)
+                .forEach((userId, dto) -> {
+                    final UserDto userDto = usersMap.get(userId);
+                    if (userDto != null) {
+                        userDto.setName(dto.getAlias());
+                    }
+                });
+
+        return usersMap;
     }
 
     @Override
