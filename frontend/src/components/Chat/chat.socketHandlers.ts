@@ -1,16 +1,18 @@
 import React from "react";
 
 import { getChatByUserId } from "@/api/http/chat/chat";
-import { ContactParams, MessageParams } from "@/api/http/contacts/contacts.types";
+import { ChatParams, ContactParams, MessageParams, UserParams } from "@/api/http/contacts/contacts.types";
 import { getUserById } from "@/api/http/user/user";
 import { ChatMap, ContactsMap, MessagesMap } from "@/components/Chat/InteractiveList/interactiveList.types";
 import {
   BindMessage,
   MessageLikeMessage,
   OnlineOfflineMessage,
+  ReadMessage,
   UnreadMessagesMessage,
 } from "@/context/SocketContext/socketContext.types";
 import { lastSeenDateNow } from "@/helpers/contactHelpers";
+import {readMessages} from "@/api/socket";
 
 export const offlineHandler = async (
   socketMessage: OnlineOfflineMessage,
@@ -129,13 +131,19 @@ export const bindSocketHandlers = (
 
 export const messageHandler = async (
   socketMessage: MessageLikeMessage,
+  webSocket: WebSocket | null | undefined,
   chatId: string | undefined,
   currentMessages: MessagesMap,
   currentChats: ChatMap,
   fetchChats: () => Promise<void>,
+  currentUser: UserParams | null,
   setChats: React.Dispatch<React.SetStateAction<ChatMap>>,
   setCurrentMessages: React.Dispatch<React.SetStateAction<MessagesMap>>
 ) => {
+  if (currentUser && socketMessage.senderId !== currentUser.id.toString() && webSocket && chatId === socketMessage.chatId) {
+    readMessages(webSocket, socketMessage.chatId, Date.now() / 1000);
+  }
+
   const author = await getUserById(socketMessage.senderId);
   const messageId = socketMessage.id;
   const message: MessageParams = {
@@ -150,7 +158,7 @@ export const messageHandler = async (
   };
 
   setChats(prevChat => {
-    const updatedChats = new Map(prevChat);
+    let updatedChats = new Map(prevChat);
     const currentChat = prevChat.get(socketMessage.chatId);
     if (currentChat) {
       updatedChats.set(socketMessage.chatId, {
@@ -158,13 +166,27 @@ export const messageHandler = async (
         lastMessage: message,
         createdAt: Date.now() / 1000,
       });
+    } else {
+      updatedChats.set(socketMessage.chatId, {
+        id: socketMessage.chatId,
+        lastMessage: message,
+        createdAt: Date.now() / 1000,
+        user: author,
+        unreadMessages: 0,
+        avatarAvailable: false,
+      });
     }
+    updatedChats = new Map<string, ChatParams>(
+      Array.from(updatedChats).sort((a, b) => b[1].lastMessage.createdAt - a[1].lastMessage.createdAt)
+    );
     return updatedChats;
   });
 
   if (chatId !== socketMessage.chatId) {
     return;
   }
+
+
   if (currentMessages.has(messageId)) {
     return;
   }
@@ -174,7 +196,9 @@ export const messageHandler = async (
   }
   setCurrentMessages(prevMessages => {
     const updatedMessages = new Map<string, MessageParams>();
-    updatedMessages.set(messageId, message);
+    updatedMessages.set(messageId, {
+      ...message,
+    });
     prevMessages.forEach((value, key) => updatedMessages.set(key, value));
     return updatedMessages;
   });
@@ -199,4 +223,34 @@ export const unreadMessagesHandler = (
   });
 };
 
-export const readMessagesHandler = () => {};
+export const readMessagesHandler = (
+  socketMessage: ReadMessage,
+  setChats: React.Dispatch<React.SetStateAction<ChatMap>>,
+  setMessages: React.Dispatch<React.SetStateAction<MessagesMap>>
+) => {
+  setChats(prevChats => {
+    const updatedChats = new Map(prevChats);
+    const chat = prevChats.get(socketMessage.chatId);
+    if (chat) {
+      updatedChats.set(socketMessage.chatId, {
+        ...chat,
+        unreadMessages: 0,
+      });
+    }
+    return updatedChats;
+  });
+
+  setMessages(prevMessages => {
+    const updatedMessages = new Map(prevMessages);
+    socketMessage.messages.forEach(messageId => {
+      const message = prevMessages.get(messageId);
+      if (message) {
+        updatedMessages.set(messageId, {
+          ...message,
+          isRead: true,
+        });
+      }
+    });
+    return updatedMessages;
+  });
+};

@@ -211,14 +211,6 @@ public class ChatRoutes {
                 .build());
     }
 
-    @Endpoint("/unread_messages")
-    public UnreadMessages getUnreadMessages(@NonNull UserPrincipal principal) {
-        final Long userId = principal.token().userId();
-        return UnreadMessages.builder()
-                .chats(chatRepository.getUnreadMessages(userId))
-                .build();
-    }
-
     @Broadcast
     @Endpoint("/{id}/read")
     public Box<ReadMessage> readMessages(@PathVariable String id,

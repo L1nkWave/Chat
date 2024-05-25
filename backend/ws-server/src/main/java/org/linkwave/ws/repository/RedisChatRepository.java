@@ -139,7 +139,7 @@ public class RedisChatRepository implements ChatRepository<Long, String> {
     }
 
     @Override
-    public Integer getUnreadMessages(String chatId, Long userId) {
+    public int getUnreadMessages(String chatId, Long userId) {
         final var hashOps = redisTemplate.opsForHash();
         final var result = hashOps.get(userChatsKey(userId), chatId);
         return result == null ? 0 : Integer.parseInt(result.toString());

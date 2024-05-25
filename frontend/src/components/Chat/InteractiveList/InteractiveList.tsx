@@ -52,7 +52,7 @@ export function InteractiveList({
   };
 
   if (!currentUser) {
-    return null; // Return null to prevent rendering while redirecting
+    return null;
   }
 
   if (interactiveListVariant === ListStateEnum.CONTACTS) {
@@ -61,16 +61,24 @@ export function InteractiveList({
         contacts={interactiveContact?.contacts}
         onContactClick={interactiveContact?.onContactClick}
         currentContact={interactiveContact?.currentContact}
+        loadContacts={interactiveContact?.loadContacts}
       />
     );
   } else if (interactiveListVariant === ListStateEnum.CHATS) {
-    interactiveList = <ChatList chats={interactiveChat?.chats} onChatClick={interactiveChat?.onChatClick} />;
+    interactiveList = (
+      <ChatList
+        chats={interactiveChat?.chats}
+        onChatClick={interactiveChat?.onChatClick}
+        loadChats={interactiveChat?.loadChats}
+      />
+    );
   } else if (interactiveListVariant === ListStateEnum.FIND_CONTACTS) {
     interactiveList = (
       <GlobalContactList
         globalContacts={interactiveFindContacts?.globalContacts}
         onGlobalContactClick={interactiveFindContacts?.onGlobalContactClick}
         currentGlobalUser={interactiveFindContacts?.currentGlobalUser}
+        loadGlobalContacts={interactiveFindContacts?.loadGlobalContacts}
       />
     );
   } else {

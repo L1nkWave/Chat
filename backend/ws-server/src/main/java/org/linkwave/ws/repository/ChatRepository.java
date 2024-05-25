@@ -31,7 +31,7 @@ public interface ChatRepository<U, C> extends SessionRepository<U> {
 
     Set<String> getChatMembersSessions(C chatId);
 
-    Integer getUnreadMessages(C chatId, U userId);
+    int getUnreadMessages(C chatId, U userId);
 
     Map<String, Integer> getUnreadMessages(U userId);
 
