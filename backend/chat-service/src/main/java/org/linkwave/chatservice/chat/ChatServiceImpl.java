@@ -4,7 +4,6 @@ import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.jetbrains.annotations.NotNull;
 import org.linkwave.chatservice.api.ApiResponseClientErrorException;
 import org.linkwave.chatservice.api.ServiceErrorException;
 import org.linkwave.chatservice.api.users.UserDto;
@@ -203,7 +202,7 @@ public class ChatServiceImpl implements ChatService {
                 .filter(memberId -> !memberId.equals(initiator.userId()))
                 .toList();
 
-        final Map<Long, UserDto> usersMap = getLongUserDtoMap(initiator, usersIds);
+        final Map<Long, UserDto> usersMap = resolveUsersByIds(initiator, usersIds);
 
         if (chat instanceof GroupChat groupChat) {
             final List<ChatMemberDto> mappedMembers = chat.getMembers().stream()
@@ -231,12 +230,12 @@ public class ChatServiceImpl implements ChatService {
                     .members(mappedMembers)
                     .build();
         } else {
-            final Optional<UserDto> optionalUserDto = usersMap.values().stream().findAny();
             final DuoChatDtoBuilder<?, ?> duoChatDtoBuilder = DuoChatDto.builder()
                     .id(chat.getId())
                     .type(DUO)
                     .createdAt(chat.getCreatedAt());
 
+            final Optional<UserDto> optionalUserDto = usersMap.values().stream().findAny();
             if (optionalUserDto.isPresent()) {
                 final UserDto userDto = optionalUserDto.get();
                 duoChatDtoBuilder
@@ -245,30 +244,6 @@ public class ChatServiceImpl implements ChatService {
             }
             return duoChatDtoBuilder.build();
         }
-    }
-
-    @NotNull
-    private Map<Long, UserDto> getLongUserDtoMap(RequestInitiator initiator, List<Long> usersIds) {
-        final Map<Long, UserDto> usersMap = new HashMap<>();
-
-        iterateChunks(
-                usersIds,
-                DEFAULT_BATCH_SIZE,
-                ids -> userServiceClient
-                        .getUsers(ids, initiator.bearer())
-                        .forEach(user -> usersMap.put(user.getId(), user))
-        );
-
-        // pull contacts & set aliases
-        userServiceClient.fetchAllContacts(initiator, DEFAULT_BATCH_SIZE)
-                .forEach((userId, dto) -> {
-                    final UserDto userDto = usersMap.get(userId);
-                    if (userDto != null) {
-                        userDto.setName(dto.getAlias());
-                    }
-                });
-
-        return usersMap;
     }
 
     @Override
@@ -283,25 +258,7 @@ public class ChatServiceImpl implements ChatService {
                 .map(chat -> mapChats(chat, usersIds, initiator))
                 .toList();
 
-        final Map<Long, UserDto> usersMap = new LinkedHashMap<>();
-
-        // pull users
-        final int batches = iterateChunks(
-                new ArrayList<>(usersIds),
-                DEFAULT_BATCH_SIZE,
-                ids -> userServiceClient
-                        .getUsers(ids, initiator.bearer())
-                        .forEach(user -> usersMap.put(user.getId(), user))
-        );
-
-        // pull contacts & set aliases
-        userServiceClient.fetchAllContacts(initiator, DEFAULT_BATCH_SIZE)
-                .forEach((userId, dto) -> {
-                    final UserDto userDto = usersMap.get(userId);
-                    if (userDto != null) {
-                        userDto.setName(dto.getAlias());
-                    }
-                });
+        final Map<Long, UserDto> usersMap = resolveUsersByIds(initiator, new ArrayList<>(usersIds));
 
         selectedChats.forEach(chat -> {
             final MessageDto lastMessage = chat.getLastMessage();
@@ -327,9 +284,32 @@ public class ChatServiceImpl implements ChatService {
 
         });
 
-        log.debug("-> getUserChats(): performed {} api-requests", batches);
-
         return Pair.of(chatsTotalCount, selectedChats);
+    }
+
+    @NonNull
+    private Map<Long, UserDto> resolveUsersByIds(@NonNull RequestInitiator initiator, @NonNull List<Long> usersIds) {
+        final Map<Long, UserDto> usersMap = new LinkedHashMap<>();
+
+        // pull users
+        iterateChunks(
+                usersIds,
+                DEFAULT_BATCH_SIZE,
+                ids -> userServiceClient
+                        .getUsers(ids, initiator.bearer())
+                        .forEach(user -> usersMap.put(user.getId(), user))
+        );
+
+        // pull contacts & set aliases
+        userServiceClient.fetchAllContacts(initiator, DEFAULT_BATCH_SIZE)
+                .forEach((userId, dto) -> {
+                    final UserDto userDto = usersMap.get(userId);
+                    if (userDto != null) {
+                        userDto.setName(dto.getAlias());
+                    }
+                });
+
+        return usersMap;
     }
 
     private ChatDto mapChats(Chat chat, Set<Long> usersIds, RequestInitiator initiator) {

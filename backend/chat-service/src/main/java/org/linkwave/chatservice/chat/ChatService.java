@@ -73,6 +73,15 @@ public interface ChatService {
      */
     GroupChat findGroupChat(String id) throws ChatNotFoundException;
 
+    /**
+     * Returns mapped duo / group chat by specified ID.
+     *
+     * @param id chat's identification
+     * @param initiator author of request
+     * @return mapped chat dto
+     * @throws ChatNotFoundException if chat was not found with passed ID
+     * @throws PrivacyViolationException if initiator is not a chat member
+     */
     ChatDto getGenericChat(String id, RequestInitiator initiator) throws ChatNotFoundException, PrivacyViolationException;
 
     /**
