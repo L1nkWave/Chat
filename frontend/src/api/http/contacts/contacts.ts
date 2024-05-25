@@ -1,9 +1,11 @@
-import { instance } from "@/api/http";
+import { instance, LIST_PAGINATION_LIMIT } from "@/api/http";
 import { ContactParams, UserParams } from "@/api/http/contacts/contacts.types";
 
-export async function getContacts() {
-  const { data } = await instance.get<ContactParams[]>("users/contacts?search=&limit=10&offset=0");
-  const contacts = new Map<number, ContactParams>();
+export async function getContacts(search: string = "", limit = LIST_PAGINATION_LIMIT, offset = 0) {
+  const { data } = await instance.get<ContactParams[]>(
+    `users/contacts?search=${search}&limit=${limit}&offset=${offset}`
+  );
+  const contacts = new Map<string, ContactParams>();
   data.forEach(contact => {
     contacts.set(contact.user.id, contact);
   });

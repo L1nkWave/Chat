@@ -1,10 +1,11 @@
 import { ChatParams, ContactParams, MessageParams, UserParams } from "@/api/http/contacts/contacts.types";
 import { MainBoxStateEnum } from "@/components/Chat/chat.types";
-import { SendMessageClickHandler } from "@/components/Chat/types/handlers.types";
+import { LoadMessagesHandler, SendMessageClickHandler } from "@/components/Chat/types/handlers.types";
 
 export type MainBoxVariant = MainBoxStateEnum;
 
 export type MainBoxProps = {
+  chatId?: string;
   onSendMessageClick?: SendMessageClickHandler;
   mainBoxVariant: MainBoxVariant;
   contact?: ContactParams;
@@ -15,4 +16,5 @@ export type MainBoxProps = {
   onRemoveContactClick?: (userId: string) => void;
   onMessageButtonClick?: (userId: string) => void;
   onHeaderClick?: (contactParams: ContactParams) => void;
+  loadMessages: LoadMessagesHandler;
 };

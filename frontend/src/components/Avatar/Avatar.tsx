@@ -5,13 +5,14 @@ import { Status } from "@/components/Status/Status";
 import { defaultUserAvatar } from "@/helpers/defaultUserAvatar";
 
 export function Avatar({ item, statusClassName, className, online, status = true, ...props }: AvatarProps) {
+  const useId = parseInt(item.id as string, 10);
   return (
     <span className="relative flex h-full">
       <Image
         className={`object-cover rounded-full ${className}`}
         width={64}
         height={64}
-        src={defaultUserAvatar(item.id)}
+        src={defaultUserAvatar(useId)}
         {...props}
       />
       {status && online && (

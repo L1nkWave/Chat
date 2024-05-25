@@ -11,7 +11,6 @@ export async function addDuoChat(userId: string) {
     recipient: userId,
   };
   const { data } = await instance.post<AddDuoChatParams>(`chats`, body);
-  console.log("add", data);
   return data;
 }
 
@@ -26,11 +25,10 @@ export async function getChats(offset: number = 0, limit: number = 10) {
   data.forEach(chat => {
     chats.set(chat.id, chat);
   });
-  console.log(chats);
   return chats;
 }
 
-export async function getMessagesByChatId(chatId: string, limit: number = 40, offset: number = 0) {
+export async function getMessagesByChatId(chatId: string, offset: number = 0, limit: number = 40) {
   const { data } = await instance.get<MessageParams[]>(`chats/${chatId}/messages?limit=${limit}&offset=${offset}`);
   const messages = new Map<string, MessageParams>();
   data.forEach(chat => {
