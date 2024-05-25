@@ -213,7 +213,12 @@ public class ChatServiceImpl implements ChatService {
                                 .id(member.getId())
                                 .role(member.getRole())
                                 .joinedAt(member.getJoinedAt())
-                                .details(modelMapper.map(userDto, ChatMemberDetailsDto.class))
+                                .details(ChatMemberDetailsDto.builder()
+                                        .name(userDto.getName())
+                                        .username(userDto.getUsername())
+                                        .isOnline(userDto.isOnline())
+                                        .isAvatarAvailable(nonNull(userDto.getAvatarPath()))
+                                        .build())
                                 .build();
                     })
                     .toList();
@@ -449,7 +454,12 @@ public class ChatServiceImpl implements ChatService {
                 .id(user.getId())
                 .joinedAt(newMember.getJoinedAt())
                 .role(newMember.getRole())
-                .details(modelMapper.map(user, ChatMemberDetailsDto.class))
+                .details(ChatMemberDetailsDto.builder()
+                        .name(user.getName())
+                        .username(user.getUsername())
+                        .isOnline(user.isOnline())
+                        .isAvatarAvailable(nonNull(user.getAvatarPath()))
+                        .build())
                 .build();
     }
 
@@ -496,7 +506,12 @@ public class ChatServiceImpl implements ChatService {
                 .id(user.getId())
                 .joinedAt(newMember.getJoinedAt())
                 .role(newMember.getRole())
-                .details(modelMapper.map(user, ChatMemberDetailsDto.class))
+                .details(ChatMemberDetailsDto.builder()
+                        .name(user.getName())
+                        .username(user.getUsername())
+                        .isOnline(user.isOnline())
+                        .isAvatarAvailable(nonNull(user.getAvatarPath()))
+                        .build())
                 .build();
     }
 
@@ -567,11 +582,20 @@ public class ChatServiceImpl implements ChatService {
         } catch (ApiResponseClientErrorException e) {
             // user is deleted
         }
+
+        ChatMemberDetailsDto detailsDto = null;
+        if (memberInfo != null) {
+            detailsDto = ChatMemberDetailsDto.builder()
+                    .name(memberInfo.getName())
+                    .username(memberInfo.getUsername())
+                    .isOnline(memberInfo.isOnline())
+                    .isAvatarAvailable(nonNull(memberInfo.getAvatarPath()))
+                    .build();
+        }
+
         return ChatMemberDto.builder()
                 .id(memberId)
-                .details(memberInfo == null
-                        ? null
-                        : modelMapper.map(memberInfo, ChatMemberDetailsDto.class))
+                .details(detailsDto)
                 .build();
     }
 
@@ -615,7 +639,9 @@ public class ChatServiceImpl implements ChatService {
 
                 // if user was found then set details
                 if (user != null) {
-                    memberDto.setDetails(modelMapper.map(user, ChatMemberDetailsDto.class));
+                    final ChatMemberDetailsDto details = modelMapper.map(user, ChatMemberDetailsDto.class);
+                    details.setAvatarAvailable(nonNull(user.getAvatarPath()));
+                    memberDto.setDetails(details);
                 }
                 mappedMembers.add(memberDto);
             }
