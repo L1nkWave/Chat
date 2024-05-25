@@ -1,5 +1,5 @@
 export type UserParams = {
-  id: number;
+  id: string;
   bio?: string;
   name: string;
   online: boolean;
@@ -31,7 +31,6 @@ export type MessageParams = {
 export type ChatParams = {
   id: string;
   unreadMessages: number;
-  type: string;
   createdAt: number;
   lastMessage: MessageParams;
   user: UserParams;

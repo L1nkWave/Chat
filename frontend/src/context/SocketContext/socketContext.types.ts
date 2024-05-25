@@ -4,6 +4,7 @@ export enum MessageAction {
   BIND = "BIND",
   MESSAGE = "MESSAGE",
   UNREAD_MESSAGES = "UNREAD_MESSAGES",
+  READ = "READ",
 }
 
 export type MessageActionParams = {
@@ -34,7 +35,14 @@ export type UnreadMessagesMessage = {
   chats: Record<string, number>;
 } & MessageActionParams;
 
-export type SocketMessageType = OnlineOfflineMessage | BindMessage | MessageLikeMessage | UnreadMessagesMessage;
+export type ReadMessage = {
+  timestamp: number;
+  senderId: number;
+  chatId: string;
+  messages: string[];
+} & MessageActionParams;
+
+export type SocketMessageType = OnlineOfflineMessage | BindMessage | MessageLikeMessage | UnreadMessagesMessage | ReadMessage;
 
 export type SocketContextProps = {
   webSocket?: WebSocket | null;
