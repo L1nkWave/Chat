@@ -3,7 +3,7 @@
 <details>
 <summary>👥 Group chats</summary>
 
-### Join in the group chat
+### Join in the chat
 
 Message structure:
 
@@ -31,7 +31,7 @@ Response message example:
 
 <br/>
 
-### Leave from the group chat
+### Leave from the chat
 
 Message structure:
 
@@ -56,7 +56,7 @@ In other case you will receive message with `ERROR` action:
 <details>
 <summary>Edit chat members</summary>
 
-### ➕ Add member to the group chat
+### ➕ Add member to the chat
 
 Message structure:
 ```
@@ -106,7 +106,7 @@ Possible errors:
 
 <br/>
 
-### ➖ Kick from the group chat
+### ➖ Kick from the chat
 
 Message structure:
 
@@ -157,7 +157,7 @@ Possible errors:
 
 <br/>
 
-### ✏️ Change member role in the group chat
+### ✏️ Change member role in the chat
 
 Message structure:
 
@@ -452,7 +452,7 @@ Possible errors:
 Message structure:
 
 ```
-path=/chat/unread_messages
+path=/chat/unread
 ```
 
 Response message example:
@@ -464,6 +464,28 @@ Response message example:
   "chats": {
     "66054151e162397346b28554": 3,
     "6605584bb6c9df73337beba3": 0
+  }
+}
+```
+
+<br/>
+
+### 📥 Get unread messages per chat
+
+Message structure:
+
+```
+path=/chat/unread/{chatId}
+```
+
+Response message example:
+
+```json
+{
+  "action": "UNREAD_MESSAGES",
+  "timestamp": 1711704048.542412300,
+  "chats": {
+    "66054151e162397346b28554": 3
   }
 }
 ```
