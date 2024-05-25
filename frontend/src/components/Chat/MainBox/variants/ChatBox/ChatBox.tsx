@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useState } from "react";
+import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
 
 import { ContactParams } from "@/api/http/contacts/contacts.types";
 import { MESSAGE_CONTAINER, MESSAGE_INPUT } from "@/components/Chat/MainBox/variants/ChatBox/chatBox.config";
@@ -8,14 +8,21 @@ import { MessageContainer } from "@/components/Chat/MainBox/variants/ChatBox/Mes
 import { MessageInput } from "@/components/Chat/MainBox/variants/ChatBox/MessageInput/MessageInput";
 import { useAppSelector } from "@/lib/hooks";
 
-export function ChatBox({ contact, messages, onSendMessageClick, onChatHeaderClick }: Readonly<ChatBoxProps>) {
-  const messageContainerRef = React.useRef<HTMLDivElement>(null);
+export function ChatBox({
+  contact,
+  messages,
+  onSendMessageClick,
+  onChatHeaderClick,
+  loadMessages,
+}: Readonly<ChatBoxProps>) {
+  const messageContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [initialTextAreaHeight, setInitialTextAreaHeight] = useState<number | undefined>(undefined);
   const [initialMessageContainerHeight, setInitialMessageContainerHeight] = useState<number | undefined>(undefined);
   const [showScrollDownButton, setShowScrollDownButton] = useState(false);
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const { currentUser } = useAppSelector(state => state.user);
 
@@ -56,28 +63,36 @@ export function ChatBox({ contact, messages, onSendMessageClick, onChatHeaderCli
 
   const handleTextAreaChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => setMessage(event.target.value);
 
-  useLayoutEffect(() => {
-    const handleScroll = () => {
-      if (messageContainerRef.current) {
-        const { scrollTop } = messageContainerRef.current;
-        if (scrollTop < MESSAGE_CONTAINER.SHOW_SCROLL_DOWN_BUTTON_THRESHOLD_HEIGHT) {
-          setShowScrollDownButton(true);
-        } else {
-          setShowScrollDownButton(false);
-        }
-      }
-    };
-
+  const handleScroll = useCallback(() => {
     if (messageContainerRef.current) {
-      messageContainerRef.current.addEventListener("scroll", handleScroll);
-    }
+      const { scrollTop, scrollHeight, clientHeight } = messageContainerRef.current;
 
+      if (scrollTop < MESSAGE_CONTAINER.SHOW_SCROLL_DOWN_BUTTON_THRESHOLD_HEIGHT) {
+        setShowScrollDownButton(true);
+      } else {
+        setShowScrollDownButton(false);
+      }
+
+      const distanceFromTop = scrollTop + scrollHeight - clientHeight;
+      const loadThreshold = 500;
+      if (distanceFromTop < loadThreshold) {
+        setLoading(true);
+        loadMessages(messages.length);
+      }
+    }
+  }, [messages, loadMessages]);
+
+  useLayoutEffect(() => {
+    const scrollList = messageContainerRef.current;
+    if (scrollList) {
+      scrollList.addEventListener("scroll", handleScroll);
+    }
     return () => {
-      if (messageContainerRef.current) {
-        messageContainerRef.current.removeEventListener("scroll", handleScroll);
+      if (scrollList) {
+        scrollList.removeEventListener("scroll", handleScroll);
       }
     };
-  }, []);
+  }, [handleScroll]);
 
   const handleScrollToBottomButtonClick = () => {
     scrollToBottom("smooth");
@@ -127,6 +142,7 @@ export function ChatBox({ contact, messages, onSendMessageClick, onChatHeaderCli
           onSendMessageClick={handleSendMessageClick}
           message={message}
         />
+        {loading && <div>Loading more messages...</div>}
       </div>
     </div>
   );

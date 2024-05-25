@@ -12,11 +12,13 @@ export function MainBox({
   contact,
   globalUser,
   messages,
+  chatId,
   onAddContactClick: handleAddContactClick,
   onRemoveContactClick: handleRemoveContactClick,
   onMessageButtonClick: handleMessageButtonClick,
   onSendMessageClick: handleSendMessageClick,
   onHeaderClick: handleHeaderClick,
+  loadMessages,
 }: Readonly<MainBoxProps>) {
   let variant = <EmptyBox />;
   if (mainBoxVariant === MainBoxStateEnum.USER_INFO && contact) {
@@ -43,13 +45,14 @@ export function MainBox({
         onMessageButtonClick={handleMessageButtonClick}
       />
     );
-  } else if (contact && mainBoxVariant === MainBoxStateEnum.CHAT) {
+  } else if (contact && chatId && mainBoxVariant === MainBoxStateEnum.CHAT) {
     variant = (
       <ChatBox
         contact={contact}
         messages={messages}
         onSendMessageClick={handleSendMessageClick}
         onChatHeaderClick={handleHeaderClick}
+        loadMessages={loadMessages}
       />
     );
   }

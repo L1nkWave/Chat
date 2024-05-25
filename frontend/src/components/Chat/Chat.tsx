@@ -8,12 +8,13 @@ import { addDuoChat, AddDuoChatParams, getChatByUserId, getChats, getMessagesByC
 import { addContact, getContacts, removeContact } from "@/api/http/contacts/contacts";
 import { ChatParams, ContactParams, UserParams } from "@/api/http/contacts/contacts.types";
 import { getUserById, searchUser } from "@/api/http/user/user";
-import { checkUnreadMessages, sendChatMessage } from "@/api/socket";
+import { checkUnreadMessages, readMessages, sendChatMessage } from "@/api/socket";
 import {
   bindSocketHandlers,
   messageHandler,
   offlineHandler,
   onlineHandler,
+  readMessagesHandler,
   unreadMessagesHandler,
 } from "@/components/Chat/chat.socketHandlers";
 import { ListStateEnum, MainBoxStateEnum } from "@/components/Chat/chat.types";
@@ -30,6 +31,7 @@ import {
   MessageAction,
   MessageLikeMessage,
   OnlineOfflineMessage,
+  ReadMessage,
   UnreadMessagesMessage,
 } from "@/context/SocketContext/socketContext.types";
 import { SoundContext } from "@/context/SoundContext/SoundContext";
@@ -42,6 +44,7 @@ export function Chat() {
 
   const { messageSound } = useContext(SoundContext);
   const { webSocket } = useContext(SocketContext);
+  const { currentUser } = useAppSelector(state => state.user);
   const { currentMainBoxState, currentInteractiveListState } = useAppSelector(state => state.chat);
   const { socketMessage } = useContext(SocketContext);
 
@@ -57,28 +60,46 @@ export function Chat() {
 
   const [currentSidebarItem, setCurrentSidebarItem] = useState<string>("chat" as SidebarButtonName);
 
-  const fetchGlobalContacts = useCallback(async () => {
+  const fetchGlobalContacts = useCallback(async (search?: string, offset?: number, limit?: number) => {
     try {
-      const fetchedContacts = await searchUser();
-      setGlobalUsers(fetchedContacts);
+      const fetchedGlobalUsers: Map<string, UserParams> = await searchUser(search, limit, offset);
+      setGlobalUsers(prevGlobalUsers => {
+        const updatedUsers = new Map(prevGlobalUsers);
+        fetchedGlobalUsers.forEach((user, key) => {
+          updatedUsers.set(key, user);
+        });
+        return updatedUsers;
+      });
     } catch (error) {
       toast.error("Error fetching global users");
     }
   }, []);
 
-  const fetchContacts = useCallback(async () => {
+  const fetchContacts = useCallback(async (search?: string, offset?: number, limit?: number) => {
     try {
-      const fetchedContacts = await getContacts();
-      setContacts(fetchedContacts);
+      const fetchedContacts = await getContacts(search, limit, offset);
+      setContacts(prevContacts => {
+        const updatedContacts = new Map(prevContacts);
+        fetchedContacts.forEach((fetchedContact, key) => {
+          updatedContacts.set(key, fetchedContact);
+        });
+        return updatedContacts;
+      });
     } catch (error) {
       toast.error("Error fetching contacts");
     }
   }, []);
 
-  const fetchChats = useCallback(async () => {
+  const fetchChats = useCallback(async (offset?: number, limit?: number) => {
     try {
-      const fetchedChats = await getChats();
-      setChats(fetchedChats);
+      const fetchedChats = await getChats(offset, limit);
+      setChats(prevChats => {
+        const updatedChats = new Map(prevChats);
+        fetchedChats.forEach((fetchedChat, key) => {
+          updatedChats.set(key, fetchedChat);
+        });
+        return updatedChats;
+      });
     } catch (error) {
       toast.error("Error fetching chats");
     }
@@ -103,6 +124,12 @@ export function Chat() {
   }, [currentMainBoxState]);
 
   useAccessTokenEffect(() => {
+    if (chatId && webSocket) {
+      readMessages(webSocket, chatId, Date.now() / 1000);
+    }
+  }, [chatId]);
+
+  useAccessTokenEffect(() => {
     if (webSocket && webSocket.readyState === WebSocket.OPEN) {
       setTimeout(() => {
         checkUnreadMessages(webSocket);
@@ -111,7 +138,6 @@ export function Chat() {
   }, [webSocket?.readyState, fetchChats]);
 
   useAccessTokenLayoutEffect(() => {
-    console.log("socketMessage", socketMessage);
     if (!socketMessage) {
       return;
     }
@@ -124,10 +150,12 @@ export function Chat() {
     } else if (socketMessage.action === MessageAction.MESSAGE) {
       messageHandler(
         socketMessage as MessageLikeMessage,
+        webSocket,
         chatId,
         currentMessages,
         chats,
         fetchChats,
+        currentUser,
         setChats,
         setCurrentMessages
       );
@@ -137,6 +165,9 @@ export function Chat() {
       }
     } else if (socketMessage.action === MessageAction.UNREAD_MESSAGES) {
       unreadMessagesHandler(socketMessage as UnreadMessagesMessage, setChats);
+    } else if (socketMessage.action === MessageAction.READ) {
+      readMessagesHandler(socketMessage as ReadMessage, setChats, setCurrentMessages);
+      checkUnreadMessages(webSocket as WebSocket);
     }
   }, [socketMessage]);
 
@@ -171,7 +202,7 @@ export function Chat() {
 
       setGlobalUsers(prevGlobalUsers => {
         const updatedUsers = new Map(prevGlobalUsers);
-        updatedUsers.delete(parseInt(userId, 10));
+        updatedUsers.delete(userId);
         return updatedUsers;
       });
       await fetchContacts();
@@ -193,7 +224,7 @@ export function Chat() {
 
       setContacts(prevContacts => {
         const updatedContacts = new Map(prevContacts);
-        updatedContacts.delete(parseInt(userId, 10));
+        updatedContacts.delete(userId);
         return updatedContacts;
       });
 
@@ -231,7 +262,7 @@ export function Chat() {
       });
 
       setChats(prevChat => {
-        const updatedChats = new Map(prevChat);
+        let updatedChats = new Map(prevChat);
         const currentChat = prevChat.get(chatId);
         if (currentChat) {
           updatedChats.set(chatId, {
@@ -240,6 +271,9 @@ export function Chat() {
             createdAt: Date.now() / 1000,
           });
         }
+        updatedChats = new Map<string, ChatParams>(
+          Array.from(updatedChats).sort((a, b) => b[1].lastMessage.createdAt - a[1].lastMessage.createdAt)
+        );
         return updatedChats;
       });
       sendChatMessage(webSocket, chatId, chatMessage, tempId);
@@ -306,6 +340,30 @@ export function Chat() {
   SIDEBAR_ITEM.buttons.setting.onClick = () => {
     console.log("setting");
   };
+
+  const loadGlobalUsers = async (search?: string, offset?: number) => {
+    await fetchGlobalContacts(search, offset);
+  };
+  const loadChats = async (offset?: number) => {
+    await fetchChats(offset);
+  };
+  const loadContacts = async (search?: string, offset?: number) => {
+    await fetchContacts(search, offset);
+  };
+  const loadMessages = async (offset?: number) => {
+    if (chatId) {
+      const newMessages = await getMessagesByChatId(chatId, offset);
+
+      setCurrentMessages(prevMessages => {
+        const updatedMessages = new Map(prevMessages);
+        newMessages.forEach((message, key) => {
+          updatedMessages.set(key, message);
+        });
+        return updatedMessages;
+      });
+    }
+  };
+
   return (
     <div className="w-screen flex px-64">
       <SideBar>
@@ -331,18 +389,22 @@ export function Chat() {
           currentContact: contact,
           contacts,
           onContactClick: handleContactClick,
+          loadContacts,
         }}
         interactiveChat={{
           chats,
           onChatClick: handleChatClick,
+          loadChats,
         }}
         interactiveFindContacts={{
           currentGlobalUser: globalUser,
           globalContacts: globalUsers,
+          loadGlobalContacts: loadGlobalUsers,
           onGlobalContactClick: handleGlobalContactClick,
         }}
       />
       <MainBox
+        chatId={chatId}
         mainBoxVariant={currentMainBoxState}
         contact={contact}
         globalUser={globalUser}
@@ -352,6 +414,7 @@ export function Chat() {
         onMessageButtonClick={handleMessageButtonClick}
         onSendMessageClick={handleSendMessageButtonClick}
         onHeaderClick={handleContactClick}
+        loadMessages={loadMessages}
       />
     </div>
   );
