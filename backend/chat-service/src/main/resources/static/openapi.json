@@ -172,6 +172,129 @@
         }
       }
     },
+    "/v1/chats/generic/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/id"
+        }
+      ],
+      "get": {
+        "tags": ["Chat"],
+        "summary": "Fetch chat by id",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returned content that represents duo / group chat",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/DuoChatDto"
+                    },
+                    {
+                      "$ref": "#/components/schemas/GroupChatDetailedDto"
+                    }
+                  ]
+                },
+                "examples": {
+                  "DuoChatDto": {
+                    "value": {
+                      "id": "6648f9cca898fb7485296844",
+                      "type": "DUO",
+                      "createdAt": 1716058572.207000000,
+                      "lastMessage": null,
+                      "user": {
+                        "id": 36,
+                        "username": "@danielwilson",
+                        "name": "Daniel Wilson",
+                        "lastSeen": 1714999732.414914000,
+                        "online": false,
+                        "deleted": false
+                      },
+                      "avatarAvailable": false
+                    }
+                  },
+                  "GroupChatDetailedDto": {
+                    "value": {
+                      "id": "663fc2da3c60a57263542aba",
+                      "type": "GROUP",
+                      "createdAt": 1715454682.623000000,
+                      "lastMessage": null,
+                      "name": "Group chat",
+                      "description": "The best chat in the world",
+                      "members": [
+                        {
+                          "id": 11,
+                          "role": "MEMBER",
+                          "joinedAt": 1715496870.089000000,
+                          "details": {
+                            "username": "@derek",
+                            "name": "Derek",
+                            "avatarPath": null,
+                            "online": true
+                          }
+                        },
+                        {
+                          "id": 54,
+                          "role": "ADMIN",
+                          "joinedAt": 1715496870.089000000,
+                          "details": {
+                            "username": "@matthewjohnson",
+                            "name": "Mathew",
+                            "avatarPath": null,
+                            "online": true
+                          }
+                        }
+                      ],
+                      "membersLimit": 20,
+                      "private": false,
+                      "avatarAvailable": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a member of the chat",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/chats/generic/663fc2da3c60a57263542aba",
+                  "message": "Do not have permissions to access the resource",
+                  "status": 403,
+                  "timestamp": 1716659625.296760800
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Chat not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/chats/generic/663fc2da3c60a57263542ab",
+                  "message": "Requested chat not found",
+                  "status": 404,
+                  "timestamp": 1716659592.728607200
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/chats/{id}/exists": {
       "parameters": [
         {
@@ -1400,7 +1523,7 @@
               "details": {
                 "username": "mathew",
                 "name": "Matthew McConaughey",
-                "avatarPath": null,
+                "avatarAvailable": true,
                 "online": false
               }
             }
@@ -1483,9 +1606,9 @@
             "type": "string",
             "nullable": false
           },
-          "avatarPath": {
-            "type": "string",
-            "nullable": true
+          "avatarAvailable": {
+            "type": "boolean",
+            "nullable": false
           },
           "online": {
             "type": "boolean",
@@ -1495,8 +1618,91 @@
         "example": {
           "username": "mathew",
           "name": "Matthew McConaughey",
-          "avatarPath": null,
+          "avatarAvailable": true,
           "online": false
+        }
+      },
+      "GroupChatDetailedDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "nullable": false
+          },
+          "type": {
+            "type": "string",
+            "nullable": false,
+            "example": "DUO"
+          },
+          "name": {
+            "type": "string",
+            "nullable": false
+          },
+          "createdAt": {
+            "type": "number",
+            "nullable": false
+          },
+          "avatarAvailable": {
+            "type": "boolean",
+            "nullable": false
+          },
+          "lastMessage": {
+            "$ref": "#/components/schemas/TextMessageDto"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 256
+          },
+          "membersLimit": {
+            "type": "integer",
+            "nullable": false
+          },
+          "private": {
+            "type": "boolean",
+            "nullable": false
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatMemberDto"
+            }
+          }
+        },
+        "example": {
+          "id": "663fc2da3c60a57263542aba",
+          "type": "GROUP",
+          "createdAt": 1715454682.623000000,
+          "lastMessage": null,
+          "name": "Group chat",
+          "description": "The best chat in the world",
+          "members": [
+            {
+              "id": 11,
+              "role": "MEMBER",
+              "joinedAt": 1715496870.089000000,
+              "details": {
+                "username": "@derek",
+                "name": "Derek",
+                "avatarPath": null,
+                "online": true
+              }
+            },
+            {
+              "id": 54,
+              "role": "ADMIN",
+              "joinedAt": 1715496870.089000000,
+              "details": {
+                "username": "@matthewjohnson",
+                "name": "Mathew",
+                "avatarPath": null,
+                "online": true
+              }
+            }
+          ],
+          "membersLimit": 20,
+          "private": false,
+          "avatarAvailable": false
         }
       },
       "MessageDto": {

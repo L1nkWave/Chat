@@ -61,6 +61,12 @@ public class ChatController {
         return chatService.findChat(userDetails().id(), recipientId).getId();
     }
 
+    @GetMapping("/generic/{id}")
+    public ChatDto getGenericChatById(@PathVariable String id,
+                                      @NonNull HttpServletRequest request) {
+        return chatService.getGenericChat(id, requestInitiator(request));
+    }
+
     @PostMapping
     @ResponseStatus(CREATED)
     @JsonView(New.class)
@@ -73,7 +79,7 @@ public class ChatController {
     @ResponseStatus(NO_CONTENT)
     public void checkChatPair(@PathVariable String id,
                               @RequestParam Long recipientId) {
-        final Chat chat = chatService.findChat(id);
+        final Chat chat = chatService.findDuoChat(id);
         if (chatService.isMember(userDetails().id(), chat) &&
             chatService.isMember(recipientId, chat)) {
             return;

@@ -13,11 +13,9 @@ import org.linkwave.chatservice.api.ws.WSServiceClient;
 import org.linkwave.chatservice.chat.duo.Chat;
 import org.linkwave.chatservice.chat.duo.CompanionDto;
 import org.linkwave.chatservice.chat.duo.DuoChatDto;
+import org.linkwave.chatservice.chat.duo.DuoChatDto.DuoChatDtoBuilder;
 import org.linkwave.chatservice.chat.duo.NewChatRequest;
-import org.linkwave.chatservice.chat.group.GroupChat;
-import org.linkwave.chatservice.chat.group.GroupChatDetailsDto;
-import org.linkwave.chatservice.chat.group.GroupChatDto;
-import org.linkwave.chatservice.chat.group.NewGroupChatRequest;
+import org.linkwave.chatservice.chat.group.*;
 import org.linkwave.chatservice.common.*;
 import org.linkwave.chatservice.message.Action;
 import org.linkwave.chatservice.message.Message;
@@ -44,9 +42,12 @@ import java.time.Instant;
 import java.util.*;
 
 import static java.lang.String.format;
+import static java.util.Objects.nonNull;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 import static org.linkwave.chatservice.chat.ChatRole.ADMIN;
+import static org.linkwave.chatservice.chat.duo.Chat.Type.DUO;
+import static org.linkwave.chatservice.chat.duo.Chat.Type.GROUP;
 import static org.linkwave.chatservice.common.ListUtils.iterateChunks;
 
 @Slf4j
@@ -179,8 +180,75 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
+    public Chat findDuoChat(String id) {
+        final Optional<Chat> duoChat = chatRepository.findDuoChat(id);
+        return duoChat.orElseThrow(ChatNotFoundException::new);
+    }
+
+    @Override
     public GroupChat findGroupChat(String id) {
         return chatRepository.findGroupChatById(id).orElseThrow(ChatNotFoundException::new);
+    }
+
+    @Override
+    public ChatDto getGenericChat(String id, @NonNull RequestInitiator initiator) {
+        final Chat chat = findChat(id);
+        if (!isMember(initiator.userId(), chat)) {
+            throw new PrivacyViolationException();
+        }
+        final List<Long> usersIds = chat.getMembers()
+                .stream()
+                .map(ChatMember::getId)
+                .filter(memberId -> !memberId.equals(initiator.userId()))
+                .toList();
+
+        final Map<Long, UserDto> usersMap = resolveUsersByIds(initiator, usersIds);
+
+        if (chat instanceof GroupChat groupChat) {
+            final List<ChatMemberDto> mappedMembers = chat.getMembers().stream()
+                    .filter(member -> usersMap.containsKey(member.getId()))
+                    .map(member -> {
+                        final UserDto userDto = usersMap.get(member.getId());
+                        return ChatMemberDto.builder()
+                                .id(member.getId())
+                                .role(member.getRole())
+                                .joinedAt(member.getJoinedAt())
+                                .details(ChatMemberDetailsDto.builder()
+                                        .name(userDto.getName())
+                                        .username(userDto.getUsername())
+                                        .isOnline(userDto.isOnline())
+                                        .isAvatarAvailable(nonNull(userDto.getAvatarPath()))
+                                        .build())
+                                .build();
+                    })
+                    .toList();
+
+            return GroupChatDetailedDto.builder()
+                    .id(groupChat.getId())
+                    .type(GROUP)
+                    .createdAt(groupChat.getCreatedAt())
+                    .isAvatarAvailable(nonNull(groupChat.getAvatarPath()))
+                    .name(groupChat.getName())
+                    .membersLimit(groupChat.getMembersLimit())
+                    .description(groupChat.getDescription())
+                    .isPrivate(groupChat.isPrivate())
+                    .members(mappedMembers)
+                    .build();
+        } else {
+            final DuoChatDtoBuilder<?, ?> duoChatDtoBuilder = DuoChatDto.builder()
+                    .id(chat.getId())
+                    .type(DUO)
+                    .createdAt(chat.getCreatedAt());
+
+            final Optional<UserDto> optionalUserDto = usersMap.values().stream().findAny();
+            if (optionalUserDto.isPresent()) {
+                final UserDto userDto = optionalUserDto.get();
+                duoChatDtoBuilder
+                        .isAvatarAvailable(nonNull(userDto.getAvatarPath()))
+                        .user(modelMapper.map(userDto, CompanionDto.class));
+            }
+            return duoChatDtoBuilder.build();
+        }
     }
 
     @Override
@@ -195,25 +263,7 @@ public class ChatServiceImpl implements ChatService {
                 .map(chat -> mapChats(chat, usersIds, initiator))
                 .toList();
 
-        final Map<Long, UserDto> usersMap = new LinkedHashMap<>();
-
-        // pull users
-        final int batches = iterateChunks(
-                new ArrayList<>(usersIds),
-                DEFAULT_BATCH_SIZE,
-                ids -> userServiceClient
-                        .getUsers(ids, initiator.bearer())
-                        .forEach(user -> usersMap.put(user.getId(), user))
-        );
-
-        // pull contacts & set aliases
-        userServiceClient.fetchAllContacts(initiator, DEFAULT_BATCH_SIZE)
-                .forEach((userId, dto) -> {
-                    final UserDto userDto = usersMap.get(userId);
-                    if (userDto != null) {
-                        userDto.setName(dto.getAlias());
-                    }
-                });
+        final Map<Long, UserDto> usersMap = resolveUsersByIds(initiator, new ArrayList<>(usersIds));
 
         selectedChats.forEach(chat -> {
             final MessageDto lastMessage = chat.getLastMessage();
@@ -239,9 +289,32 @@ public class ChatServiceImpl implements ChatService {
 
         });
 
-        log.debug("-> getUserChats(): performed {} api-requests", batches);
-
         return Pair.of(chatsTotalCount, selectedChats);
+    }
+
+    @NonNull
+    private Map<Long, UserDto> resolveUsersByIds(@NonNull RequestInitiator initiator, @NonNull List<Long> usersIds) {
+        final Map<Long, UserDto> usersMap = new LinkedHashMap<>();
+
+        // pull users
+        iterateChunks(
+                usersIds,
+                DEFAULT_BATCH_SIZE,
+                ids -> userServiceClient
+                        .getUsers(ids, initiator.bearer())
+                        .forEach(user -> usersMap.put(user.getId(), user))
+        );
+
+        // pull contacts & set aliases
+        userServiceClient.fetchAllContacts(initiator, DEFAULT_BATCH_SIZE)
+                .forEach((userId, dto) -> {
+                    final UserDto userDto = usersMap.get(userId);
+                    if (userDto != null) {
+                        userDto.setName(dto.getAlias());
+                    }
+                });
+
+        return usersMap;
     }
 
     private ChatDto mapChats(Chat chat, Set<Long> usersIds, RequestInitiator initiator) {
@@ -381,7 +454,12 @@ public class ChatServiceImpl implements ChatService {
                 .id(user.getId())
                 .joinedAt(newMember.getJoinedAt())
                 .role(newMember.getRole())
-                .details(modelMapper.map(user, ChatMemberDetailsDto.class))
+                .details(ChatMemberDetailsDto.builder()
+                        .name(user.getName())
+                        .username(user.getUsername())
+                        .isOnline(user.isOnline())
+                        .isAvatarAvailable(nonNull(user.getAvatarPath()))
+                        .build())
                 .build();
     }
 
@@ -428,7 +506,12 @@ public class ChatServiceImpl implements ChatService {
                 .id(user.getId())
                 .joinedAt(newMember.getJoinedAt())
                 .role(newMember.getRole())
-                .details(modelMapper.map(user, ChatMemberDetailsDto.class))
+                .details(ChatMemberDetailsDto.builder()
+                        .name(user.getName())
+                        .username(user.getUsername())
+                        .isOnline(user.isOnline())
+                        .isAvatarAvailable(nonNull(user.getAvatarPath()))
+                        .build())
                 .build();
     }
 
@@ -499,11 +582,20 @@ public class ChatServiceImpl implements ChatService {
         } catch (ApiResponseClientErrorException e) {
             // user is deleted
         }
+
+        ChatMemberDetailsDto detailsDto = null;
+        if (memberInfo != null) {
+            detailsDto = ChatMemberDetailsDto.builder()
+                    .name(memberInfo.getName())
+                    .username(memberInfo.getUsername())
+                    .isOnline(memberInfo.isOnline())
+                    .isAvatarAvailable(nonNull(memberInfo.getAvatarPath()))
+                    .build();
+        }
+
         return ChatMemberDto.builder()
                 .id(memberId)
-                .details(memberInfo == null
-                        ? null
-                        : modelMapper.map(memberInfo, ChatMemberDetailsDto.class))
+                .details(detailsDto)
                 .build();
     }
 
@@ -547,7 +639,9 @@ public class ChatServiceImpl implements ChatService {
 
                 // if user was found then set details
                 if (user != null) {
-                    memberDto.setDetails(modelMapper.map(user, ChatMemberDetailsDto.class));
+                    final ChatMemberDetailsDto details = modelMapper.map(user, ChatMemberDetailsDto.class);
+                    details.setAvatarAvailable(nonNull(user.getAvatarPath()));
+                    memberDto.setDetails(details);
                 }
                 mappedMembers.add(memberDto);
             }
