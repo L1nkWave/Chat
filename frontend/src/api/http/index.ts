@@ -5,6 +5,7 @@ import { AuthTypes } from "@/api/http/auth/auth.types";
 import { isTokenExpired } from "@/helpers/DecodeToken/decodeToken";
 import { store } from "@/lib/store";
 
+export const LIST_PAGINATION_LIMIT = 20;
 const baseURL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/";
 
 export const instance: AxiosInstance = axios.create({
