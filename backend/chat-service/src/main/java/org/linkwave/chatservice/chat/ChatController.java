@@ -153,6 +153,12 @@ public class ChatController {
         chatService.updateGroupChat(userDetails().id(), id, updateGroupChat);
     }
 
+    @DeleteMapping("/{id}/group")
+    @ResponseStatus(NO_CONTENT)
+    public void removeGroupChat(@PathVariable String id) {
+        chatService.removeGroupChat(userDetails().id(), id);
+    }
+
     @PostMapping("/{id}/group/avatar")
     @ResponseStatus(CREATED)
     public void uploadGroupChatAvatar(@PathVariable String id,

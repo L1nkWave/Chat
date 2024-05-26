@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.springframework.http.HttpStatus.NO_CONTENT;
 
 @FeignClient(value = "chat-service", path = "/api/v1/chats")
 public interface ChatServiceClient {
@@ -29,6 +30,9 @@ public interface ChatServiceClient {
             @RequestHeader(AUTHORIZATION) String authHeader,
             @RequestBody NewGroupChat body
     );
+
+    @DeleteMapping("/{id}/group")
+    void removeGroupChat(@RequestHeader(AUTHORIZATION) String authHeader, @PathVariable String id);
 
     @PostMapping("/{chatId}/messages/text")
     MessageDto saveTextMessage(
