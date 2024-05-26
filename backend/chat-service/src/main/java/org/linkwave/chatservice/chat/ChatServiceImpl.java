@@ -615,6 +615,23 @@ public class ChatServiceImpl implements ChatService {
         updateChat(groupChat);
     }
 
+    @Transactional
+    @Override
+    public void updateGroupChat(Long initiatorId, String chatId, @NonNull UpdateGroupChat updateGroupChat) {
+        final GroupChat groupChat = findGroupChat(chatId);
+        checkMemberRole(groupChat, initiatorId, ADMIN);
+
+        if (updateGroupChat.membersLimit() < groupChat.getMembersCount()) {
+            throw new BadRequestDataException("Members limit must not be less than actual members count");
+        }
+
+        groupChat.setName(updateGroupChat.name());
+        groupChat.setDescription(updateGroupChat.description());
+        groupChat.setMembersLimit(updateGroupChat.membersLimit());
+        groupChat.setPrivate(updateGroupChat.isPrivate());
+        updateChat(groupChat);
+    }
+
     @Override
     public GroupChatDetailsDto getGroupChatDetails(@NonNull RequestInitiator initiator, String chatId) {
         final GroupChat chat = findGroupChat(chatId);

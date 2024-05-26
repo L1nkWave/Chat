@@ -11,6 +11,7 @@ import org.linkwave.chatservice.chat.duo.NewChatRequest;
 import org.linkwave.chatservice.chat.group.GroupChatDetailsDto;
 import org.linkwave.chatservice.chat.group.GroupChatDto;
 import org.linkwave.chatservice.chat.group.NewGroupChatRequest;
+import org.linkwave.chatservice.chat.group.UpdateGroupChat;
 import org.linkwave.chatservice.common.ResourceNotFoundException;
 import org.linkwave.chatservice.common.UnacceptableRequestDataException;
 import org.springframework.data.util.Pair;
@@ -144,6 +145,12 @@ public class ChatController {
                                  @PathVariable Long memberId,
                                  @RequestParam ChatRole role) {
         chatService.changeMemberRole(id, userDetails().id(), memberId, role);
+    }
+
+    @PatchMapping("/{id}/group")
+    public void updateGroupChat(@PathVariable String id,
+                                @RequestBody @Valid UpdateGroupChat updateGroupChat) {
+        chatService.updateGroupChat(userDetails().id(), id, updateGroupChat);
     }
 
     @PostMapping("/{id}/group/avatar")

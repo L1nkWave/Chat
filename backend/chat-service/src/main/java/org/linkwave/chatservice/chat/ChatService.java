@@ -2,10 +2,7 @@ package org.linkwave.chatservice.chat;
 
 import org.linkwave.chatservice.chat.duo.Chat;
 import org.linkwave.chatservice.chat.duo.NewChatRequest;
-import org.linkwave.chatservice.chat.group.GroupChat;
-import org.linkwave.chatservice.chat.group.GroupChatDetailsDto;
-import org.linkwave.chatservice.chat.group.GroupChatDto;
-import org.linkwave.chatservice.chat.group.NewGroupChatRequest;
+import org.linkwave.chatservice.chat.group.*;
 import org.linkwave.chatservice.common.PrivacyViolationException;
 import org.linkwave.chatservice.common.RequestInitiator;
 import org.springframework.data.util.Pair;
@@ -76,10 +73,10 @@ public interface ChatService {
     /**
      * Returns mapped duo / group chat by specified ID.
      *
-     * @param id chat's identification
+     * @param id        chat's identification
      * @param initiator author of request
      * @return mapped chat dto
-     * @throws ChatNotFoundException if chat was not found with passed ID
+     * @throws ChatNotFoundException     if chat was not found with passed ID
      * @throws PrivacyViolationException if initiator is not a chat member
      */
     ChatDto getGenericChat(String id, RequestInitiator initiator) throws ChatNotFoundException, PrivacyViolationException;
@@ -174,6 +171,9 @@ public interface ChatService {
     ChatMemberDto removeGroupChatMember(String chatId, @NonNull RequestInitiator initiator, Long memberId);
 
     void changeMemberRole(String chatId, Long initiatorId, Long memberId, ChatRole newRole);
+
+    void updateGroupChat(Long initiatorId, String chatId, @NonNull UpdateGroupChat updateGroupChat)
+            throws ChatMemberPermissionsDenied;
 
     /**
      * Returns group chat details if initiator has access to it.
