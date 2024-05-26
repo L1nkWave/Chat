@@ -11,7 +11,7 @@ public class NewGroupChatRequest {
     @Length(min = 1, max = 32, message = "length should be in range [1, 32]")
     private String name;
 
-    @Length(max = 256, message = "length limit of 128 is exceeded")
+    @Length(max = 256, message = "length limit of 256 is exceeded")
     private String description;
 
     @NotNull(message = "must be present")
