@@ -53,7 +53,7 @@ public class SimpleBroadcastManagerTest {
             setField(instances, broadcastManager, new String[]{"E2"});
         }
 
-        final Field isMibEnabled = findField(SimpleBroadcastManager.class, "isMultiInstanceBroadcastEnabled");
+        final Field isMibEnabled = findField(SimpleBroadcastManager.class, "isMibEnabled");
         if (isMibEnabled != null) {
             makeAccessible(isMibEnabled);
             setField(isMibEnabled, broadcastManager, true);
