@@ -25,8 +25,11 @@ public class SimpleBroadcastManager implements BroadcastManager {
     @Value("${server.instances.list}")
     protected String[] instances;
 
+    /**
+     * Specifies if multi instance broadcast is enabled.
+     */
     @Value("${server.instances.enabled}")
-    protected boolean isMultiInstanceBroadcastEnabled;
+    protected boolean isMibEnabled;
 
     protected final WebSocketMessageBroadcast messageBroadcast;
     protected final ChatRepository<Long, String> chatRepository;
@@ -70,7 +73,7 @@ public class SimpleBroadcastManager implements BroadcastManager {
             isSharedCompletely = false;
         }
 
-        if (isMultiInstanceBroadcastEnabled &&
+        if (isMibEnabled &&
             !isSharedCompletely &&
             broadcast.multiInstances()) {
             log.debug("-> process(): multi-instance broadcast is required");
