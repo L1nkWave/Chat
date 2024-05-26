@@ -449,6 +449,70 @@
             }
           }
         }
+      },
+      "patch": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "Update group chat properties",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGroupChat"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateGroupChat"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/chats/663fc2da3c60a57263542aba/group",
+                  "message": "Members limit must not be less than actual members count",
+                  "status": 400,
+                  "timestamp": 1716722040.179129600
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Do not have permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/chats/663fc2da3c60a57263542aba/group",
+                  "message": "Permissions denied",
+                  "status": 403,
+                  "timestamp": 1716722448.679325600
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/chats/{id}/group/member": {
@@ -1488,6 +1552,38 @@
             "edited": false,
             "isRead": false
           }
+        }
+      },
+      "UpdateGroupChat": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "nullable": false,
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 256
+          },
+          "membersLimit": {
+            "type": "integer",
+            "nullable": false,
+            "minimum": 0,
+            "maximum": 1000
+          },
+          "isPrivate": {
+            "type": "boolean",
+            "nullable": false
+          }
+        },
+        "example": {
+          "membersLimit": 10,
+          "description": "Private chat for 10 members",
+          "name": "Group chat",
+          "isPrivate": true
         }
       },
       "GroupChatDetailsDto": {
