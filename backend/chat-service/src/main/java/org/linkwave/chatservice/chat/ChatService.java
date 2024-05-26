@@ -175,6 +175,8 @@ public interface ChatService {
     void updateGroupChat(Long initiatorId, String chatId, @NonNull UpdateGroupChat updateGroupChat)
             throws ChatMemberPermissionsDenied;
 
+    void removeGroupChat(Long initiatorId, String chatId) throws ChatMemberPermissionsDenied;
+
     /**
      * Returns group chat details if initiator has access to it.
      *
