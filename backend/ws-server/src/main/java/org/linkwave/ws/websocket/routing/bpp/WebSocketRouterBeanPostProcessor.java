@@ -1,9 +1,10 @@
 package org.linkwave.ws.websocket.routing.bpp;
 
-import org.linkwave.ws.websocket.routing.broadcast.BroadcastManager;
+import lombok.extern.slf4j.Slf4j;
+import org.linkwave.ws.websocket.routing.EndpointCondition;
 import org.linkwave.ws.websocket.routing.RouteComponent;
 import org.linkwave.ws.websocket.routing.WebSocketRouter;
-import lombok.extern.slf4j.Slf4j;
+import org.linkwave.ws.websocket.routing.broadcast.BroadcastManager;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanInitializationException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
@@ -17,10 +18,15 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import static java.lang.String.format;
+import static java.lang.System.currentTimeMillis;
+import static java.util.Collections.unmodifiableMap;
 
 @Slf4j
 @Component
@@ -31,19 +37,31 @@ public class WebSocketRouterBeanPostProcessor implements BeanPostProcessor, Appl
     @Override
     public Object postProcessAfterInitialization(@NonNull Object bean,
                                                  @NonNull String beanName) throws BeansException {
-        Class<?> cls = bean.getClass();
-        if (!Arrays.asList(cls.getInterfaces()).contains(WebSocketRouter.class)) {
+        if (!Arrays.asList(bean.getClass().getInterfaces()).contains(WebSocketRouter.class)) {
             return bean;
         }
 
-        Field routesField = getRoutesMapField(cls);
+        final Field routesField = getRoutesMapField(bean.getClass());
         ReflectionUtils.makeAccessible(routesField);
 
-        var sb = new StringBuilder();
-        Map<String, Object> routeBeans = applicationContext.getBeansWithAnnotation(WebSocketRoute.class);
-        Map<String, RouteComponent> routes = new HashMap<>();
+        final long start = currentTimeMillis();
 
-        // scan all routes
+        final Map<String, Object> routeBeans = applicationContext.getBeansWithAnnotation(WebSocketRoute.class);
+        final Map<String, RouteComponent> routes = scanRoutes(routeBeans);
+        ReflectionUtils.setField(routesField, bean, unmodifiableMap(routes));
+
+        final long end = currentTimeMillis();
+
+        log.info("Build {} took {} ms", bean.getClass().getSimpleName(), end - start);
+
+        return bean;
+    }
+
+    @NonNull
+    private Map<String, RouteComponent> scanRoutes(@NonNull Map<String, Object> routeBeans) {
+        final Map<String, RouteComponent> routes = new HashMap<>();
+        var sb = new StringBuilder();
+
         for (Entry<String, Object> entry : routeBeans.entrySet()) {
             Class<?> routeCls = entry.getValue().getClass();
             String rootPath = routeCls.getAnnotation(WebSocketRoute.class).value();
@@ -52,14 +70,14 @@ public class WebSocketRouterBeanPostProcessor implements BeanPostProcessor, Appl
             // scan all endpoints inside bean
             for (Method method : routeCls.getDeclaredMethods()) {
                 if (method.isAnnotationPresent(Endpoint.class)) {
-                    Endpoint ann = method.getAnnotation(Endpoint.class);
+                    Endpoint endpoint = method.getAnnotation(Endpoint.class);
 
                     // omit disabled endpoint
-                    if (ann.disabled()) {
+                    if (endpoint.disabled()) {
                         continue;
                     }
 
-                    String path = ann.value();
+                    String path = endpoint.value();
                     sb.append(path);
 
                     String combinedPath = sb.toString();
@@ -70,21 +88,25 @@ public class WebSocketRouterBeanPostProcessor implements BeanPostProcessor, Appl
                     // check broadcast options
                     final boolean broadcast = verifyBroadcast(method);
 
+                    // find conditions
+                    final List<EndpointCondition> conditions = Arrays.stream(endpoint.conditions())
+                            .map(applicationContext::getBean)
+                            .map(condition -> (EndpointCondition) condition)
+                            .toList();
+
                     method.setAccessible(true);
-                    routes.put(combinedPath, new RouteComponent(entry.getValue(), method));
+                    routes.put(combinedPath, new RouteComponent(entry.getValue(), method, conditions));
 
                     // restore sb
                     sb.setLength(0);
                     sb.append(rootPath);
 
-                    log.debug("Route [{}], broadcast: {}", combinedPath, broadcast);
+                    log.debug("Route [{}], broadcast: {}, conditions: {}", combinedPath, broadcast, conditions.size());
                 }
             }
             sb.setLength(0);
         }
-
-        ReflectionUtils.setField(routesField, bean, Collections.unmodifiableMap(routes));
-        return bean;
+        return routes;
     }
 
     private boolean verifyBroadcast(@NonNull Method routeHandler) {

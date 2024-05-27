@@ -1,6 +1,7 @@
 package org.linkwave.ws.websocket.routing;
 
 import java.lang.reflect.Method;
+import java.util.List;
 
 import org.linkwave.ws.websocket.routing.bpp.WebSocketRoute;
 import org.linkwave.ws.websocket.routing.bpp.Endpoint;
@@ -12,6 +13,10 @@ import org.linkwave.ws.websocket.routing.bpp.Endpoint;
  *
  * @param beanRoute    component with route handlers declaration
  * @param routeHandler one of the declared handlers ({@link Endpoint})
+ * @param conditions   list of object that define conditions to invoke handler
  */
-public record RouteComponent(Object beanRoute, Method routeHandler) {
+public record RouteComponent(
+        Object beanRoute,
+        Method routeHandler,
+        List<EndpointCondition> conditions) {
 }
