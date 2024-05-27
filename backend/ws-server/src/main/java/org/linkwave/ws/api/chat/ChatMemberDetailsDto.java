@@ -11,7 +11,7 @@ public class ChatMemberDetailsDto {
 
     private String username;
     private String name;
-    private String avatarPath;
+    private boolean isAvatarAvailable;
     private boolean isOnline;
 
 }

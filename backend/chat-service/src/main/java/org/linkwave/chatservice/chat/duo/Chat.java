@@ -4,8 +4,8 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.linkwave.chatservice.chat.ChatMember;
 import org.linkwave.chatservice.message.Message;
-import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.lang.NonNull;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -14,8 +14,8 @@ import java.util.List;
 @Document("chats")
 @NoArgsConstructor
 @Data
-@EqualsAndHashCode(exclude = "messages")
-@ToString(exclude = "messages")
+@EqualsAndHashCode
+@ToString
 @SuperBuilder
 public class Chat {
 
@@ -23,10 +23,6 @@ public class Chat {
 
     @Builder.Default
     private List<ChatMember> members = new ArrayList<>();
-
-    @DBRef(lazy = true)
-    @Builder.Default
-    private List<Message> messages = new ArrayList<>();
 
     @Builder.Default
     private Instant createdAt = Instant.now();
@@ -38,8 +34,7 @@ public class Chat {
         GROUP
     }
 
-    public void addMessage(Message message) {
-        this.messages.add(message);
+    public void addMessage(@NonNull Message message) {
         this.lastMessage = message;
         message.setChat(this);
     }

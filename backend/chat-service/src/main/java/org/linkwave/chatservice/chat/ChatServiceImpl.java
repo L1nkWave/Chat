@@ -632,6 +632,16 @@ public class ChatServiceImpl implements ChatService {
         updateChat(groupChat);
     }
 
+    @Transactional
+    @Override
+    public void removeGroupChat(Long initiatorId, String chatId) {
+        final GroupChat groupChat = findGroupChat(chatId);
+        checkMemberRole(groupChat, initiatorId, ADMIN);
+
+        chatRepository.delete(groupChat);
+        messageService.clearMessages(groupChat);
+    }
+
     @Override
     public GroupChatDetailsDto getGroupChatDetails(@NonNull RequestInitiator initiator, String chatId) {
         final GroupChat chat = findGroupChat(chatId);

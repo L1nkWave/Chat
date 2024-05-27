@@ -1,16 +1,23 @@
 package org.linkwave.ws.websocket.routing.broadcast.instances;
 
-import org.linkwave.ws.websocket.dto.*;
-import org.linkwave.ws.repository.ChatRepository;
-import org.linkwave.ws.websocket.routing.broadcast.WebSocketMessageBroadcast;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.linkwave.ws.repository.ChatRepository;
+import org.linkwave.ws.websocket.dto.Action;
+import org.linkwave.ws.websocket.dto.BaseMessage;
+import org.linkwave.ws.websocket.dto.ChatMessage;
+import org.linkwave.ws.websocket.dto.StatusMessage;
+import org.linkwave.ws.websocket.routing.broadcast.WebSocketMessageBroadcast;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toSet;
@@ -19,6 +26,10 @@ import static java.util.stream.Collectors.toSet;
 @Component
 @RequiredArgsConstructor
 public class MessageDelegateImpl implements MessageDelegate {
+
+    private static final TypeReference<Map<String, Object>> MESSAGE_CONTENT_TYPE = new TypeReference<>() {};
+    private static final String HIDDEN_CHATS_KEY = "chats";
+    private static final String HIDDEN_MEMBERS_KEY = "members";
 
     private final ChatRepository<Long, String> chatRepository;
     private final WebSocketMessageBroadcast messageBroadcast;
@@ -51,7 +62,7 @@ public class MessageDelegateImpl implements MessageDelegate {
 
                 if (action.equals(Action.OFFLINE)) {
                     userChats = new HashSet<>(
-                            (List<String>) mapper.readValue(message, Map.class).get("chats")
+                            (List<String>) mapper.readValue(message, MESSAGE_CONTENT_TYPE).get(HIDDEN_CHATS_KEY)
                     );
                     message = mapper.writeValueAsString(statusMessage); // remove chats property
                 } else {
@@ -63,6 +74,26 @@ public class MessageDelegateImpl implements MessageDelegate {
                         .map(chatRepository::getChatMembersSessions)
                         .map(Set::stream)
                         .flatMap(Stream::distinct)
+                        .collect(toSet());
+            }
+            case CHAT_DELETED -> {
+                final var content = mapper.readValue(message, MESSAGE_CONTENT_TYPE);
+
+                // get ids from json
+                final Set<Long> membersIds = new HashSet<>((
+                        ((List<Integer>) content.get(HIDDEN_MEMBERS_KEY)).stream()
+                                .map(Integer::longValue)
+                                .collect(toSet()))
+                );
+
+                // remove members property
+                content.remove(HIDDEN_MEMBERS_KEY);
+                message = mapper.writeValueAsString(content);
+
+                // collect members' sessions
+                members = membersIds.stream()
+                        .map(chatRepository::getUserSessions)
+                        .flatMap(Set::stream)
                         .collect(toSet());
             }
             case BIND, ERROR -> throw new IllegalStateException("Unsupported message action");

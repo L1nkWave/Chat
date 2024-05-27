@@ -11,7 +11,7 @@ public enum Action {
     // Messages
     MESSAGE, FILE, BIND, UPD_MESSAGE,
     READ, UNREAD_MESSAGES,
-    REMOVE, CLEAR_HISTORY,
+    REMOVE, CLEAR_HISTORY, CHAT_DELETED,
 
     // Error
     ERROR

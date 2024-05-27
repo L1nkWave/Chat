@@ -267,6 +267,13 @@ public class MessageServiceImpl implements MessageService {
 
     @Transactional
     @Override
+    public void clearMessages(@NonNull Chat chat) {
+        messageRepository.deleteAllChatMessages(chat.getId());
+        chat.setLastMessage(null);
+    }
+
+    @Transactional
+    @Override
     public void clearMessages(Long senderId, String chatId) {
         final Chat chat = chatService.findChat(chatId);
         chatService.checkMemberRole(chat, senderId, ChatRole.ADMIN);

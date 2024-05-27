@@ -201,6 +201,16 @@ public class RedisChatRepository implements ChatRepository<Long, String> {
     }
 
     @Override
+    public void deleteChatWithMembers(String chatId, Set<Long> members) {
+        executeInTxn(redisTemplate, ops -> {
+            ops.delete(chatKey(chatId));
+            members.stream()
+                    .map(this::userChatsKey)
+                    .forEach(userChatsKey -> ops.opsForHash().delete(userChatsKey, chatId));
+        });
+    }
+
+    @Override
     public void saveSession(Long userId, String sessionId) {
         redisTemplate.opsForSet().add(userKey(userId), sessionId);
     }
