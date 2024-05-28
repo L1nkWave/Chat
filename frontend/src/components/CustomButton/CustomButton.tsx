@@ -28,7 +28,7 @@ export const CustomButton = forwardRef(
     return (
       <button
         type="button"
-        className={`outline-none flex gap-2 justify-center items-center text-blue-100 ${style} ${className}`}
+        className={`z-50 outline-none flex gap-2 justify-center items-center text-blue-100 ${style} ${className}`}
         ref={ref}
         {...props}
       >
