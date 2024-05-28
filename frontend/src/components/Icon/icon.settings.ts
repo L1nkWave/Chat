@@ -31,4 +31,10 @@ export const iconMapping = {
   "clock-outline": Icons.TimeOutlineIcon,
   "broken-link-outline": Icons.BrokenLinkOutlineIcon,
   "close-outline": Icons.CloseOutlineIcon,
+  "edit-outline": Icons.EditOutlineIcon,
+  "trash-bucket-outline": Icons.TrashBucketOutlineIcon,
+  "exit-outline": Icons.ExitOutlineIcon,
+  "users-outline": Icons.UsersOutlineIcon,
+  "crown-outline": Icons.CrownOutlineIcon,
+  "minus-circle-outline": Icons.MinusCircleOutline,
 };
