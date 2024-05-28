@@ -4,12 +4,35 @@ import React, { useCallback, useContext, useState } from "react";
 import { toast } from "react-toastify";
 import { v4 as uuidv4 } from "uuid";
 
-import { addDuoChat, AddDuoChatParams, getChatByUserId, getChats, getMessagesByChatId } from "@/api/http/chat/chat";
-import { addContact, getContacts, removeContact } from "@/api/http/contacts/contacts";
-import { ChatParams, ContactParams, UserParams } from "@/api/http/contacts/contacts.types";
-import { getUserById, searchUser } from "@/api/http/user/user";
-import { checkUnreadMessages, readMessages, sendChatMessage } from "@/api/socket";
 import {
+  addDuoChat,
+  AddDuoChatParams,
+  createGroupChat,
+  getChatByUserId,
+  getChats,
+  getGroupChatDetailsById,
+  getMessagesByChatId,
+  sendFile,
+} from "@/api/http/chat/chat";
+import { addContact, getContacts, removeContact } from "@/api/http/contacts/contacts";
+import {
+  ChatParams,
+  ContactParams,
+  GroupChatDetails,
+  MessageParams,
+  UserParams,
+} from "@/api/http/contacts/contacts.types";
+import { getUserById, searchUser } from "@/api/http/user/user";
+import {
+  addMemberToGroupChat,
+  checkUnreadMessages,
+  readMessages,
+  sendChatMessage,
+  sendFileMessage,
+} from "@/api/socket";
+import { ChatType } from "@/api/socket/index.types";
+import {
+  addMessagesHandler,
   bindSocketHandlers,
   messageHandler,
   offlineHandler,
@@ -24,9 +47,11 @@ import { MainBox } from "@/components/Chat/MainBox/MainBox";
 import { SideBar } from "@/components/Chat/SideBar/SideBar";
 import { SIDEBAR_ITEM } from "@/components/Chat/SideBar/sidebar.config";
 import { SidebarButtonName } from "@/components/Chat/SideBar/sidebar.types";
+import { CreateGroupChatModal } from "@/components/CreateGroupChatModal/CreateGroupChatModal";
 import { CustomButton } from "@/components/CustomButton/CustomButton";
 import { SocketContext } from "@/context/SocketContext/SocketContext";
 import {
+  AddMessage,
   BindMessage,
   MessageAction,
   MessageLikeMessage,
@@ -55,10 +80,13 @@ export function Chat() {
   const [globalUser, setGlobalUser] = useState<UserParams | undefined>(undefined);
 
   const [chats, setChats] = useState<ChatMap>(new Map());
-  const [chatId, setChatId] = useState<string | undefined>(undefined);
+  const [chat, setChat] = useState<ChatParams | undefined>(undefined);
   const [currentMessages, setCurrentMessages] = useState<MessagesMap>(new Map());
+  const [groupDetails, setGroupDetails] = useState<GroupChatDetails | undefined>(undefined);
 
   const [currentSidebarItem, setCurrentSidebarItem] = useState<string>("chat" as SidebarButtonName);
+
+  const [isCreateGroupChatModalOpen, setIsCreateGroupChatModalOpen] = useState(false);
 
   const fetchGlobalContacts = useCallback(async (search?: string, offset?: number, limit?: number) => {
     try {
@@ -119,15 +147,15 @@ export function Chat() {
 
   useAccessTokenEffect(() => {
     if (currentMainBoxState !== MainBoxStateEnum.CHAT) {
-      setChatId(undefined);
+      setChat(undefined);
     }
   }, [currentMainBoxState]);
 
   useAccessTokenEffect(() => {
-    if (chatId && webSocket) {
-      readMessages(webSocket, chatId, Date.now() / 1000);
+    if (chat && webSocket) {
+      readMessages(webSocket, chat.id, Date.now() / 1000);
     }
-  }, [chatId]);
+  }, [chat]);
 
   useAccessTokenEffect(() => {
     if (webSocket && webSocket.readyState === WebSocket.OPEN) {
@@ -147,11 +175,11 @@ export function Chat() {
       onlineHandler(socketMessage as OnlineOfflineMessage, setChats, contact, setContact, setContacts);
     } else if (socketMessage.action === MessageAction.BIND) {
       bindSocketHandlers(socketMessage as BindMessage, currentMessages, setCurrentMessages);
-    } else if (socketMessage.action === MessageAction.MESSAGE) {
+    } else if (socketMessage.action === MessageAction.MESSAGE || socketMessage.action === MessageAction.FILE) {
       messageHandler(
         socketMessage as MessageLikeMessage,
         webSocket,
-        chatId,
+        chat?.id,
         currentMessages,
         chats,
         fetchChats,
@@ -160,7 +188,7 @@ export function Chat() {
         setCurrentMessages
       );
       checkUnreadMessages(webSocket as WebSocket);
-      if (chatId !== (socketMessage as MessageLikeMessage).chatId) {
+      if (chat?.id !== (socketMessage as MessageLikeMessage).chatId) {
         messageSound();
       }
     } else if (socketMessage.action === MessageAction.UNREAD_MESSAGES) {
@@ -168,6 +196,8 @@ export function Chat() {
     } else if (socketMessage.action === MessageAction.READ) {
       readMessagesHandler(socketMessage as ReadMessage, setChats, setCurrentMessages);
       checkUnreadMessages(webSocket as WebSocket);
+    } else if (socketMessage.action === MessageAction.ADD) {
+      addMessagesHandler(socketMessage as AddMessage, setGroupDetails);
     }
   }, [socketMessage]);
 
@@ -240,10 +270,18 @@ export function Chat() {
     }
   };
 
-  const handleSendMessageButtonClick = async (author: UserParams, chatMessage: string) => {
-    if (webSocket && chatId) {
+  // eslint-disable-next-line sonarjs/cognitive-complexity
+  const handleSendMessageButtonClick = async (author: UserParams, chatMessage: string, file: File | null) => {
+    if (webSocket && chat) {
+      if (file) {
+        const response = await sendFile(chat.id, file);
+        sendFileMessage(webSocket, chat.id, response);
+      }
+      if (chatMessage === "") {
+        return;
+      }
       const tempId = uuidv4();
-      const newMessage = {
+      const newMessage: MessageParams = {
         id: tempId,
         text: chatMessage,
         author,
@@ -253,6 +291,9 @@ export function Chat() {
         isRead: false,
         sending: true,
         reactions: [],
+        contentType: undefined,
+        size: undefined,
+        filename: undefined,
       };
       setCurrentMessages(prevMessages => {
         const updatedMessages = new Map();
@@ -263,20 +304,36 @@ export function Chat() {
 
       setChats(prevChat => {
         let updatedChats = new Map(prevChat);
-        const currentChat = prevChat.get(chatId);
+        const currentChat = prevChat.get(chat.id);
         if (currentChat) {
-          updatedChats.set(chatId, {
+          updatedChats.set(chat.id, {
             ...currentChat,
             lastMessage: newMessage,
             createdAt: Date.now() / 1000,
           });
         }
-        updatedChats = new Map<string, ChatParams>(
-          Array.from(updatedChats).sort((a, b) => b[1].lastMessage.createdAt - a[1].lastMessage.createdAt)
-        );
+        if (updatedChats.size > 1) {
+          updatedChats = new Map<string, ChatParams>(
+            Array.from(updatedChats).sort((a, b) => {
+              const first = a[1];
+              const second = b[1];
+
+              if (first.lastMessage && second.lastMessage) {
+                return second.lastMessage.createdAt - first.lastMessage.createdAt;
+              }
+              if (first.lastMessage) {
+                return second.createdAt - first.lastMessage.createdAt;
+              }
+              if (second.lastMessage) {
+                return second.lastMessage.createdAt - first.createdAt;
+              }
+              return second.createdAt - first.createdAt;
+            })
+          );
+        }
         return updatedChats;
       });
-      sendChatMessage(webSocket, chatId, chatMessage, tempId);
+      sendChatMessage(webSocket, chat.id, chatMessage, tempId);
     }
   };
 
@@ -291,6 +348,16 @@ export function Chat() {
       newChatId = await addDuoChat(userId);
     }
     if (!contact && globalUser) {
+      setChat({
+        id: newChatId.id,
+        createdAt: newChatId.createdAt,
+        user: globalUser,
+        type: ChatType.DUO,
+        lastMessage: undefined,
+        unreadMessages: 0,
+        avatarAvailable: false,
+        name: globalUser.name,
+      });
       setContact({
         addedAt: undefined,
         alias: globalUser.name,
@@ -299,7 +366,6 @@ export function Chat() {
       setGlobalUser(undefined);
     }
 
-    setChatId(newChatId.id);
     setCurrentMessages(await getMessagesByChatId(newChatId.id));
     if (webSocket && webSocket.readyState === WebSocket.OPEN) {
       setTimeout(() => {
@@ -310,12 +376,18 @@ export function Chat() {
   };
 
   const handleChatClick = async (currentChat: ChatParams) => {
-    setContact({
-      addedAt: undefined,
-      alias: currentChat.user.name,
-      user: currentChat.user,
-    });
-    setChatId(currentChat.id);
+    if (currentChat.type === ChatType.DUO) {
+      setContact({
+        addedAt: undefined,
+        alias: currentChat.user.name,
+        user: currentChat.user,
+      });
+      setGroupDetails(undefined);
+    } else if (currentChat.type === ChatType.GROUP) {
+      setGroupDetails(await getGroupChatDetailsById(currentChat.id));
+      setContact(undefined);
+    }
+    setChat(currentChat);
     setCurrentMessages(new Map());
     dispatch(setCurrentMainBoxState(MainBoxStateEnum.CHAT));
     setCurrentMessages(await getMessagesByChatId(currentChat.id));
@@ -334,11 +406,11 @@ export function Chat() {
   };
 
   SIDEBAR_ITEM.buttons["add-chat"].onClick = () => {
-    console.log("add-chat");
+    setIsCreateGroupChatModalOpen(true);
   };
 
   SIDEBAR_ITEM.buttons.setting.onClick = () => {
-    console.log("setting");
+    toast.warn("Coming soon!");
   };
 
   const loadGlobalUsers = async (search?: string, offset?: number) => {
@@ -351,8 +423,8 @@ export function Chat() {
     await fetchContacts(search, offset);
   };
   const loadMessages = async (offset?: number) => {
-    if (chatId) {
-      const newMessages = await getMessagesByChatId(chatId, offset);
+    if (chat) {
+      const newMessages = await getMessagesByChatId(chat.id, offset);
 
       setCurrentMessages(prevMessages => {
         const updatedMessages = new Map(prevMessages);
@@ -362,6 +434,25 @@ export function Chat() {
         return updatedMessages;
       });
     }
+  };
+  const handleCreateGroupChatModalClose = () => {
+    setIsCreateGroupChatModalOpen(false);
+  };
+  const handleCreateGroupChat = async (chatName: string, description: string, isPrivate: boolean) => {
+    console.log(chatName, description, isPrivate);
+    const newGroupChat = await createGroupChat(chatName, description, isPrivate);
+    setChats(prevChats => {
+      const updatedChats = new Map();
+      updatedChats.set(newGroupChat.id, newGroupChat);
+      prevChats.forEach((prevChat, key) => updatedChats.set(key, prevChat));
+      return updatedChats;
+    });
+    setCurrentSidebarItem(ListStateEnum.CHATS);
+    dispatch(setCurrentInteractiveListState(ListStateEnum.CHATS));
+  };
+
+  const handleAddMemberClick = (currentChat: ChatParams, currentContact: ContactParams) => {
+    addMemberToGroupChat(webSocket as WebSocket, currentChat.id, currentContact.user.id);
   };
 
   return (
@@ -382,6 +473,12 @@ export function Chat() {
             iconSize={SIDEBAR_ITEM.iconSize}
           />
         ))}
+        <CreateGroupChatModal
+          isOpen={isCreateGroupChatModalOpen}
+          onClose={handleCreateGroupChatModalClose}
+          onSubmit={handleCreateGroupChat}
+          confirmButtonTitle=""
+        />
       </SideBar>
       <InteractiveList
         interactiveListVariant={currentInteractiveListState}
@@ -404,7 +501,10 @@ export function Chat() {
         }}
       />
       <MainBox
-        chatId={chatId}
+        contacts={contacts}
+        onAddMemberClick={handleAddMemberClick}
+        groupDetails={groupDetails}
+        chat={chat}
         mainBoxVariant={currentMainBoxState}
         contact={contact}
         globalUser={globalUser}

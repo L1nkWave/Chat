@@ -91,7 +91,7 @@ export function InteractiveList({
         {interactiveList}
         <div className="bg-dark-400 px-8 py-4 left-0 bottom-0 w-full flex justify-between items-center h-auto">
           <div className="flex items-center gap-2">
-            <Avatar item={currentUser} alt="Avatar" status={false} />
+            <Avatar width={64} height={64} item={currentUser} alt="Avatar" status={false} />
             <div className="flex flex-col gap-0">
               <p className="text-lg">{currentUser.name}</p>
               <Status online={currentUser.online} textStatus />

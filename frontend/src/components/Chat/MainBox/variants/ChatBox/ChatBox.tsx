@@ -9,25 +9,66 @@ import { MessageInput } from "@/components/Chat/MainBox/variants/ChatBox/Message
 import { useAppSelector } from "@/lib/hooks";
 
 export function ChatBox({
+  onAddMemberClick: handleAddMemberClick,
+  chat,
   contact,
   messages,
   onSendMessageClick,
   onChatHeaderClick,
+  groupDetails,
   loadMessages,
+  contacts,
 }: Readonly<ChatBoxProps>) {
   const messageContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-
+  const MAX_FILE_SIZE = 5 * 1024 * 1024 * 1024;
   const [initialTextAreaHeight, setInitialTextAreaHeight] = useState<number | undefined>(undefined);
   const [initialMessageContainerHeight, setInitialMessageContainerHeight] = useState<number | undefined>(undefined);
   const [showScrollDownButton, setShowScrollDownButton] = useState(false);
   const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { currentUser } = useAppSelector(state => state.user);
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      const selectedFile = event.target.files[0];
+
+      if (selectedFile.size > MAX_FILE_SIZE) {
+        setErrorMessage("File size exceeds 5 GB limit.");
+        return;
+      }
+
+      setFile(selectedFile);
+      setErrorMessage(null);
+
+      if (selectedFile.type.startsWith("image/")) {
+        const previewUrl = URL.createObjectURL(selectedFile);
+        setFilePreviewUrl(previewUrl);
+      } else {
+        setFilePreviewUrl(null);
+      }
+    }
+  };
+
+  const handleUploadClick = () => {
+    document.getElementById("fileUpload")?.click();
+  };
+
+  const handleRemoveFile = () => {
+    setFile(null);
+    setFilePreviewUrl(null);
+    const inputElement = document.getElementById("fileUpload") as HTMLInputElement;
+    if (inputElement) {
+      inputElement.value = "";
+    }
+  };
+
   const scrollToBottom = (behavior?: ScrollBehavior) => {
     if (messageContainerRef.current) {
+      console.log(messageContainerRef.current.scrollHeight);
       messageContainerRef.current.scrollTo({
         top: messageContainerRef.current.scrollHeight,
         behavior,
@@ -43,14 +84,18 @@ export function ChatBox({
 
   const handleSendMessageClick = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (message && onSendMessageClick && currentUser) {
-      if (message.trim().length === 0) return;
-      onSendMessageClick(currentUser, message.trim());
+    if (onSendMessageClick && currentUser) {
+      onSendMessageClick(currentUser, message.trim(), file);
       setMessage("");
+      setFile(null);
+      setFilePreviewUrl(null);
+      setErrorMessage(null);
       if (textareaRef.current) {
         textareaRef.current.style.height = MESSAGE_INPUT.DEFAULT_TEXTAREA_HEIGHT;
       }
-      scrollToBottom();
+      setTimeout(() => {
+        scrollToBottom();
+      }, 0);
     }
   };
 
@@ -76,7 +121,6 @@ export function ChatBox({
       const distanceFromTop = scrollTop + scrollHeight - clientHeight;
       const loadThreshold = 500;
       if (distanceFromTop < loadThreshold) {
-        setLoading(true);
         loadMessages(messages.length);
       }
     }
@@ -96,6 +140,10 @@ export function ChatBox({
 
   const handleScrollToBottomButtonClick = () => {
     scrollToBottom("smooth");
+  };
+
+  const handleLoad = () => {
+    scrollToBottom("auto");
   };
 
   useLayoutEffect(() => {
@@ -128,21 +176,35 @@ export function ChatBox({
   return (
     <div className="relative h-full w-full flex flex-col justify-between">
       <div className="flex flex-col w-full h-full">
-        <ChatHeader contact={contact} onChatHeaderClick={handleHeaderClick} />
+        <ChatHeader
+          groupDetails={groupDetails}
+          contact={contact}
+          chat={chat}
+          onChatHeaderClick={handleHeaderClick}
+          onAddMemberClick={handleAddMemberClick}
+          contacts={contacts}
+        />
         <MessageContainer
+          onLoad={handleLoad}
+          chat={chat}
           ref={messageContainerRef}
           messages={messages}
           onScrollToBottomButtonClick={handleScrollToBottomButtonClick}
           showScrollDownButton={showScrollDownButton}
         />
         <MessageInput
+          file={file}
+          filePreviewUrl={filePreviewUrl}
+          errorMessage={errorMessage}
+          onFileChange={handleFileChange}
+          onRemoveFile={handleRemoveFile}
+          onUploadClick={handleUploadClick}
           ref={textareaRef}
           onTextAreaChange={handleTextAreaChange}
           onTextAreaKeyDown={handleTextareaKeyDown}
           onSendMessageClick={handleSendMessageClick}
           message={message}
         />
-        {loading && <div>Loading more messages...</div>}
       </div>
     </div>
   );

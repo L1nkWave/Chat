@@ -2,7 +2,8 @@ import { ChatParams, ContactParams, MessageParams, UserParams } from "@/api/http
 import { ListStateEnum } from "@/components/Chat/chat.types";
 import {
   ChatClickHandler,
-  ContactClickHandler, LoadChatsHandler,
+  ContactClickHandler,
+  LoadChatsHandler,
   LoadContactsHandler,
   UserClickHandler,
 } from "@/components/Chat/types/handlers.types";
