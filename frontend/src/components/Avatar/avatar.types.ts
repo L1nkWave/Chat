@@ -6,7 +6,8 @@ export type ItemParams = {
 };
 
 export type AvatarProps = {
-  item: ItemParams;
+  item?: ItemParams;
+  src?: string | null;
   status?: boolean;
   online?: boolean;
   statusClassName?: string;
