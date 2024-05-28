@@ -13,12 +13,12 @@ import org.linkwave.ws.websocket.dto.Action;
 import org.linkwave.ws.websocket.dto.IncomeMessage;
 import org.linkwave.ws.websocket.dto.OutcomeMessage;
 import org.linkwave.ws.websocket.routing.*;
-import org.linkwave.ws.websocket.routing.args.RouteHandlerArgumentResolver;
 import org.linkwave.ws.websocket.routing.bpp.Endpoint;
 import org.linkwave.ws.websocket.routing.bpp.WebSocketRoute;
 import org.linkwave.ws.websocket.routing.broadcast.BroadcastManager;
 import org.linkwave.ws.websocket.routing.exception.InvalidMessageFormatException;
 import org.linkwave.ws.websocket.routing.exception.InvalidPathException;
+import org.linkwave.ws.websocket.routing.exception.RoutingException;
 import org.linkwave.ws.websocket.routing.parser.MessageParser;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -29,12 +29,12 @@ import org.springframework.web.socket.WebSocketSession;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Stream;
 
 import static java.lang.String.format;
+import static java.util.Collections.emptyList;
 import static java.util.Map.entry;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -52,7 +52,7 @@ public class WebSocketRouterImplTest {
             """;
 
     @Mock
-    private RouteHandlerArgumentResolver argumentResolver;
+    private RouteHandlerInvocator routeHandlerInvocator;
 
     @Mock
     private BroadcastManager broadcastManager;
@@ -75,7 +75,7 @@ public class WebSocketRouterImplTest {
 
         final var wsRouter = new WebSocketRouterImpl(
                 messageParser,
-                argumentResolver,
+                routeHandlerInvocator,
                 objectMapper,
                 broadcastManager
         );
@@ -91,8 +91,8 @@ public class WebSocketRouterImplTest {
         routes = new HashMap<>();
 
         // setup routes & handlers
-        routes.put("/chat/{id}/send", new RouteComponent(chatRoutes, routeHandler1));
-        routes.put("/chat/{id}/update_message/{messageId}", new RouteComponent(chatRoutes, routeHandler2));
+        routes.put("/chat/{id}/send", new RouteComponent(chatRoutes, routeHandler1, emptyList()));
+        routes.put("/chat/{id}/update_message/{messageId}", new RouteComponent(chatRoutes, routeHandler2, emptyList()));
 
         // bind routes to router
         final Field routesField = wsRouter.getClass().getDeclaredField("routes");
@@ -132,20 +132,22 @@ public class WebSocketRouterImplTest {
                 message2, session
         );
 
+        final var outcomeMessage = OutcomeMessage.builder().build();
+
         // route 1st message
         when(messageParser.parse(messageWithSimplePayload)).thenReturn(message);
-        when(argumentResolver.resolve(ctx)).thenReturn(List.of("321", session, text));
+        when(routeHandlerInvocator.delegateInvocation(ctx)).thenReturn(outcomeMessage);
 
         assertDoesNotThrow(() -> router.route(messageWithSimplePayload, session));
 
         // route 2nd message
         when(messageParser.parse(messageWithJsonPayload)).thenReturn(message2);
-        when(argumentResolver.resolve(ctx2)).thenReturn(List.of("28712", "831942", session, new IncomeMessage("", text)));
+        when(routeHandlerInvocator.delegateInvocation(ctx2)).thenReturn(outcomeMessage);
 
         assertDoesNotThrow(() -> router.route(messageWithJsonPayload, session));
 
         verify(messageParser, times(2)).parse(any());
-        verify(argumentResolver, times(2)).resolve(any(MessageContext.class));
+        verify(routeHandlerInvocator, times(2)).delegateInvocation(any(MessageContext.class));
     }
 
     @SneakyThrows
@@ -176,12 +178,12 @@ public class WebSocketRouterImplTest {
         when(messageParser.parse(message)).thenReturn(routingMessage);
 
         final var context = new MessageContext(matchedRoute, pathVariables, routingMessage, session);
-        when(argumentResolver.resolve(context)).thenThrow(InvalidMessageFormatException.class);
+        when(routeHandlerInvocator.delegateInvocation(context)).thenThrow(InvalidMessageFormatException.class);
 
-        assertThrows(InvalidMessageFormatException.class, () -> router.route(message, session));
+        assertThrows(RoutingException.class, () -> router.route(message, session));
 
         verify(messageParser, times(1)).parse(message);
-        verify(argumentResolver, times(1)).resolve(context);
+        verify(routeHandlerInvocator, times(1)).delegateInvocation(context);
     }
 
     @NonNull

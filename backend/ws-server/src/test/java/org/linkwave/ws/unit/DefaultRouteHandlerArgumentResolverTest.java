@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import static java.lang.Long.parseLong;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.util.Arrays.asList;
@@ -257,7 +258,7 @@ public class DefaultRouteHandlerArgumentResolverTest {
             );
         }
 
-        return Map.entry(route, new RouteComponent(handlers, routeHandlers.get(0)));
+        return Map.entry(route, new RouteComponent(handlers, routeHandlers.get(0), emptyList()));
     }
 
 }
