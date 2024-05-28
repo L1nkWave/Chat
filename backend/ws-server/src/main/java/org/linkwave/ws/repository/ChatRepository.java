@@ -29,6 +29,8 @@ public interface ChatRepository<U, C> extends SessionRepository<U> {
 
     boolean chatExists(String chatId);
 
+    void deleteChatWithMembers(C chatId, Set<U> members);
+
     Set<String> getChatMembersSessions(C chatId);
 
     int getUnreadMessages(C chatId, U userId);

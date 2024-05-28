@@ -53,6 +53,51 @@ In other case you will receive message with `ERROR` action:
 
 <br/>
 
+### Remove chat
+
+Message structure:
+
+```
+path=/chat/group/{chatId}/remove
+```
+
+Response message example:
+
+```json
+{
+  "action": "CHAT_DELETED",
+  "timestamp": 1716740907.419911700,
+  "senderId": 1,
+  "chatId": "663fc2da3c60a57263542aba"
+}
+```
+
+Possible errors:
+
+- Not a member
+
+```json
+{
+  "action": "ERROR",
+  "timestamp": 1716741112.036193800,
+  "error": "You are not member of chat",
+  "path": "/chat/group/663fc2da3c60a5726352aba/remove"
+}
+```
+
+- Not an admin
+
+```json
+{
+  "action": "ERROR",
+  "timestamp": 1716741112.036193800,
+  "error": "Permissions denied",
+  "path": "/chat/group/66536423d774344eb33a552f/remove"
+}
+```
+
+<br/>
+
 <details>
 <summary>Edit chat members</summary>
 

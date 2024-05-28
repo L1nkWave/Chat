@@ -40,8 +40,11 @@ public class ClientConnectionHandler implements AfterConnectionEstablished, Afte
     @Value("${server.instances.list}")
     private String[] instances;
 
+    /**
+     * Specifies if multi instance broadcast is enabled.
+     */
     @Value("${server.instances.enabled}")
-    protected boolean isMultiInstanceBroadcastEnabled;
+    protected boolean isMibEnabled;
 
     private final ChatServiceClient chatClient;
     private final UserServiceClient userClient;
@@ -128,7 +131,7 @@ public class ClientConnectionHandler implements AfterConnectionEstablished, Afte
             If some sessions are inaccessible from current instance, then
             send message to other instances to continue broadcasting
         */
-        if (!messageBroadcast.share(allMembers, jsonMessage)) {
+        if (!messageBroadcast.share(allMembers, jsonMessage) && isMibEnabled) {
 
             log.debug("-> notifyChatMembersWith(): {} ID={} mib is required", action, userId);
 
@@ -140,10 +143,8 @@ public class ClientConnectionHandler implements AfterConnectionEstablished, Afte
                 jsonMessage = objectMapper.writeValueAsString(content);
             }
 
-            if (isMultiInstanceBroadcastEnabled) {
-                for (String instanceId : instances) {
-                    chatRepository.shareWithConsumer(instanceId, jsonMessage);
-                }
+            for (String instanceId : instances) {
+                chatRepository.shareWithConsumer(instanceId, jsonMessage);
             }
         }
 

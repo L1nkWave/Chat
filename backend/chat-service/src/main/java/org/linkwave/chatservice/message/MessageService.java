@@ -1,5 +1,6 @@
 package org.linkwave.chatservice.message;
 
+import org.linkwave.chatservice.chat.duo.Chat;
 import org.linkwave.chatservice.common.RequestInitiator;
 import org.linkwave.chatservice.message.file.CreatedFileMessage;
 import org.linkwave.chatservice.message.text.EditTextMessage;
@@ -31,6 +32,8 @@ public interface MessageService {
     RemovedMessage removeMessage(Long senderId, String messageId);
 
     void clearMessages(Long senderId, String chatId);
+
+    void clearMessages(@NonNull Chat chat);
 
     void updateMessage(@NonNull Message message);
 

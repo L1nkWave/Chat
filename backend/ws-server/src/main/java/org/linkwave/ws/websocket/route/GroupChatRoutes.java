@@ -1,6 +1,8 @@
 package org.linkwave.ws.websocket.route;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.ws.api.ApiErrorException;
 import org.linkwave.ws.api.chat.ChatMemberDto;
@@ -14,10 +16,15 @@ import org.linkwave.ws.websocket.routing.Payload;
 import org.linkwave.ws.websocket.routing.bpp.Broadcast;
 import org.linkwave.ws.websocket.routing.bpp.Endpoint;
 import org.linkwave.ws.websocket.routing.bpp.WebSocketRoute;
+import org.linkwave.ws.websocket.routing.broadcast.WebSocketMessageBroadcast;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.PathVariable;
 
+import java.io.IOException;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.linkwave.shared.utils.Bearers.append;
 import static org.linkwave.ws.websocket.routing.Box.error;
@@ -29,7 +36,15 @@ import static org.linkwave.ws.websocket.routing.Box.ok;
 public class GroupChatRoutes {
 
     private final ChatRepository<Long, String> chatRepository;
+    private final WebSocketMessageBroadcast messageBroadcast;
     private final ChatServiceClient chatClient;
+    private final ObjectMapper objectMapper;
+
+    @Value("${server.instances.list}")
+    private String[] instances;
+
+    @Value("${server.instances.enabled}")
+    private boolean isMibEnabled;
 
     @Endpoint(value = "/create", disabled = true)
     public Box<GroupChatDto> createChat(@NonNull UserPrincipal principal,
@@ -272,6 +287,63 @@ public class GroupChatRoutes {
                 .memberId(memberId)
                 .role(message.getRole())
                 .build());
+    }
+
+    @SuppressWarnings("unchecked")
+    @SneakyThrows
+    @Endpoint("/{id}/remove")
+    public Box<Void> removeChat(@PathVariable String id,
+                                @NonNull UserPrincipal sender,
+                                @NonNull String path) {
+
+        final Long senderId = sender.token().userId();
+
+        if (!chatRepository.isMember(id, senderId)) {
+            return error(ErrorMessage.create("You are not member of chat", path));
+        }
+
+        // make an api call to delete chat
+        try {
+            chatClient.removeGroupChat(append(sender.rawAccessToken()), id);
+        } catch (ApiErrorException e) {
+            return error(ErrorMessage.create(e.getMessage(), path));
+        }
+
+        final Set<Long> members = chatRepository.getMembers(id);
+        final Set<String> membersSessions = members.stream()
+                .map(chatRepository::getUserSessions)
+                .flatMap(Set::stream)
+                .collect(Collectors.toSet());
+
+        final String serializedMessage = objectMapper.writeValueAsString(
+                ChatMessage.builder()
+                        .senderId(senderId)
+                        .chatId(id)
+                        .action(Action.CHAT_DELETED)
+                        .build()
+        );
+
+        boolean isSharedCompletely = false;
+        try {
+            isSharedCompletely = messageBroadcast.share(membersSessions, serializedMessage);
+        } catch (IOException e) {
+            log.error("removeChat(): {}", e.getMessage());
+        }
+
+        if (!isSharedCompletely && isMibEnabled) {
+
+            final var content = objectMapper.readValue(serializedMessage, Map.class);
+            content.put("members", members);
+            final String newSerializedMessage = objectMapper.writeValueAsString(content);
+
+            for (String instanceId : instances) {
+                chatRepository.shareWithConsumer(instanceId, newSerializedMessage);
+            }
+        }
+
+        chatRepository.deleteChatWithMembers(id, members);
+
+        return Box.ok();
     }
 
 }

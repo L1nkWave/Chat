@@ -15,6 +15,18 @@ public interface ChatRepository<T extends Chat> extends MongoRepository<T, Strin
 
     @Query(value = """
             {
+                '_id': {
+                    $eq: ObjectId(?0)
+                },
+                '_class': {
+                    $eq: 'org.linkwave.chatservice.chat.duo.Chat'
+                }
+            }
+            """)
+    Optional<Chat> findDuoChat(String id);
+
+    @Query(value = """
+            {
                 'members._id': {
                     $all: [?0, ?1]
                 },

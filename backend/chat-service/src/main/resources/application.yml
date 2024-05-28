@@ -10,6 +10,9 @@ spring:
   application:
     name: 'chat-service'
 
+  web:
+    locale: en
+
   cloud:
     openfeign:
       okhttp:

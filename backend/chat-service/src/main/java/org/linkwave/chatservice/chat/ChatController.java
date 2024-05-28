@@ -11,6 +11,7 @@ import org.linkwave.chatservice.chat.duo.NewChatRequest;
 import org.linkwave.chatservice.chat.group.GroupChatDetailsDto;
 import org.linkwave.chatservice.chat.group.GroupChatDto;
 import org.linkwave.chatservice.chat.group.NewGroupChatRequest;
+import org.linkwave.chatservice.chat.group.UpdateGroupChat;
 import org.linkwave.chatservice.common.ResourceNotFoundException;
 import org.linkwave.chatservice.common.UnacceptableRequestDataException;
 import org.springframework.data.util.Pair;
@@ -61,6 +62,12 @@ public class ChatController {
         return chatService.findChat(userDetails().id(), recipientId).getId();
     }
 
+    @GetMapping("/generic/{id}")
+    public ChatDto getGenericChatById(@PathVariable String id,
+                                      @NonNull HttpServletRequest request) {
+        return chatService.getGenericChat(id, requestInitiator(request));
+    }
+
     @PostMapping
     @ResponseStatus(CREATED)
     @JsonView(New.class)
@@ -73,7 +80,7 @@ public class ChatController {
     @ResponseStatus(NO_CONTENT)
     public void checkChatPair(@PathVariable String id,
                               @RequestParam Long recipientId) {
-        final Chat chat = chatService.findChat(id);
+        final Chat chat = chatService.findDuoChat(id);
         if (chatService.isMember(userDetails().id(), chat) &&
             chatService.isMember(recipientId, chat)) {
             return;
@@ -138,6 +145,18 @@ public class ChatController {
                                  @PathVariable Long memberId,
                                  @RequestParam ChatRole role) {
         chatService.changeMemberRole(id, userDetails().id(), memberId, role);
+    }
+
+    @PatchMapping("/{id}/group")
+    public void updateGroupChat(@PathVariable String id,
+                                @RequestBody @Valid UpdateGroupChat updateGroupChat) {
+        chatService.updateGroupChat(userDetails().id(), id, updateGroupChat);
+    }
+
+    @DeleteMapping("/{id}/group")
+    @ResponseStatus(NO_CONTENT)
+    public void removeGroupChat(@PathVariable String id) {
+        chatService.removeGroupChat(userDetails().id(), id);
     }
 
     @PostMapping("/{id}/group/avatar")
