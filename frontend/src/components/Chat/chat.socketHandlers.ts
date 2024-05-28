@@ -1,10 +1,21 @@
 import React from "react";
 
 import { getChatByUserId } from "@/api/http/chat/chat";
-import { ChatParams, ContactParams, MessageParams, UserParams } from "@/api/http/contacts/contacts.types";
-import { getUserById } from "@/api/http/user/user";
-import { ChatMap, ContactsMap, MessagesMap } from "@/components/Chat/InteractiveList/interactiveList.types";
 import {
+  ChatParams,
+  ContactParams,
+  GroupChatDetails,
+  GroupRole,
+  MessageParams,
+  UserParams,
+} from "@/api/http/contacts/contacts.types";
+import { getUserById } from "@/api/http/user/user";
+import { readMessages } from "@/api/socket";
+import { ChatType } from "@/api/socket/index.types";
+import { ChatMap, ContactsMap, MessagesMap } from "@/components/Chat/InteractiveList/interactiveList.types";
+import { MessageType } from "@/components/Chat/MainBox/variants/ChatBox/MessageBox/Message/Message";
+import {
+  AddMessage,
   BindMessage,
   MessageLikeMessage,
   OnlineOfflineMessage,
@@ -12,7 +23,6 @@ import {
   UnreadMessagesMessage,
 } from "@/context/SocketContext/socketContext.types";
 import { lastSeenDateNow } from "@/helpers/contactHelpers";
-import {readMessages} from "@/api/socket";
 
 export const offlineHandler = async (
   socketMessage: OnlineOfflineMessage,
@@ -43,21 +53,25 @@ export const offlineHandler = async (
     return prevContacts;
   });
 
-  const chatId = await getChatByUserId(socketMessage.senderId.toString());
-  setChats(prevChats => {
-    const updatedChats = new Map(prevChats);
-    const chat = prevChats.get(chatId);
-    if (chat) {
-      updatedChats.set(chat.id, {
-        ...chat,
-        user: {
-          ...chat.user,
-          online: false,
-        },
-      });
-    }
-    return updatedChats;
-  });
+  try {
+    const chatId = await getChatByUserId(socketMessage.senderId.toString());
+    setChats(prevChats => {
+      const updatedChats = new Map(prevChats);
+      const chat = prevChats.get(chatId);
+      if (chat) {
+        updatedChats.set(chat.id, {
+          ...chat,
+          user: {
+            ...chat.user,
+            online: false,
+          },
+        });
+      }
+      return updatedChats;
+    });
+  } catch (error) {
+    console.log("Offline");
+  }
 };
 
 export const onlineHandler = async (
@@ -86,22 +100,25 @@ export const onlineHandler = async (
     }
     return prevContacts;
   });
-
-  const chatId = await getChatByUserId(socketMessage.senderId.toString());
-  setChats(prevChats => {
-    const updatedChats = new Map(prevChats);
-    const chat = prevChats.get(chatId);
-    if (chatId && chat) {
-      updatedChats.set(chatId, {
-        ...chat,
-        user: {
-          ...chat.user,
-          online: true,
-        },
-      });
-    }
-    return updatedChats;
-  });
+  try {
+    const chatId = await getChatByUserId(socketMessage.senderId.toString());
+    setChats(prevChats => {
+      const updatedChats = new Map(prevChats);
+      const chat = prevChats.get(chatId);
+      if (chatId && chat) {
+        updatedChats.set(chatId, {
+          ...chat,
+          user: {
+            ...chat.user,
+            online: true,
+          },
+        });
+      }
+      return updatedChats;
+    });
+  } catch (error) {
+    console.log("Online");
+  }
 };
 
 export const bindSocketHandlers = (
@@ -139,22 +156,31 @@ export const messageHandler = async (
   currentUser: UserParams | null,
   setChats: React.Dispatch<React.SetStateAction<ChatMap>>,
   setCurrentMessages: React.Dispatch<React.SetStateAction<MessagesMap>>
+  // eslint-disable-next-line sonarjs/cognitive-complexity
 ) => {
-  if (currentUser && socketMessage.senderId !== currentUser.id.toString() && webSocket && chatId === socketMessage.chatId) {
+  if (
+    currentUser &&
+    socketMessage.senderId !== currentUser.id.toString() &&
+    webSocket &&
+    chatId === socketMessage.chatId
+  ) {
     readMessages(webSocket, socketMessage.chatId, Date.now() / 1000);
   }
 
   const author = await getUserById(socketMessage.senderId);
   const messageId = socketMessage.id;
-  const message: MessageParams = {
+  const message = {
     action: socketMessage.action,
     createdAt: socketMessage.timestamp,
     edited: false,
     isRead: false,
     reactions: [],
     id: messageId,
-    text: `${socketMessage.text}`,
+    text: socketMessage.text,
     author,
+    filename: socketMessage.filename,
+    contentType: socketMessage.contentType,
+    size: socketMessage.size,
   };
 
   setChats(prevChat => {
@@ -174,18 +200,35 @@ export const messageHandler = async (
         user: author,
         unreadMessages: 0,
         avatarAvailable: false,
+        name: "",
+        type: ChatType.DUO,
       });
     }
-    updatedChats = new Map<string, ChatParams>(
-      Array.from(updatedChats).sort((a, b) => b[1].lastMessage.createdAt - a[1].lastMessage.createdAt)
-    );
+    if (updatedChats.size > 1) {
+      updatedChats = new Map<string, ChatParams>(
+        Array.from(updatedChats).sort((a, b) => {
+          const first = a[1];
+          const second = b[1];
+
+          if (first.lastMessage && second.lastMessage) {
+            return second.lastMessage.createdAt - first.lastMessage.createdAt;
+          }
+          if (first.lastMessage) {
+            return second.createdAt - first.lastMessage.createdAt;
+          }
+          if (second.lastMessage) {
+            return second.lastMessage.createdAt - first.createdAt;
+          }
+          return second.createdAt - first.createdAt;
+        })
+      );
+    }
     return updatedChats;
   });
 
   if (chatId !== socketMessage.chatId) {
     return;
   }
-
 
   if (currentMessages.has(messageId)) {
     return;
@@ -252,5 +295,27 @@ export const readMessagesHandler = (
       }
     });
     return updatedMessages;
+  });
+};
+
+export const addMessagesHandler = (
+  socketMessage: AddMessage,
+  setGroupDetails: React.Dispatch<React.SetStateAction<GroupChatDetails | undefined>>
+) => {
+  setGroupDetails(prevGroupDetails => {
+    if (!prevGroupDetails) {
+      return prevGroupDetails;
+    }
+    const updatedMembers = new Map(prevGroupDetails.members);
+    updatedMembers.set(socketMessage.memberId, {
+      id: socketMessage.memberId,
+      role: GroupRole.MEMBER,
+      joinedAt: socketMessage.timestamp,
+      details: socketMessage.memberDetails,
+    });
+    return {
+      ...prevGroupDetails,
+      members: updatedMembers,
+    };
   });
 };
