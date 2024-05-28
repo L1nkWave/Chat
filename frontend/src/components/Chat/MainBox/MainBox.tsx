@@ -9,15 +9,18 @@ import { UserInfoBox } from "@/components/Chat/MainBox/variants/UserInfoBox/User
 
 export function MainBox({
   mainBoxVariant,
+  groupDetails,
   contact,
   globalUser,
   messages,
-  chatId,
+  chat,
+  contacts,
   onAddContactClick: handleAddContactClick,
   onRemoveContactClick: handleRemoveContactClick,
   onMessageButtonClick: handleMessageButtonClick,
   onSendMessageClick: handleSendMessageClick,
   onHeaderClick: handleHeaderClick,
+  onAddMemberClick: handleAddMemberClick,
   loadMessages,
 }: Readonly<MainBoxProps>) {
   let variant = <EmptyBox />;
@@ -45,9 +48,13 @@ export function MainBox({
         onMessageButtonClick={handleMessageButtonClick}
       />
     );
-  } else if (contact && chatId && mainBoxVariant === MainBoxStateEnum.CHAT) {
+  } else if (chat && mainBoxVariant === MainBoxStateEnum.CHAT) {
     variant = (
       <ChatBox
+        contacts={contacts}
+        onAddMemberClick={handleAddMemberClick}
+        groupDetails={groupDetails}
+        chat={chat}
         contact={contact}
         messages={messages}
         onSendMessageClick={handleSendMessageClick}

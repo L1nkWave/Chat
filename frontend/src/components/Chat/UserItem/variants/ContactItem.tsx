@@ -22,7 +22,7 @@ export function ContactItem({ contact, className, onClick, currentContact }: Rea
       className={`${isActive ? "bg-dark-200" : "bg-dark-300"} hover:bg-dark-200 flex flex-row items-center outline-none p-4 rounded-lg ${className ?? ""}`}
     >
       <div className="min-w-max min-h-max">
-        <Avatar item={contact.user} alt="Contact Avatar" online={contact.user.online} />
+        <Avatar item={contact.user} alt="Contact Avatar" online={contact.user.online} width={64} height={64} />
       </div>
       <div className="flex flex-col ml-4 justify-center items-start">
         <span className="text-lg">{getContactName(contact)}</span>

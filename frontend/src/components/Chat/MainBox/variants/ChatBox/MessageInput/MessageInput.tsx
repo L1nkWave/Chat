@@ -1,5 +1,5 @@
 import Image from "next/image";
-import React, { useState } from "react";
+import React from "react";
 
 import { CustomButton } from "@/components/CustomButton/CustomButton";
 import { Icon } from "@/components/Icon/Icon";
@@ -9,11 +9,14 @@ export type MessageInputProps = {
   onTextAreaChange: React.ChangeEventHandler<HTMLTextAreaElement>;
   onSendMessageClick: React.FormEventHandler<HTMLFormElement>;
   onTextAreaKeyDown: React.KeyboardEventHandler<HTMLTextAreaElement>;
-
+  onFileChange: React.ChangeEventHandler<HTMLInputElement>;
+  onRemoveFile: () => void;
+  onUploadClick: () => void;
   message: string;
+  errorMessage: string | null;
+  file: File | null;
+  filePreviewUrl: string | null;
 };
-
-const MAX_FILE_SIZE = 5 * 1024 * 1024 * 1024;
 
 export const MessageInput = React.forwardRef<HTMLTextAreaElement, MessageInputProps>(
   (
@@ -22,47 +25,15 @@ export const MessageInput = React.forwardRef<HTMLTextAreaElement, MessageInputPr
       onTextAreaChange: handleTextAreaChange,
       onSendMessageClick: handleSendMessageClick,
       onTextAreaKeyDown: handleTextareaKeyDown,
+      onUploadClick: handleUploadClick,
+      onFileChange: handleFileChange,
+      onRemoveFile: handleRemoveFile,
+      errorMessage,
+      file,
+      filePreviewUrl,
     },
     ref
   ) => {
-    const [file, setFile] = useState<File | null>(null);
-    const [filePreviewUrl, setFilePreviewUrl] = useState<string | null>(null);
-    const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      if (event.target.files && event.target.files.length > 0) {
-        const selectedFile = event.target.files[0];
-
-        if (selectedFile.size > MAX_FILE_SIZE) {
-          setErrorMessage("File size exceeds 5 GB limit.");
-          return;
-        }
-
-        setFile(selectedFile);
-        setErrorMessage(null);
-
-        if (selectedFile.type.startsWith("image/")) {
-          const previewUrl = URL.createObjectURL(selectedFile);
-          setFilePreviewUrl(previewUrl);
-        } else {
-          setFilePreviewUrl(null);
-        }
-      }
-    };
-
-    const handleUploadClick = () => {
-      document.getElementById("fileUpload")?.click();
-    };
-
-    const handleRemoveFile = () => {
-      setFile(null);
-      setFilePreviewUrl(null);
-      const inputElement = document.getElementById("fileUpload") as HTMLInputElement;
-      if (inputElement) {
-        inputElement.value = "";
-      }
-    };
-
     return (
       <form
         onSubmit={handleSendMessageClick}
