@@ -1,3 +1,5 @@
+import { GroupMemberDetails } from "@/api/http/contacts/contacts.types";
+
 export enum MessageAction {
   ONLINE = "ONLINE",
   OFFLINE = "OFFLINE",
@@ -5,6 +7,8 @@ export enum MessageAction {
   MESSAGE = "MESSAGE",
   UNREAD_MESSAGES = "UNREAD_MESSAGES",
   READ = "READ",
+  ADD = "ADD",
+  FILE = "FILE",
 }
 
 export type MessageActionParams = {
@@ -12,7 +16,7 @@ export type MessageActionParams = {
 };
 
 export type OnlineOfflineMessage = {
-  senderId: number;
+  senderId: string;
   timestamp: string;
 } & MessageActionParams;
 
@@ -28,6 +32,9 @@ export type MessageLikeMessage = {
   chatId: string;
   senderId: string;
   text: string;
+  filename: string;
+  contentType: string;
+  size: number;
 } & MessageActionParams;
 
 export type UnreadMessagesMessage = {
@@ -42,7 +49,21 @@ export type ReadMessage = {
   messages: string[];
 } & MessageActionParams;
 
-export type SocketMessageType = OnlineOfflineMessage | BindMessage | MessageLikeMessage | UnreadMessagesMessage | ReadMessage;
+export type AddMessage = {
+  timestamp: number;
+  senderId: string;
+  chatId: string;
+  memberId: string;
+  memberDetails: GroupMemberDetails;
+} & MessageActionParams;
+
+export type SocketMessageType =
+  | OnlineOfflineMessage
+  | BindMessage
+  | MessageLikeMessage
+  | UnreadMessagesMessage
+  | ReadMessage
+  | AddMessage;
 
 export type SocketContextProps = {
   webSocket?: WebSocket | null;

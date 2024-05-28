@@ -70,9 +70,9 @@ export function UserInfoBox({
           <div className="sm:flex items-center justify-center">
             <div className="mt-3 text-center sm:mt-0">
               <div className="flex justify-center gap-4 p-6">
-                <Avatar item={currentUser} alt="Avatar" className="w-20 h-20" />
+                <Avatar item={currentUser} alt="Avatar" className="w-20 h-20" width={64} height={64} />
                 <Icon name="link-outline" iconSize={32} color={COLORS.blue["500"]} />
-                <Avatar item={contact.user} alt="Avatar" className="w-20 h-20" />
+                <Avatar item={contact.user} alt="Avatar" className="w-20 h-20" width={64} height={64} />
               </div>
               <h1 className="text-2xl text-blue-200">
                 Add <span className="font-bold text-blue-100">{contact.user.name}</span> to contacts?
@@ -107,9 +107,9 @@ export function UserInfoBox({
           <div className="sm:flex items-center justify-center">
             <div className="mt-3 text-center sm:mt-0">
               <div className="flex justify-center gap-4 p-6">
-                <Avatar item={currentUser} alt="Avatar" className="w-20 h-20" />
+                <Avatar item={currentUser} alt="Avatar" className="w-20 h-20" width={64} height={64} />
                 <Icon name="link-outline" iconSize={32} color={COLORS.red["200"]} />
-                <Avatar item={contact.user} alt="Avatar" className="w-20 h-20" />
+                <Avatar item={contact.user} alt="Avatar" width={64} height={64} className="w-20 h-20" />
               </div>
               <h1 className="text-2xl text-blue-400">
                 Add <span className="font-bold text-red-200">{contact.user.name}</span> to contacts?
@@ -124,7 +124,7 @@ export function UserInfoBox({
 
       <div className="p-16">
         <div className="flex">
-          <Avatar className="w-32 h-32" item={contact.user} alt="Avatar" />
+          <Avatar className="w-32 h-32" item={contact.user} alt="Avatar" width={128} height={128} />
           <div className="px-10 flex flex-col justify-center">
             <h1 className="text-3xl text-gray-200">{getContactName(contact)}</h1>
             {contact.user.online ? (

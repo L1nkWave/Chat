@@ -10,14 +10,14 @@ import { ScrollList } from "@/components/ScrollList/ScrollList";
 import { COLORS } from "@/constants/colors";
 
 export const MessageContainer = React.forwardRef<HTMLDivElement, MessageContainerProps>(
-  ({ messages, onScrollToBottomButtonClick: handleScrollToBottom, showScrollDownButton }, ref) => {
+  ({ chat, onLoad, messages, onScrollToBottomButtonClick: handleScrollToBottom, showScrollDownButton }, ref) => {
     return (
       <ScrollList
         ref={ref}
         className="bg-transparent flex-col-reverse w-full relative pb-36 z-20 message-container__scrollbar-height"
       >
         {messages.map((message, index) => {
-          return <Message key={message.id} message={message} nextMessage={messages[index + 1]} />;
+          return <Message onLoad={onLoad} chat={chat} key={message.id} message={message} nextMessage={messages[index + 1]} />;
         })}
         {showScrollDownButton && (
           <CustomButton

@@ -13,9 +13,5 @@ export function Status({ className, textStatus, online, classNameTextContainer, 
     );
   }
 
-  return (
-    online && (
-      <div className={`bg-green rounded-full w-2.5 h-2.5 mr-1 ${!!className && className}`} {...props} />
-    )
-  );
+  return online && <div className={`bg-green rounded-full w-2.5 h-2.5 mr-1 ${!!className && className}`} {...props} />;
 }

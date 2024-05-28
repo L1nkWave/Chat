@@ -1,3 +1,4 @@
 export enum ChatType {
-  GROUP = "group",
+  GROUP = "GROUP",
+  DUO = "DUO",
 }

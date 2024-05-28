@@ -1,3 +1,5 @@
+import { FileHttpResponse } from "@/api/http/contacts/contacts.types";
+
 const socketUrl = process.env.NEXT_PUBLIC_WEB_SOCKET_URL;
 
 export const connectToSocket = (token: string) => {
@@ -19,6 +21,20 @@ export const sendChatMessage = (socket: WebSocket, chatId: string, message: stri
   
    ${payload}`);
 };
+export const sendFileMessage = (socket: WebSocket, chatId: string, fileHttpResponse: FileHttpResponse) => {
+  const path = `path=/chat/${chatId}/send_file`;
+  const payload = JSON.stringify({
+    id: fileHttpResponse.id,
+    createdAt: fileHttpResponse.createdAt,
+    filename: fileHttpResponse.filename,
+    contentType: fileHttpResponse.contentType,
+    size: fileHttpResponse.size,
+  });
+
+  socket.send(`${path}
+  
+   ${payload}`);
+};
 
 export const checkUnreadMessages = (socket: WebSocket) => {
   const path = `path=/chat/unread_messages`;
@@ -32,4 +48,9 @@ export const readMessages = (socket: WebSocket, chatId: string, timestamp: numbe
   
     ${payload}
   `);
+};
+
+export const addMemberToGroupChat = (socket: WebSocket, chatId: string, userId: string) => {
+  const path = `path=/chat/group/${chatId}/add_member/${userId}`;
+  socket.send(`${path}`);
 };
