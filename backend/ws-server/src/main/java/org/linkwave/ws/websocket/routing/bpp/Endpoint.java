@@ -1,5 +1,7 @@
 package org.linkwave.ws.websocket.routing.bpp;
 
+import org.linkwave.ws.websocket.routing.EndpointCondition;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -15,5 +17,14 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 public @interface Endpoint {
     String value() default "";
+
+    /**
+     * Prevents route handler from registration.
+     */
     boolean disabled() default false;
+
+    /**
+     * List of conditions that should be passed through to get route handler invoked.
+     */
+    Class<? extends EndpointCondition>[] conditions() default {};
 }

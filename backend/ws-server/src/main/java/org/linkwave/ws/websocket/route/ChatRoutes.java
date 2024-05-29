@@ -9,6 +9,7 @@ import org.linkwave.ws.api.chat.*;
 import org.linkwave.ws.repository.ChatRepository;
 import org.linkwave.ws.websocket.dto.*;
 import org.linkwave.ws.websocket.jwt.UserPrincipal;
+import org.linkwave.ws.websocket.route.condition.ChatMembership;
 import org.linkwave.ws.websocket.routing.Box;
 import org.linkwave.ws.websocket.routing.Payload;
 import org.linkwave.ws.websocket.routing.bpp.Broadcast;
@@ -38,7 +39,7 @@ public class ChatRoutes {
 
     @SneakyThrows
     @Broadcast
-    @Endpoint("/{id}/send")
+    @Endpoint(value = "/{id}/send", conditions = ChatMembership.class)
     public Box<OutcomeMessage> sendTextMessage(@PathVariable String id,
                                                @Payload IncomeMessage message,
                                                @NonNull WebSocketSession session,
@@ -47,10 +48,6 @@ public class ChatRoutes {
 
         final Long userId = principal.token().userId();
         log.debug("-> sendMessage(): chatId={}, userId={}, msg={}", id, userId, message);
-
-        if (!chatRepository.isMember(id, userId)) {
-            return error(ErrorMessage.create("You are not member of chat", path));
-        }
 
         final MessageDto messageDto;
         try {
@@ -111,7 +108,7 @@ public class ChatRoutes {
     }
 
     @Broadcast
-    @Endpoint("/{id}/send_file")
+    @Endpoint(value = "/{id}/send_file", conditions = ChatMembership.class)
     public Box<OutcomeFileMessage> sendFileMessage(@PathVariable String id,
                                                    @Payload CreatedFileMessage message,
                                                    @NonNull UserPrincipal principal,
@@ -119,10 +116,6 @@ public class ChatRoutes {
 
         final Long userId = principal.token().userId();
         log.debug("-> sendFileMessage(): chatId={}, userId={}", id, userId);
-
-        if (!chatRepository.isMember(id, userId)) {
-            return error(ErrorMessage.create("You are not member of chat", path));
-        }
 
         try {
             chatClient.isOwnFileMessage(
@@ -185,16 +178,10 @@ public class ChatRoutes {
     }
 
     @Broadcast
-    @Endpoint("/{id}/clear_history")
+    @Endpoint(value = "/{id}/clear_history", conditions = ChatMembership.class)
     public Box<ChatMessage> clearChatHistory(@PathVariable String id,
                                              @NonNull UserPrincipal principal,
                                              @NonNull String path) {
-
-        final Long userId = principal.token().userId();
-        if (!chatRepository.isMember(id, userId)) {
-            return error(ErrorMessage.create("You are not member of chat", path));
-        }
-
         try {
             chatClient.clearMessages(append(principal.rawAccessToken()), id);
         } catch (ApiErrorException e) {
@@ -207,23 +194,18 @@ public class ChatRoutes {
         return ok(ChatMessage.builder()
                 .action(Action.CLEAR_HISTORY)
                 .chatId(id)
-                .senderId(userId)
+                .senderId(principal.token().userId())
                 .build());
     }
 
     @Broadcast
-    @Endpoint("/{id}/read")
+    @Endpoint(value = "/{id}/read", conditions = ChatMembership.class)
     public Box<ReadMessage> readMessages(@PathVariable String id,
                                          @Payload LastReadMessage message,
                                          @NonNull UserPrincipal principal,
                                          @NonNull String path) {
 
         final Long userId = principal.token().userId();
-
-        if (!chatRepository.isMember(id, userId)) {
-            return error(ErrorMessage.create("You are not member of chat", path));
-        }
-
         final ReadMessages readMessages;
         try {
             readMessages = chatClient.readMessages(

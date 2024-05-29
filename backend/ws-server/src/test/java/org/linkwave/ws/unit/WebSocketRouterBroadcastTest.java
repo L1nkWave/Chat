@@ -148,8 +148,9 @@ public class WebSocketRouterBroadcastTest {
         final var argumentResolver = new DefaultRouteHandlerArgumentResolver(
                 new RoutingAutoConfig().argumentResolverStrategies(objectMapper)
         );
+        final var routeHandlerInvocator = new ConditionalRouteHandlerInvocator(argumentResolver);
         final var wsRouter = new WebSocketRouterImpl(
-                new TextMessageParser(), argumentResolver,
+                new TextMessageParser(), routeHandlerInvocator,
                 objectMapper, broadcastManager
         );
 
@@ -165,7 +166,7 @@ public class WebSocketRouterBroadcastTest {
         makeAccessible(sendMessage);
 
         final Map<String, RouteComponent> routes = Map.of(
-                "/group-chat/{id}/send", new RouteComponent(chatRoutes, sendMessage)
+                "/group-chat/{id}/send", new RouteComponent(chatRoutes, sendMessage, emptyList())
         );
 
         final Field routesField = wsRouter.getClass().getDeclaredField("routes");

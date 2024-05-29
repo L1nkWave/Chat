@@ -1,14 +1,14 @@
 package org.linkwave.ws.websocket.routing;
 
-import org.linkwave.ws.websocket.routing.args.RouteHandlerArgumentResolver;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.linkwave.ws.websocket.routing.broadcast.BroadcastManager;
+import org.linkwave.ws.websocket.routing.exception.ConditionViolatedException;
 import org.linkwave.ws.websocket.routing.exception.InvalidMessageFormatException;
 import org.linkwave.ws.websocket.routing.exception.InvalidPathException;
 import org.linkwave.ws.websocket.routing.exception.RoutingException;
 import org.linkwave.ws.websocket.routing.parser.MessageParser;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
@@ -18,11 +18,9 @@ import org.springframework.web.socket.WebSocketSession;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import static org.springframework.util.ReflectionUtils.invokeMethod;
 import static org.linkwave.ws.utils.RouteUtils.*;
 
 @Slf4j
@@ -32,7 +30,7 @@ public class WebSocketRouterImpl implements WebSocketRouter {
 
     private Map<String, RouteComponent> routes;
     private final MessageParser messageParser;
-    private final RouteHandlerArgumentResolver argumentResolver;
+    private final RouteHandlerInvocator handlerInvocator;
     private final ObjectMapper mapper;
     private final BroadcastManager broadcastManager;
 
@@ -54,13 +52,12 @@ public class WebSocketRouterImpl implements WebSocketRouter {
         // create message context
         final var messageContext = new MessageContext(matchedRoute, pathVariables, routingMessage, session);
 
-        // prepare arguments for route handler invocation
-        final List<Object> arguments = argumentResolver.resolve(messageContext);
-
         // invoke route handler
         Object invocationResult;
         try {
-            invocationResult = invokeMethod(routeHandler, route.beanRoute(), arguments.toArray());
+            invocationResult = handlerInvocator.delegateInvocation(messageContext);
+        } catch (ConditionViolatedException e) {
+            throw new RoutingException(e.getMessage(), e);
         } catch (Exception e) {
             throw new RoutingException("An error occurred while routing message", e);
         }
