@@ -8,7 +8,7 @@ import { Modal, ModalProps } from "@/components/Modal/Modal";
 import { COLORS } from "@/constants/colors";
 
 export type CreateGroupChatModalProps = {
-  onSubmit: (chatName: string, description: string, privacy: boolean, file?: File) => void;
+  onSubmit: (chatName: string, description: string, privacy: boolean, file?: File | null) => void;
   onChangeGroupAvatar?: (file: File, id: string) => void;
 } & Omit<ModalProps, "onSubmit">;
 
@@ -23,7 +23,7 @@ export function CreateGroupChatModal({
   const [description, setDescription] = React.useState("");
   const [isPrivacy, setIsPrivacy] = React.useState(false);
   const [preview, setPreview] = useState<string | undefined>(undefined);
-  const [file, setFile] = useState<File | undefined>(undefined);
+  const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,6 +58,8 @@ export function CreateGroupChatModal({
     setChatName("");
     setDescription("");
     setIsPrivacy(false);
+    setPreview(undefined);
+    setFile(null);
   };
   return (
     <Modal

@@ -105,7 +105,6 @@ export function GroupDetailsModal({
   if (!isOpen || !currentUser) {
     return null;
   }
-
   return (
     <div className="relative z-50" aria-labelledby="modal-title" aria-modal="true">
       <div className="fixed inset-0 bg-dark-500 bg-opacity-75 transition-opacity" />
@@ -204,8 +203,12 @@ export function GroupDetailsModal({
                           <Avatar
                             width={64}
                             height={64}
+                            isAvatarAvailable={member.details.avatarAvailable}
                             online={member.details.online}
-                            item={member}
+                            item={{
+                              id: member.id,
+                              avatarAvailable: member.details.avatarAvailable,
+                            }}
                             alt="Member Avatar"
                             className="mr-4"
                           />

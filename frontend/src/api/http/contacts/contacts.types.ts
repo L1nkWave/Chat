@@ -47,7 +47,7 @@ export type ChatParams = {
 export type GroupMemberDetails = {
   username: string;
   name: string;
-  avatarPath: null | string;
+  avatarAvailable?: boolean;
   online: boolean;
 };
 

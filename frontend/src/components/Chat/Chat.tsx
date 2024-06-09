@@ -483,21 +483,33 @@ export function Chat() {
     setGroupDetails(newGroupDetails);
   };
 
-  const handleCreateGroupChat = async (chatName: string, description: string, isPrivate: boolean, file?: File) => {
+  const handleCreateGroupChat = async (
+    chatName: string,
+    description: string,
+    isPrivate: boolean,
+    file?: File | null
+  ) => {
     const newGroupChat = await createGroupChat(chatName, description, isPrivate);
-    console.log(newGroupChat);
-    setChats(prevChats => {
-      const updatedChats = new Map();
-      updatedChats.set(newGroupChat.id, newGroupChat);
-      prevChats.forEach((prevChat, key) => updatedChats.set(key, prevChat));
-      return updatedChats;
-    });
-    console.log("FILE", file);
+    let chat: ChatParams = {
+      user: {} as UserParams,
+      id: newGroupChat.id,
+      createdAt: newGroupChat.createdAt,
+      type: ChatType.GROUP,
+      lastMessage: undefined,
+      unreadMessages: 0,
+      avatarAvailable: false,
+      name: chatName,
+    };
+
     if (file) {
       await handleChangeGroupAvatar(file, newGroupChat.id);
+      chat = { ...chat, avatarAvailable: true };
     }
+    await fetchChats(chats.size);
     setCurrentSidebarItem(ListStateEnum.CHATS);
     dispatch(setCurrentInteractiveListState(ListStateEnum.CHATS));
+
+    await handleChatClick(chat);
   };
 
   const handleAddMemberClick = (currentChat: ChatParams, currentContact: ContactParams) => {

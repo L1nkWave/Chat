@@ -1,6 +1,6 @@
 import React from "react";
 
-import { getChatByUserId } from "@/api/http/chat/chat";
+import { getChatById, getChatByUserId } from "@/api/http/chat/chat";
 import {
   ChatParams,
   ContactParams,
@@ -235,6 +235,7 @@ export const messageHandler = async (
     size: socketMessage.size,
   };
 
+  const chat = await getChatById(socketMessage.chatId);
   setChats(prevChat => {
     let updatedChats = new Map(prevChat);
     const currentChat = prevChat.get(socketMessage.chatId);
@@ -245,16 +246,7 @@ export const messageHandler = async (
         createdAt: Date.now() / 1000,
       });
     } else {
-      updatedChats.set(socketMessage.chatId, {
-        id: socketMessage.chatId,
-        lastMessage: message,
-        createdAt: Date.now() / 1000,
-        user: author,
-        unreadMessages: 0,
-        avatarAvailable: false,
-        name: "",
-        type: ChatType.DUO,
-      });
+      updatedChats.set(socketMessage.chatId, chat);
     }
     if (updatedChats.size > 1) {
       updatedChats = new Map<string, ChatParams>(

@@ -66,7 +66,7 @@ export function Avatar({
         height={height}
         style={{ maxWidth: width, maxHeight: height, minWidth: width, minHeight: height }}
         className={`inline-block rounded-full object-fill ${className}`}
-        src={(preview || avatarSrc) ?? "/src"}
+        src={(preview ?? avatarSrc) ?? "/src"}
         {...props}
       />
       {status && online && (

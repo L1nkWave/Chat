@@ -90,3 +90,8 @@ export async function getFile(messageId: string) {
   const { data } = await instance.get(`chats/messages/${messageId}/file`, { responseType: "blob" });
   return data;
 }
+
+export async function getChatById(chatId: string) {
+  const { data } = await instance.get<ChatParams>(`chats/generic/${chatId}`);
+  return data;
+}
