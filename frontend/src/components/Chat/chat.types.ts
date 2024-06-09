@@ -9,6 +9,6 @@ export enum ListStateEnum {
 export enum MainBoxStateEnum {
   CHAT = "chat",
   USER_INFO = "user-info",
-  SETTINGS = "settings",
   EMPTY = "empty",
+  PROFILE_SETTINGS = "profile-settings",
 }

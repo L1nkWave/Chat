@@ -19,9 +19,10 @@ export type MainBoxProps = {
   chat?: ChatParams;
   globalUser?: UserParams;
   messages: MessageParams[];
-  onAddContactClick?: (userId: string, alias: string) => void;
-  onRemoveContactClick?: (userId: string) => void;
-  onMessageButtonClick?: (userId: string) => void;
+  onChangeAvatar?: (event: File) => void;
+  onAddContactClick?: (userId: number, alias: string) => void;
+  onRemoveContactClick?: (userId: number) => void;
+  onMessageButtonClick?: (userId: number) => void;
   onHeaderClick?: (contactParams: ContactParams) => void;
   loadMessages: LoadMessagesHandler;
   onAddMemberClick?: (currentChat: ChatParams, currentContact: ContactParams) => void;

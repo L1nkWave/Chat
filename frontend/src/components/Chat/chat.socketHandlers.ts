@@ -1,6 +1,6 @@
 import React from "react";
 
-import { getChatByUserId } from "@/api/http/chat/chat";
+import { getChatById, getChatByUserId } from "@/api/http/chat/chat";
 import {
   ChatParams,
   ContactParams,
@@ -11,9 +11,7 @@ import {
 } from "@/api/http/contacts/contacts.types";
 import { getUserById } from "@/api/http/user/user";
 import { readMessages } from "@/api/socket";
-import { ChatType } from "@/api/socket/index.types";
 import { ChatMap, ContactsMap, MessagesMap } from "@/components/Chat/InteractiveList/interactiveList.types";
-import { MessageType } from "@/components/Chat/MainBox/variants/ChatBox/MessageBox/Message/Message";
 import {
   AddMessage,
   BindMessage,
@@ -29,7 +27,8 @@ export const offlineHandler = async (
   setChats: React.Dispatch<React.SetStateAction<ChatMap>>,
   contact: ContactParams | undefined,
   setContact: React.Dispatch<React.SetStateAction<ContactParams | undefined>>,
-  setContacts: React.Dispatch<React.SetStateAction<ContactsMap>>
+  setContacts: React.Dispatch<React.SetStateAction<ContactsMap>>,
+  setGroupDetails: React.Dispatch<React.SetStateAction<GroupChatDetails | undefined>>
 ) => {
   const socketMessageData = socketMessage;
 
@@ -43,6 +42,32 @@ export const offlineHandler = async (
       },
     }));
   }
+
+  setGroupDetails(prevGroupDetails => {
+    if (!prevGroupDetails) {
+      return prevGroupDetails;
+    }
+    const updatedMembers = new Map(prevGroupDetails.members);
+    const prevMember = updatedMembers.get(socketMessage.senderId);
+    if (!prevMember) {
+      return prevGroupDetails;
+    }
+    updatedMembers.set(socketMessage.senderId, {
+      ...prevMember,
+      id: socketMessage.senderId,
+      role: GroupRole.MEMBER,
+      joinedAt: Date.now() / 1000,
+      details: {
+        ...prevMember.details,
+        online: false,
+      },
+    });
+    return {
+      ...prevGroupDetails,
+      members: updatedMembers,
+    };
+  });
+
   setContacts(prevContacts => {
     const updatedContact = prevContacts.get(socketMessageData.senderId);
     if (updatedContact) {
@@ -79,7 +104,8 @@ export const onlineHandler = async (
   setChats: React.Dispatch<React.SetStateAction<ChatMap>>,
   contact: ContactParams | undefined,
   setContact: React.Dispatch<React.SetStateAction<ContactParams | undefined>>,
-  setContacts: React.Dispatch<React.SetStateAction<ContactsMap>>
+  setContacts: React.Dispatch<React.SetStateAction<ContactsMap>>,
+  setGroupDetails: React.Dispatch<React.SetStateAction<GroupChatDetails | undefined>>
 ) => {
   if (socketMessage.senderId === contact?.user.id) {
     setContact(prevContact => ({
@@ -91,6 +117,31 @@ export const onlineHandler = async (
       },
     }));
   }
+
+  setGroupDetails(prevGroupDetails => {
+    if (!prevGroupDetails) {
+      return prevGroupDetails;
+    }
+    const updatedMembers = new Map(prevGroupDetails.members);
+    const prevMember = updatedMembers.get(socketMessage.senderId);
+    if (!prevMember) {
+      return prevGroupDetails;
+    }
+    updatedMembers.set(socketMessage.senderId, {
+      ...prevMember,
+      id: socketMessage.senderId,
+      role: GroupRole.MEMBER,
+      joinedAt: Date.now() / 1000,
+      details: {
+        ...prevMember.details,
+        online: true,
+      },
+    });
+    return {
+      ...prevGroupDetails,
+      members: updatedMembers,
+    };
+  });
 
   setContacts(prevContacts => {
     const updatedContact = prevContacts.get(socketMessage.senderId);
@@ -183,6 +234,7 @@ export const messageHandler = async (
     size: socketMessage.size,
   };
 
+  const chat = await getChatById(socketMessage.chatId);
   setChats(prevChat => {
     let updatedChats = new Map(prevChat);
     const currentChat = prevChat.get(socketMessage.chatId);
@@ -194,14 +246,9 @@ export const messageHandler = async (
       });
     } else {
       updatedChats.set(socketMessage.chatId, {
-        id: socketMessage.chatId,
+        ...chat,
         lastMessage: message,
-        createdAt: Date.now() / 1000,
-        user: author,
-        unreadMessages: 0,
-        avatarAvailable: false,
-        name: "",
-        type: ChatType.DUO,
+        name: chat.name || chat.user.name,
       });
     }
     if (updatedChats.size > 1) {

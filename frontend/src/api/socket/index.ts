@@ -37,7 +37,7 @@ export const sendFileMessage = (socket: WebSocket, chatId: string, fileHttpRespo
 };
 
 export const checkUnreadMessages = (socket: WebSocket) => {
-  const path = `path=/chat/unread_messages`;
+  const path = `path=/chat/unread`;
   socket.send(path);
 };
 
@@ -50,7 +50,7 @@ export const readMessages = (socket: WebSocket, chatId: string, timestamp: numbe
   `);
 };
 
-export const addMemberToGroupChat = (socket: WebSocket, chatId: string, userId: string) => {
+export const addMemberToGroupChat = (socket: WebSocket, chatId: string, userId: number) => {
   const path = `path=/chat/group/${chatId}/add_member/${userId}`;
   socket.send(`${path}`);
 };

@@ -8,10 +8,10 @@ import {
   UserClickHandler,
 } from "@/components/Chat/types/handlers.types";
 
-export type InteractiveListVariant = ListStateEnum.CONTACTS | ListStateEnum.CHATS | ListStateEnum.FIND_CONTACTS;
+export type InteractiveListVariant = ListStateEnum;
 
-export type ContactsMap = Map<string, ContactParams>;
-export type UserMap = Map<string, UserParams>;
+export type ContactsMap = Map<number, ContactParams>;
+export type UserMap = Map<number, UserParams>;
 export type ChatMap = Map<string, ChatParams>;
 export type MessagesMap = Map<string, MessageParams>;
 

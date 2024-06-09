@@ -5,7 +5,6 @@ import { ChatItem } from "@/components/Chat/UserItem/variants/ChatItem";
 import { ScrollList } from "@/components/ScrollList/ScrollList";
 
 export function ChatList({ chats, onChatClick: handleChatClick, loadChats }: Readonly<InteractiveChatParams>) {
-  const [loading, setLoading] = useState(false);
   const scrollListRef = useRef<HTMLDivElement>(null);
 
   const handleScroll = useCallback(() => {
@@ -16,13 +15,12 @@ export function ChatList({ chats, onChatClick: handleChatClick, loadChats }: Rea
     const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
     const loadThreshold = 450;
 
-    if (distanceFromBottom < loadThreshold && !loading) {
-      setLoading(true);
+    if (distanceFromBottom < loadThreshold) {
       if (loadChats) {
         loadChats(chats?.size);
       }
     }
-  }, [chats, loadChats, loading]);
+  }, [chats, loadChats]);
 
   useEffect(() => {
     const scrollList = scrollListRef.current;
@@ -34,7 +32,7 @@ export function ChatList({ chats, onChatClick: handleChatClick, loadChats }: Rea
         scrollList.removeEventListener("scroll", handleScroll);
       }
     };
-  }, [handleScroll, loading]);
+  }, [handleScroll]);
 
   return (
     <ScrollList ref={scrollListRef}>

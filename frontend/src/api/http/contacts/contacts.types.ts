@@ -1,7 +1,7 @@
 import { ChatType } from "@/api/socket/index.types";
 
 export type UserParams = {
-  id: string;
+  id: number;
   bio?: string;
   name: string;
   online: boolean;
@@ -47,7 +47,7 @@ export type ChatParams = {
 export type GroupMemberDetails = {
   username: string;
   name: string;
-  avatarPath: null | string;
+  avatarAvailable?: boolean;
   online: boolean;
 };
 
@@ -57,7 +57,7 @@ export enum GroupRole {
 }
 
 export type GroupMember = {
-  id: string;
+  id: number;
   role: GroupRole;
   joinedAt: number;
   details: GroupMemberDetails;
@@ -65,7 +65,7 @@ export type GroupMember = {
 
 export type GroupChatDetails = {
   description: string;
-  members: Map<string, GroupMember>;
+  members: Map<number, GroupMember>;
   membersLimit: number;
   private: boolean;
 };

@@ -8,5 +8,8 @@ const nextConfig = {
     });
     return config;
   },
+  images: {
+    domains: ["26.26.114.136"],
+  },
 };
 module.exports = nextConfig;

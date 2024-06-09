@@ -68,7 +68,6 @@ export function ChatBox({
 
   const scrollToBottom = (behavior?: ScrollBehavior) => {
     if (messageContainerRef.current) {
-      console.log(messageContainerRef.current.scrollHeight);
       messageContainerRef.current.scrollTo({
         top: messageContainerRef.current.scrollHeight,
         behavior,
@@ -95,7 +94,7 @@ export function ChatBox({
       }
       setTimeout(() => {
         scrollToBottom();
-      }, 0);
+      }, 100);
     }
   };
 
@@ -142,10 +141,6 @@ export function ChatBox({
     scrollToBottom("smooth");
   };
 
-  const handleLoad = () => {
-    scrollToBottom("auto");
-  };
-
   useLayoutEffect(() => {
     if (textareaRef.current && messageContainerRef.current) {
       let initTextAreaHeight: number = initialTextAreaHeight as number;
@@ -185,7 +180,6 @@ export function ChatBox({
           contacts={contacts}
         />
         <MessageContainer
-          onLoad={handleLoad}
           chat={chat}
           ref={messageContainerRef}
           messages={messages}

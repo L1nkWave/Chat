@@ -3,11 +3,11 @@ import axios, { AxiosInstance } from "axios";
 import { refreshToken } from "@/api/http/auth/auth";
 import { AuthTypes } from "@/api/http/auth/auth.types";
 import { isTokenExpired } from "@/helpers/DecodeToken/decodeToken";
+import { setAccessToken } from "@/lib/features/user/userSlice";
 import { store } from "@/lib/store";
 
 export const LIST_PAGINATION_LIMIT = 20;
 export const baseURL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080/";
-
 export const instance: AxiosInstance = axios.create({
   baseURL,
   timeout: 10000,
@@ -21,8 +21,10 @@ instance.interceptors.request.use(
     const newConfig = config;
     const { accessToken } = store.getState().user;
     let validToken = accessToken;
+
     if (!accessToken || (accessToken && isTokenExpired(accessToken))) {
       const newToken = await refreshToken();
+      setAccessToken(newToken.accessToken);
       validToken = newToken.accessToken;
     }
     newConfig.headers.Authorization = `Bearer ${validToken}`;

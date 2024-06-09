@@ -15,7 +15,6 @@ export type MessageProps = {
   message: MessageParams;
   nextMessage?: MessageParams;
   chat: ChatParams;
-  onLoad: () => void;
 };
 
 export enum MessageType {
@@ -23,7 +22,7 @@ export enum MessageType {
   MESSAGE = "MESSAGE",
 }
 
-export function Message({ chat, message, nextMessage, onLoad }: Readonly<MessageProps>) {
+export function Message({ chat, message, nextMessage }: Readonly<MessageProps>) {
   const { currentUser } = useAppSelector(state => state.user);
   const messageCreatedAt = format(message.createdAt * 1000, "H:mm");
   const date = new Date(message.createdAt * 1000);
@@ -65,7 +64,7 @@ export function Message({ chat, message, nextMessage, onLoad }: Readonly<Message
             className={`text-gray-200 px-6 py-2 whitespace-pre-wrap break-all ${messageCloudStyle} ${!isTextMessage && "bg-transparent py-0 my-0"}`}
           >
             {isShowUser && <p className="text-blue-100 text-start font-semibold">{message.author.name}</p>}
-            {isTextMessage ? message.text : <FileMessage message={message} onLoad={onLoad} />}
+            {isTextMessage ? message.text : <FileMessage message={message} />}
           </div>
           <div className="flex gap-2">
             <span className="text-sm text-gray-400">{messageCreatedAt}</span>

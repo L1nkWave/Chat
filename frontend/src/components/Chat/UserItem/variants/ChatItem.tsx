@@ -1,7 +1,6 @@
 import { format } from "date-fns";
 import React from "react";
 
-import { baseURL } from "@/api/http";
 import { ChatType } from "@/api/socket/index.types";
 import { Avatar } from "@/components/Avatar/Avatar";
 import { MessageType } from "@/components/Chat/MainBox/variants/ChatBox/MessageBox/Message/Message";
@@ -16,7 +15,7 @@ export function ChatItem({ chat, onClick, className }: Readonly<ChatItemProps>) 
       onClick(chat);
     }
   };
-  const avatarSrc = chat.avatarAvailable ? `${baseURL}avatars/${chat.id}` : "/avatars/group.png";
+  const avatarSrc = "/avatars/group.png";
 
   return (
     <button
@@ -27,9 +26,27 @@ export function ChatItem({ chat, onClick, className }: Readonly<ChatItemProps>) 
       <div className="flex flex-row w-10/12 mr-4">
         <div className="min-w-max">
           {chat.type === ChatType.DUO ? (
-            <Avatar item={chat.user} alt="User Avatar" online={chat.user.online} width={64} height={64} />
+            <Avatar
+              item={{
+                id: chat.user.id,
+                avatarAvailable: chat.avatarAvailable,
+              }}
+              isAvatarAvailable={chat.avatarAvailable}
+              alt="User Avatar"
+              online={chat.user.online}
+              width={64}
+              height={64}
+            />
           ) : (
-            <Avatar src={avatarSrc} alt="Chat Avatar" width={64} height={64} />
+            <Avatar
+              item={chat}
+              defaultAvatar={avatarSrc}
+              isGroupAvatar
+              isAvatarAvailable={chat.avatarAvailable}
+              alt="Chat Avatar"
+              width={64}
+              height={64}
+            />
           )}
         </div>
         <div className="flex relative w-4/6 flex-col ml-4 justify-center items-start">

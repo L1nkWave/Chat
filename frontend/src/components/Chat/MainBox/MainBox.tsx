@@ -5,6 +5,7 @@ import { MainBoxStateEnum } from "@/components/Chat/chat.types";
 import { MainBoxProps } from "@/components/Chat/MainBox/mainBox.types";
 import { ChatBox } from "@/components/Chat/MainBox/variants/ChatBox/ChatBox";
 import { EmptyBox } from "@/components/Chat/MainBox/variants/EmptyBox/EmptyBox";
+import { ProfileSettings } from "@/components/Chat/MainBox/variants/ProfileSettings/ProfileSettings";
 import { UserInfoBox } from "@/components/Chat/MainBox/variants/UserInfoBox/UserInfoBox";
 
 export function MainBox({
@@ -15,6 +16,7 @@ export function MainBox({
   messages,
   chat,
   contacts,
+  onChangeAvatar,
   onAddContactClick: handleAddContactClick,
   onRemoveContactClick: handleRemoveContactClick,
   onMessageButtonClick: handleMessageButtonClick,
@@ -62,6 +64,8 @@ export function MainBox({
         loadMessages={loadMessages}
       />
     );
+  } else if (mainBoxVariant === MainBoxStateEnum.PROFILE_SETTINGS) {
+    variant = <ProfileSettings onChangeAvatar={onChangeAvatar} />;
   }
   return <div className="flex w-full h-screen bg-dark-550 rounded-r-2xl">{variant}</div>;
 }

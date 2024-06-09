@@ -22,7 +22,7 @@ import {
   MessageParams,
   UserParams,
 } from "@/api/http/contacts/contacts.types";
-import { getUserById, searchUser } from "@/api/http/user/user";
+import { getUserById, searchUser, uploadAvatar, uploadGroupAvatar } from "@/api/http/user/user";
 import {
   addMemberToGroupChat,
   checkUnreadMessages,
@@ -62,6 +62,7 @@ import {
 import { SoundContext } from "@/context/SoundContext/SoundContext";
 import { useAccessTokenEffect, useAccessTokenLayoutEffect } from "@/hooks/useAccessTokenEffect";
 import { setCurrentInteractiveListState, setCurrentMainBoxState } from "@/lib/features/chat/chatSlice";
+import { setCurrentUser } from "@/lib/features/user/userSlice";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 
 export function Chat() {
@@ -82,15 +83,25 @@ export function Chat() {
   const [chats, setChats] = useState<ChatMap>(new Map());
   const [chat, setChat] = useState<ChatParams | undefined>(undefined);
   const [currentMessages, setCurrentMessages] = useState<MessagesMap>(new Map());
+  const [totalMessages, setTotalMessages] = useState<number>(0);
   const [groupDetails, setGroupDetails] = useState<GroupChatDetails | undefined>(undefined);
 
   const [currentSidebarItem, setCurrentSidebarItem] = useState<string>("chat" as SidebarButtonName);
 
   const [isCreateGroupChatModalOpen, setIsCreateGroupChatModalOpen] = useState(false);
 
+  const reFetchGlobalContacts = useCallback(async () => {
+    try {
+      const fetchedGlobalUsers: UserMap = await searchUser();
+      setGlobalUsers(fetchedGlobalUsers);
+    } catch (error) {
+      toast.error("Error fetching global users");
+    }
+  }, []);
+
   const fetchGlobalContacts = useCallback(async (search?: string, offset?: number, limit?: number) => {
     try {
-      const fetchedGlobalUsers: Map<string, UserParams> = await searchUser(search, limit, offset);
+      const fetchedGlobalUsers: UserMap = await searchUser(search, limit, offset);
       setGlobalUsers(prevGlobalUsers => {
         const updatedUsers = new Map(prevGlobalUsers);
         fetchedGlobalUsers.forEach((user, key) => {
@@ -100,6 +111,15 @@ export function Chat() {
       });
     } catch (error) {
       toast.error("Error fetching global users");
+    }
+  }, []);
+
+  const reFetchContacts = useCallback(async () => {
+    try {
+      const fetchedContacts = await getContacts();
+      setContacts(fetchedContacts);
+    } catch (error) {
+      toast.error("Error fetching contacts");
     }
   }, []);
 
@@ -115,6 +135,15 @@ export function Chat() {
       });
     } catch (error) {
       toast.error("Error fetching contacts");
+    }
+  }, []);
+
+  const reFetchChats = useCallback(async (offset?: number, limit?: number) => {
+    try {
+      const fetchedChats = await getChats(offset, limit);
+      setChats(fetchedChats);
+    } catch (error) {
+      toast.error("Error fetching chats");
     }
   }, []);
 
@@ -166,13 +195,21 @@ export function Chat() {
   }, [webSocket?.readyState, fetchChats]);
 
   useAccessTokenLayoutEffect(() => {
+    console.log(socketMessage);
     if (!socketMessage) {
       return;
     }
     if (socketMessage.action === MessageAction.OFFLINE) {
-      offlineHandler(socketMessage as OnlineOfflineMessage, setChats, contact, setContact, setContacts);
+      offlineHandler(
+        socketMessage as OnlineOfflineMessage,
+        setChats,
+        contact,
+        setContact,
+        setContacts,
+        setGroupDetails
+      );
     } else if (socketMessage.action === MessageAction.ONLINE) {
-      onlineHandler(socketMessage as OnlineOfflineMessage, setChats, contact, setContact, setContacts);
+      onlineHandler(socketMessage as OnlineOfflineMessage, setChats, contact, setContact, setContacts, setGroupDetails);
     } else if (socketMessage.action === MessageAction.BIND) {
       bindSocketHandlers(socketMessage as BindMessage, currentMessages, setCurrentMessages);
     } else if (socketMessage.action === MessageAction.MESSAGE || socketMessage.action === MessageAction.FILE) {
@@ -217,17 +254,17 @@ export function Chat() {
     dispatch(setCurrentMainBoxState(MainBoxStateEnum.USER_INFO));
   };
 
-  const handleAddContact = async (userId: string, alias: string) => {
+  const handleAddContact = async (userId: number, alias: string) => {
     const addDuoChatWithTryCatch = async () => {
       try {
-        await addDuoChat(userId);
+        await addDuoChat(userId.toString());
       } catch (error) {
         // TODO: catch this somehow!
       }
     };
 
     try {
-      await addContact(userId, alias);
+      await addContact(userId.toString(), alias);
       await addDuoChatWithTryCatch();
 
       setGlobalUsers(prevGlobalUsers => {
@@ -235,10 +272,13 @@ export function Chat() {
         updatedUsers.delete(userId);
         return updatedUsers;
       });
-      await fetchContacts();
-
+      await reFetchContacts();
       if (globalUser) {
-        setContact(contacts.get(globalUser.id));
+        setContact({
+          addedAt: Date.now().toString(),
+          alias,
+          user: globalUser,
+        });
       }
       setGlobalUser(undefined);
 
@@ -248,10 +288,9 @@ export function Chat() {
     }
   };
 
-  const handleRemoveContact = async (userId: string) => {
+  const handleRemoveContact = async (userId: number) => {
     try {
-      await removeContact(userId);
-
+      await removeContact(userId.toString());
       setContacts(prevContacts => {
         const updatedContacts = new Map(prevContacts);
         updatedContacts.delete(userId);
@@ -263,7 +302,7 @@ export function Chat() {
       }
       setContact(undefined);
 
-      await fetchGlobalContacts();
+      await reFetchGlobalContacts();
       await fetchChats();
     } catch (error) {
       toast.error("Error adding contact");
@@ -273,6 +312,7 @@ export function Chat() {
   // eslint-disable-next-line sonarjs/cognitive-complexity
   const handleSendMessageButtonClick = async (author: UserParams, chatMessage: string, file: File | null) => {
     if (webSocket && chat) {
+      setTotalMessages(prevTotalMessages => prevTotalMessages + 1);
       if (file) {
         const response = await sendFile(chat.id, file);
         sendFileMessage(webSocket, chat.id, response);
@@ -337,17 +377,28 @@ export function Chat() {
     }
   };
 
-  const handleMessageButtonClick = async (userId: string) => {
+  const handleMessageButtonClick = async (userId: number) => {
     let newChatId: AddDuoChatParams;
     try {
       newChatId = {
-        id: await getChatByUserId(userId),
+        id: await getChatByUserId(userId.toString()),
         createdAt: Date.now() / 1000,
       };
     } catch (error) {
-      newChatId = await addDuoChat(userId);
+      newChatId = await addDuoChat(userId.toString());
     }
-    if (!contact && globalUser) {
+    if (contact) {
+      setChat({
+        id: newChatId.id,
+        createdAt: newChatId.createdAt,
+        user: contact.user,
+        type: ChatType.DUO,
+        lastMessage: undefined,
+        unreadMessages: 0,
+        avatarAvailable: false,
+        name: contact.alias || contact.user.name,
+      });
+    } else if (globalUser) {
       setChat({
         id: newChatId.id,
         createdAt: newChatId.createdAt,
@@ -365,13 +416,16 @@ export function Chat() {
       });
       setGlobalUser(undefined);
     }
-
-    setCurrentMessages(await getMessagesByChatId(newChatId.id));
+    const fetchedMessages = await getMessagesByChatId(newChatId.id);
+    setCurrentMessages(fetchedMessages.messages);
+    setTotalMessages(fetchedMessages.totalCount);
     if (webSocket && webSocket.readyState === WebSocket.OPEN) {
       setTimeout(() => {
         checkUnreadMessages(webSocket);
       }, 300);
     }
+
+    await reFetchChats();
     dispatch(setCurrentMainBoxState(MainBoxStateEnum.CHAT));
   };
 
@@ -390,7 +444,9 @@ export function Chat() {
     setChat(currentChat);
     setCurrentMessages(new Map());
     dispatch(setCurrentMainBoxState(MainBoxStateEnum.CHAT));
-    setCurrentMessages(await getMessagesByChatId(currentChat.id));
+    const fetchedMessages = await getMessagesByChatId(currentChat.id);
+    setCurrentMessages(fetchedMessages.messages);
+    setTotalMessages(fetchedMessages.totalCount);
   };
 
   SIDEBAR_ITEM.buttons[ListStateEnum.CONTACTS].onClick = () => {
@@ -409,8 +465,8 @@ export function Chat() {
     setIsCreateGroupChatModalOpen(true);
   };
 
-  SIDEBAR_ITEM.buttons.setting.onClick = () => {
-    toast.warn("Coming soon!");
+  SIDEBAR_ITEM.buttons.setting.onClick = async () => {
+    dispatch(setCurrentInteractiveListState(ListStateEnum.SETTING));
   };
 
   const loadGlobalUsers = async (search?: string, offset?: number) => {
@@ -423,12 +479,11 @@ export function Chat() {
     await fetchContacts(search, offset);
   };
   const loadMessages = async (offset?: number) => {
-    if (chat) {
+    if (chat && offset && offset < totalMessages) {
       const newMessages = await getMessagesByChatId(chat.id, offset);
-
       setCurrentMessages(prevMessages => {
         const updatedMessages = new Map(prevMessages);
-        newMessages.forEach((message, key) => {
+        newMessages.messages.forEach((message, key) => {
           updatedMessages.set(key, message);
         });
         return updatedMessages;
@@ -438,21 +493,56 @@ export function Chat() {
   const handleCreateGroupChatModalClose = () => {
     setIsCreateGroupChatModalOpen(false);
   };
-  const handleCreateGroupChat = async (chatName: string, description: string, isPrivate: boolean) => {
-    console.log(chatName, description, isPrivate);
+
+  const handleChangeGroupAvatar = async (file: File, id: string) => {
+    await uploadGroupAvatar(file, id);
+    const newGroupDetails = {
+      ...groupDetails,
+      avatarPath: URL.createObjectURL(file),
+    } as GroupChatDetails;
+    setGroupDetails(newGroupDetails);
+  };
+
+  const handleCreateGroupChat = async (
+    chatName: string,
+    description: string,
+    isPrivate: boolean,
+    file?: File | null
+  ) => {
     const newGroupChat = await createGroupChat(chatName, description, isPrivate);
-    setChats(prevChats => {
-      const updatedChats = new Map();
-      updatedChats.set(newGroupChat.id, newGroupChat);
-      prevChats.forEach((prevChat, key) => updatedChats.set(key, prevChat));
-      return updatedChats;
-    });
+    let chat: ChatParams = {
+      user: {} as UserParams,
+      id: newGroupChat.id,
+      createdAt: newGroupChat.createdAt,
+      type: ChatType.GROUP,
+      lastMessage: undefined,
+      unreadMessages: 0,
+      avatarAvailable: false,
+      name: chatName,
+    };
+
+    if (file) {
+      await handleChangeGroupAvatar(file, newGroupChat.id);
+      chat = { ...chat, avatarAvailable: true };
+    }
+    await fetchChats(chats.size);
     setCurrentSidebarItem(ListStateEnum.CHATS);
     dispatch(setCurrentInteractiveListState(ListStateEnum.CHATS));
+
+    await handleChatClick(chat);
   };
 
   const handleAddMemberClick = (currentChat: ChatParams, currentContact: ContactParams) => {
     addMemberToGroupChat(webSocket as WebSocket, currentChat.id, currentContact.user.id);
+  };
+
+  const handleChangeAvatar = async (file: File) => {
+    await uploadAvatar(file);
+    const newCurrentUser = {
+      ...currentUser,
+      avatarPath: URL.createObjectURL(file),
+    } as UserParams;
+    dispatch(setCurrentUser(newCurrentUser));
   };
 
   return (
@@ -501,6 +591,7 @@ export function Chat() {
         }}
       />
       <MainBox
+        onChangeAvatar={handleChangeAvatar}
         contacts={contacts}
         onAddMemberClick={handleAddMemberClick}
         groupDetails={groupDetails}

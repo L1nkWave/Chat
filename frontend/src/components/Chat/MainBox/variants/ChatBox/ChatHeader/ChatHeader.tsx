@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { toast } from "react-toastify";
 
-import { baseURL } from "@/api/http";
 import { ContactParams } from "@/api/http/contacts/contacts.types";
 import { ChatType } from "@/api/socket/index.types";
 import { Avatar } from "@/components/Avatar/Avatar";
@@ -19,9 +18,11 @@ export function ChatHeader({
   contacts,
 }: Readonly<ChatHeaderProps>) {
   const [isGroupDetailsOpen, setIsGroupDetailsOpen] = useState(false);
+  const defaultGroupAvatar = "/avatars/group.png";
   const handleGroupDetailsClose = () => {
     setIsGroupDetailsOpen(false);
   };
+
   const handleAddMemberClick = (currentContact: ContactParams) => {
     if (onAddMemberClick) {
       onAddMemberClick(chat, currentContact);
@@ -36,7 +37,6 @@ export function ChatHeader({
       onChatHeaderClick(contact);
     }
   };
-  const avatarSrc = chat.avatarAvailable ? `${baseURL}avatars/${chat.id}` : "/avatars/group.png";
 
   const handleEditGroupClick = () => {
     toast.warn("Coming soon!");
@@ -50,7 +50,7 @@ export function ChatHeader({
       {groupDetails && (
         <GroupDetailsModal
           contacts={contacts}
-          avatarSrc={avatarSrc}
+          defaultGroupAvatar={defaultGroupAvatar}
           isOpen={isGroupDetailsOpen}
           chat={chat}
           groupDetails={groupDetails}
@@ -63,10 +63,25 @@ export function ChatHeader({
         />
       )}
       <button type="button" className="flex rounded-2xl items-center" onClick={handleClick}>
-        {contact ? (
-          <Avatar className="mx-5" item={contact.user} alt="Avatar" width={64} height={64} />
+        {chat.type === ChatType.DUO && contact ? (
+          <Avatar
+            className="mx-5"
+            item={{ id: contact.user.id, avatarAvailable: chat.avatarAvailable }}
+            alt="Avatar"
+            width={64}
+            height={64}
+          />
         ) : (
-          <Avatar className="mx-5" src={avatarSrc} alt="Avatar" width={64} height={64} />
+          <Avatar
+            className="mx-5"
+            item={chat}
+            isAvatarAvailable={chat.avatarAvailable}
+            isGroupAvatar
+            defaultAvatar={defaultGroupAvatar}
+            alt="Avatar"
+            width={64}
+            height={64}
+          />
         )}
 
         <div className="flex flex-col justify-center">
