@@ -26,7 +26,17 @@ export function ChatItem({ chat, onClick, className }: Readonly<ChatItemProps>) 
       <div className="flex flex-row w-10/12 mr-4">
         <div className="min-w-max">
           {chat.type === ChatType.DUO ? (
-            <Avatar item={chat.user} alt="User Avatar" online={chat.user.online} width={64} height={64} />
+            <Avatar
+              item={{
+                id: chat.user.id,
+                avatarAvailable: chat.avatarAvailable,
+              }}
+              isAvatarAvailable={chat.avatarAvailable}
+              alt="User Avatar"
+              online={chat.user.online}
+              width={64}
+              height={64}
+            />
           ) : (
             <Avatar
               item={chat}

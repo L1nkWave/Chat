@@ -11,7 +11,6 @@ import {
 } from "@/api/http/contacts/contacts.types";
 import { getUserById } from "@/api/http/user/user";
 import { readMessages } from "@/api/socket";
-import { ChatType } from "@/api/socket/index.types";
 import { ChatMap, ContactsMap, MessagesMap } from "@/components/Chat/InteractiveList/interactiveList.types";
 import {
   AddMessage,
@@ -246,7 +245,11 @@ export const messageHandler = async (
         createdAt: Date.now() / 1000,
       });
     } else {
-      updatedChats.set(socketMessage.chatId, chat);
+      updatedChats.set(socketMessage.chatId, {
+        ...chat,
+        lastMessage: message,
+        name: chat.name || chat.user.name,
+      });
     }
     if (updatedChats.size > 1) {
       updatedChats = new Map<string, ChatParams>(

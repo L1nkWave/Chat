@@ -138,6 +138,15 @@ export function Chat() {
     }
   }, []);
 
+  const reFetchChats = useCallback(async (offset?: number, limit?: number) => {
+    try {
+      const fetchedChats = await getChats(offset, limit);
+      setChats(fetchedChats);
+    } catch (error) {
+      toast.error("Error fetching chats");
+    }
+  }, []);
+
   const fetchChats = useCallback(async (offset?: number, limit?: number) => {
     try {
       const fetchedChats = await getChats(offset, limit);
@@ -378,7 +387,18 @@ export function Chat() {
     } catch (error) {
       newChatId = await addDuoChat(userId.toString());
     }
-    if (!contact && globalUser) {
+    if (contact) {
+      setChat({
+        id: newChatId.id,
+        createdAt: newChatId.createdAt,
+        user: contact.user,
+        type: ChatType.DUO,
+        lastMessage: undefined,
+        unreadMessages: 0,
+        avatarAvailable: false,
+        name: contact.alias || contact.user.name,
+      });
+    } else if (globalUser) {
       setChat({
         id: newChatId.id,
         createdAt: newChatId.createdAt,
@@ -389,7 +409,6 @@ export function Chat() {
         avatarAvailable: false,
         name: globalUser.name,
       });
-
       setContact({
         addedAt: undefined,
         alias: globalUser.name,
@@ -406,6 +425,7 @@ export function Chat() {
       }, 300);
     }
 
+    await reFetchChats();
     dispatch(setCurrentMainBoxState(MainBoxStateEnum.CHAT));
   };
 

@@ -28,7 +28,6 @@ export function UserInfoBox({
   if (!currentUser) {
     return null;
   }
-  console.log("UserInfoBox", contact.user.bio);
   const handleAddContactOpenModal = () => {
     setIsAddModalOpen(true);
   };

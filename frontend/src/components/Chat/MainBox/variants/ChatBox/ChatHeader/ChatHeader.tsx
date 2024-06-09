@@ -64,7 +64,13 @@ export function ChatHeader({
       )}
       <button type="button" className="flex rounded-2xl items-center" onClick={handleClick}>
         {chat.type === ChatType.DUO && contact ? (
-          <Avatar className="mx-5" item={contact.user} alt="Avatar" width={64} height={64} />
+          <Avatar
+            className="mx-5"
+            item={{ id: contact.user.id, avatarAvailable: chat.avatarAvailable }}
+            alt="Avatar"
+            width={64}
+            height={64}
+          />
         ) : (
           <Avatar
             className="mx-5"
