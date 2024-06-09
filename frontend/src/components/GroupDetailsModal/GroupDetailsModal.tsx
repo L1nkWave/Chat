@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 
+import { getContacts } from "@/api/http/contacts/contacts";
 import { ChatParams, ContactParams, GroupChatDetails, GroupRole } from "@/api/http/contacts/contacts.types";
 import { Avatar } from "@/components/Avatar/Avatar";
 import { ContactsMap } from "@/components/Chat/InteractiveList/interactiveList.types";
@@ -19,7 +20,7 @@ export type GroupDetailsModalProps = {
   groupDetails: GroupChatDetails;
   chat: ChatParams;
   isOpen: boolean;
-  avatarSrc: string;
+  defaultGroupAvatar: string;
   contacts: ContactsMap;
   onEditGroupClick?: () => void;
   onClearHistoryClick?: () => void;
@@ -34,14 +35,57 @@ export function GroupDetailsModal({
   onClearHistoryClick: handleClearHistoryClick,
   onLeaveGroupClick: handleLeaveGroupClick,
   onAddMemberClick,
+  defaultGroupAvatar,
   onDeleteChat: handleDeleteChat,
-  avatarSrc,
   chat,
   groupDetails,
   isOpen,
-  contacts,
 }: Readonly<GroupDetailsModalProps>) {
   const [isAddButtonClicked, setIsAddButtonClicked] = useState(false);
+  const [contacts, setContacts] = useState<ContactsMap>(new Map());
+
+  const fetchContacts = useCallback(async (search?: string, offset?: number, limit?: number) => {
+    const fetchedContacts = await getContacts(search, limit, offset);
+    setContacts(prevContacts => {
+      const updatedContacts = new Map(prevContacts);
+      fetchedContacts.forEach((fetchedContact, key) => {
+        updatedContacts.set(key, fetchedContact);
+      });
+      return updatedContacts;
+    });
+  }, []);
+
+  const [loading, setLoading] = useState(false);
+  const scrollListRef = useRef<HTMLDivElement>(null);
+
+  const handleScroll = useCallback(() => {
+    const scrollHeight = scrollListRef.current?.scrollHeight ?? 0;
+    const scrollTop = scrollListRef.current?.scrollTop ?? 0;
+    const clientHeight = scrollListRef.current?.clientHeight ?? 0;
+
+    const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+    const loadThreshold = 450;
+
+    if (distanceFromBottom < loadThreshold && !loading) {
+      setLoading(true);
+      fetchContacts("", contacts.size);
+    }
+  }, [contacts, fetchContacts, loading]);
+
+  useEffect(() => {
+    fetchContacts();
+  }, []);
+  useEffect(() => {
+    const scrollList = scrollListRef.current;
+    if (scrollList) {
+      scrollList.addEventListener("scroll", handleScroll);
+    }
+    return () => {
+      if (scrollList) {
+        scrollList.removeEventListener("scroll", handleScroll);
+      }
+    };
+  }, [handleScroll, loading]);
 
   const toggleAddMemberButtonClicked = () => {
     setIsAddButtonClicked(!isAddButtonClicked);
@@ -63,7 +107,7 @@ export function GroupDetailsModal({
   }
 
   return (
-    <div className="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div className="relative z-50" aria-labelledby="modal-title" aria-modal="true">
       <div className="fixed inset-0 bg-dark-500 bg-opacity-75 transition-opacity" />
       <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
         <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
@@ -74,7 +118,14 @@ export function GroupDetailsModal({
                   <Icon name="left-angle" iconSize={28} color={COLORS.blue["200"]} />
                 </CustomButton>
                 <div className="flex">
-                  <Avatar src={avatarSrc} alt="Group Avatar" className="mr-4" width={64} height={64} />
+                  <Avatar
+                    item={chat}
+                    alt="Group Avatar"
+                    className="mr-4"
+                    width={64}
+                    height={64}
+                    defaultAvatar={defaultGroupAvatar}
+                  />
                   <div>
                     <h1 className="text-xl text-gray-100 text-start flex gap-1.5">
                       <Icon iconSize={22} name="lock-outline" color={COLORS.blue["500"]} /> {chat.name}
@@ -145,7 +196,7 @@ export function GroupDetailsModal({
                   </div>
                 </div>
                 <hr className="mx-6 border-dark-150" />
-                <ScrollList className="px-0 py-0 mx-0 max-h-64 gap-0">
+                <ScrollList ref={scrollListRef} className="px-0 py-0 mx-0 max-h-64 gap-0">
                   {!isAddButtonClicked
                     ? Array.from(groupDetails.members.values()).map(member => (
                         <div key={member.id} className="flex items-center py-1">
@@ -153,7 +204,6 @@ export function GroupDetailsModal({
                             width={64}
                             height={64}
                             online={member.details.online}
-                            src={member.details.avatarPath}
                             item={member}
                             alt="Member Avatar"
                             className="mr-4"
@@ -178,7 +228,6 @@ export function GroupDetailsModal({
                               width={64}
                               height={64}
                               online={contact.user.online}
-                              src={contact.user.avatarPath}
                               item={contact.user}
                               alt="Member Avatar"
                               className="mr-4"

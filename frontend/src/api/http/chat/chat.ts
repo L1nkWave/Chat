@@ -65,7 +65,7 @@ export async function createGroupChat(name: string, description: string, isPriva
 
 export async function getGroupChatDetailsById(chatId: string) {
   const { data } = await instance.get<GroupChatDetails>(`chats/${chatId}/group`);
-  const members = new Map<string, GroupMember>();
+  const members = new Map<number, GroupMember>();
   data.members.forEach(member => {
     members.set(member.id, member);
   });

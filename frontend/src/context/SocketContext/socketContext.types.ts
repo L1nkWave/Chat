@@ -16,7 +16,7 @@ export type MessageActionParams = {
 };
 
 export type OnlineOfflineMessage = {
-  senderId: string;
+  senderId: number;
   timestamp: string;
 } & MessageActionParams;
 
@@ -53,7 +53,7 @@ export type AddMessage = {
   timestamp: number;
   senderId: string;
   chatId: string;
-  memberId: string;
+  memberId: number;
   memberDetails: GroupMemberDetails;
 } & MessageActionParams;
 

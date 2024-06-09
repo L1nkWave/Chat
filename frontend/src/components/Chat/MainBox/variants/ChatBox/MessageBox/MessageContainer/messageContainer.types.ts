@@ -5,5 +5,4 @@ export interface MessageContainerProps {
   onScrollToBottomButtonClick: () => void;
   chat: ChatParams;
   showScrollDownButton: boolean;
-  onLoad: () => void;
 }

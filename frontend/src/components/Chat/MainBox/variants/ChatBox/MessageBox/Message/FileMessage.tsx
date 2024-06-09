@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getFile } from "@/api/http/chat/chat";
 import { MessageParams } from "@/api/http/contacts/contacts.types";
 
-export function FileMessage({ message, onLoad }: Readonly<{ message: MessageParams; onLoad: () => void }>) {
+export function FileMessage({ message }: Readonly<{ message: MessageParams }>) {
   const [fileUrl, setFileUrl] = useState<string>("");
   const [isImage, setIsImage] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
@@ -38,7 +38,6 @@ export function FileMessage({ message, onLoad }: Readonly<{ message: MessagePara
       console.error("Error fetching file:", error);
     } finally {
       setLoading(false);
-      setTimeout(() => onLoad(), 0);
     }
   }, [message.contentType, message.id]);
 
@@ -56,7 +55,7 @@ export function FileMessage({ message, onLoad }: Readonly<{ message: MessagePara
       {loading ? (
         <div className="loader" />
       ) : isImage ? (
-        <Image src={fileUrl} alt="Image" className="h-auto rounded-2xl bg-white" width={256} height={128} />
+        <Image quality={10} src={fileUrl} alt="Image" className="rounded-2xl h-auto w-auto max-w-[700px]" width={256} height={128} />
       ) : (
         <a href={fileUrl} download={`file_${message.id}`} className="text-blue-500 underline">
           Download file

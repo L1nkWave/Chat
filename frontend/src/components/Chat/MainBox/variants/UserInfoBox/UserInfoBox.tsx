@@ -28,6 +28,7 @@ export function UserInfoBox({
   if (!currentUser) {
     return null;
   }
+  console.log("UserInfoBox", contact.user.bio);
   const handleAddContactOpenModal = () => {
     setIsAddModalOpen(true);
   };
@@ -42,20 +43,20 @@ export function UserInfoBox({
   };
   const handleAddContactClick = () => {
     if (contact && onAddContactClick) {
-      onAddContactClick(contact.user.id.toString(), alias || contact.user.name);
+      onAddContactClick(contact.user.id, alias || contact.user.name);
       setIsAddModalOpen(false);
       setAlias("");
     }
   };
   const handleRemoveContactClick = () => {
     if (contact && onRemoveContactClick) {
-      onRemoveContactClick(contact.user.id.toString());
+      onRemoveContactClick(contact.user.id);
       setIsRemoveModalOpen(false);
     }
   };
   const handleMessageButtonClick = () => {
     if (contact && onMessageButtonClick) {
-      onMessageButtonClick(contact.user.id.toString());
+      onMessageButtonClick(contact.user.id);
     }
   };
   return (
@@ -122,7 +123,7 @@ export function UserInfoBox({
         </div>
       </Modal>
 
-      <div className="p-16">
+      <div className="p-16 z-10">
         <div className="flex">
           <Avatar className="w-32 h-32" item={contact.user} alt="Avatar" width={128} height={128} />
           <div className="px-10 flex flex-col justify-center">
@@ -148,7 +149,9 @@ export function UserInfoBox({
           </InfoTextBox>
           <InfoTextBox>
             <InfoIconShape icon="list-outline" />
-            {contact.user.bio}
+            {contact.user.bio === "" || contact.user.bio === undefined || contact.user.bio === null
+              ? "No bio"
+              : contact.user.bio}
           </InfoTextBox>
         </div>
 

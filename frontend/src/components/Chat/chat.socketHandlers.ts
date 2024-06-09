@@ -13,7 +13,6 @@ import { getUserById } from "@/api/http/user/user";
 import { readMessages } from "@/api/socket";
 import { ChatType } from "@/api/socket/index.types";
 import { ChatMap, ContactsMap, MessagesMap } from "@/components/Chat/InteractiveList/interactiveList.types";
-import { MessageType } from "@/components/Chat/MainBox/variants/ChatBox/MessageBox/Message/Message";
 import {
   AddMessage,
   BindMessage,
@@ -29,7 +28,8 @@ export const offlineHandler = async (
   setChats: React.Dispatch<React.SetStateAction<ChatMap>>,
   contact: ContactParams | undefined,
   setContact: React.Dispatch<React.SetStateAction<ContactParams | undefined>>,
-  setContacts: React.Dispatch<React.SetStateAction<ContactsMap>>
+  setContacts: React.Dispatch<React.SetStateAction<ContactsMap>>,
+  setGroupDetails: React.Dispatch<React.SetStateAction<GroupChatDetails | undefined>>
 ) => {
   const socketMessageData = socketMessage;
 
@@ -43,6 +43,32 @@ export const offlineHandler = async (
       },
     }));
   }
+
+  setGroupDetails(prevGroupDetails => {
+    if (!prevGroupDetails) {
+      return prevGroupDetails;
+    }
+    const updatedMembers = new Map(prevGroupDetails.members);
+    const prevMember = updatedMembers.get(socketMessage.senderId);
+    if (!prevMember) {
+      return prevGroupDetails;
+    }
+    updatedMembers.set(socketMessage.senderId, {
+      ...prevMember,
+      id: socketMessage.senderId,
+      role: GroupRole.MEMBER,
+      joinedAt: Date.now() / 1000,
+      details: {
+        ...prevMember.details,
+        online: false,
+      },
+    });
+    return {
+      ...prevGroupDetails,
+      members: updatedMembers,
+    };
+  });
+
   setContacts(prevContacts => {
     const updatedContact = prevContacts.get(socketMessageData.senderId);
     if (updatedContact) {
@@ -79,7 +105,8 @@ export const onlineHandler = async (
   setChats: React.Dispatch<React.SetStateAction<ChatMap>>,
   contact: ContactParams | undefined,
   setContact: React.Dispatch<React.SetStateAction<ContactParams | undefined>>,
-  setContacts: React.Dispatch<React.SetStateAction<ContactsMap>>
+  setContacts: React.Dispatch<React.SetStateAction<ContactsMap>>,
+  setGroupDetails: React.Dispatch<React.SetStateAction<GroupChatDetails | undefined>>
 ) => {
   if (socketMessage.senderId === contact?.user.id) {
     setContact(prevContact => ({
@@ -91,6 +118,31 @@ export const onlineHandler = async (
       },
     }));
   }
+
+  setGroupDetails(prevGroupDetails => {
+    if (!prevGroupDetails) {
+      return prevGroupDetails;
+    }
+    const updatedMembers = new Map(prevGroupDetails.members);
+    const prevMember = updatedMembers.get(socketMessage.senderId);
+    if (!prevMember) {
+      return prevGroupDetails;
+    }
+    updatedMembers.set(socketMessage.senderId, {
+      ...prevMember,
+      id: socketMessage.senderId,
+      role: GroupRole.MEMBER,
+      joinedAt: Date.now() / 1000,
+      details: {
+        ...prevMember.details,
+        online: true,
+      },
+    });
+    return {
+      ...prevGroupDetails,
+      members: updatedMembers,
+    };
+  });
 
   setContacts(prevContacts => {
     const updatedContact = prevContacts.get(socketMessage.senderId);

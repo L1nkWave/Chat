@@ -9,6 +9,7 @@ import { InteractiveListProps } from "@/components/Chat/InteractiveList/interact
 import { ChatList } from "@/components/Chat/InteractiveList/variants/ChatList/ChatList";
 import { ContactList } from "@/components/Chat/InteractiveList/variants/ContactList/ContactList";
 import { GlobalContactList } from "@/components/Chat/InteractiveList/variants/GlobalContactList/GlobalContactList";
+import { Settings } from "@/components/Chat/InteractiveList/variants/Settings/Settings";
 import { CustomButton } from "@/components/CustomButton/CustomButton";
 import { Status } from "@/components/Status/Status";
 import { SocketContext } from "@/context/SocketContext/SocketContext";
@@ -81,6 +82,8 @@ export function InteractiveList({
         loadGlobalContacts={interactiveFindContacts?.loadGlobalContacts}
       />
     );
+  } else if (interactiveListVariant === ListStateEnum.SETTING) {
+    interactiveList = <Settings />;
   } else {
     interactiveList = <div>No data</div>;
   }
