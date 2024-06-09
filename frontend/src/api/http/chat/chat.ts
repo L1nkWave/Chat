@@ -39,18 +39,18 @@ export async function getChats(offset: number = 0, limit: number = 10) {
       });
     }
   });
-  console.log(chats);
   return chats;
 }
 
 export async function getMessagesByChatId(chatId: string, offset: number = 0, limit: number = 40) {
-  const { data } = await instance.get<MessageParams[]>(`chats/${chatId}/messages?limit=${limit}&offset=${offset}`);
+  const response = await instance.get<MessageParams[]>(`chats/${chatId}/messages?limit=${limit}&offset=${offset}`);
   const messages = new Map<string, MessageParams>();
-  data.forEach(chat => {
+
+  response.data.forEach(chat => {
     messages.set(chat.id, chat);
   });
-  console.log(data);
-  return messages;
+  const totalCount = parseInt(response.headers["x-total-count"], 10);
+  return { messages, totalCount };
 }
 
 export async function createGroupChat(name: string, description: string, isPrivate: boolean) {
@@ -60,7 +60,6 @@ export async function createGroupChat(name: string, description: string, isPriva
     isPrivate,
   };
   const { data } = await instance.post<ChatParams>(`chats/group`, body);
-  console.log(data);
   return data;
 }
 

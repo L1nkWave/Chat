@@ -1,7 +1,7 @@
 import { ChatType } from "@/api/socket/index.types";
 
 export type UserParams = {
-  id: string;
+  id: number;
   bio?: string;
   name: string;
   online: boolean;

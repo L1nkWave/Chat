@@ -1,6 +1,6 @@
 import axios from "axios";
 
-import { AuthTypes } from "@/api/http/auth/auth.types";
+import {AuthTypes} from "@/api/http/auth/auth.types";
 
 export const authInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -27,11 +27,17 @@ export async function signIn(username: string, password: string) {
     password,
   };
 
-  const { data } = await authInstance.post<AuthTypes>("auth/login", body, { withCredentials: true });
-  return data;
+  const data = await authInstance.post<AuthTypes>("auth/login", body, { withCredentials: true });
+  return data.data;
 }
 
 export async function refreshToken() {
-  const { data } = await authInstance.post<AuthTypes>("auth/refresh-tokens", {}, { withCredentials: true });
+  const { data } = await authInstance.post<AuthTypes>(
+    "auth/refresh-tokens",
+    {},
+    {
+      withCredentials: true,
+    }
+  );
   return data;
 }
