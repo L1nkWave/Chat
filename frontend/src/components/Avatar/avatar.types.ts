@@ -8,6 +8,7 @@ export type ItemParams = {
 
 export type AvatarProps = {
   preview?: string;
+  isGroupAvatar?: boolean;
   defaultAvatar?: string;
   item: ItemParams;
   status?: boolean;

@@ -120,6 +120,7 @@ export function GroupDetailsModal({
                 <div className="flex">
                   <Avatar
                     item={chat}
+                    isGroupAvatar
                     alt="Group Avatar"
                     className="mr-4"
                     width={64}

@@ -29,7 +29,24 @@ export async function uploadAvatar(file: File) {
   return data;
 }
 
-export async function getAvatarUrl(id: string) {
+export async function uploadGroupAvatar(file: File, id: string) {
+  const formData = new FormData();
+  formData.append("file", file);
+  const { data } = await instance.post(`chats/${id}/group/avatar`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+      Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+    },
+  });
+  return data;
+}
+
+export async function getAvatar(id: string) {
   const { data } = await instance.get(`users/${id}/avatar`, { responseType: "blob" });
+  return data;
+}
+
+export async function getGroupAvatar(id: string) {
+  const { data } = await instance.get(`chats/${id}/group/avatar`, { responseType: "blob" });
   return data;
 }

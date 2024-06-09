@@ -22,7 +22,7 @@ import {
   MessageParams,
   UserParams,
 } from "@/api/http/contacts/contacts.types";
-import { getUserById, searchUser, uploadAvatar } from "@/api/http/user/user";
+import { getUserById, searchUser, uploadAvatar, uploadGroupAvatar } from "@/api/http/user/user";
 import {
   addMemberToGroupChat,
   checkUnreadMessages,
@@ -473,14 +473,29 @@ export function Chat() {
   const handleCreateGroupChatModalClose = () => {
     setIsCreateGroupChatModalOpen(false);
   };
-  const handleCreateGroupChat = async (chatName: string, description: string, isPrivate: boolean) => {
+
+  const handleChangeGroupAvatar = async (file: File, id: string) => {
+    await uploadGroupAvatar(file, id);
+    const newGroupDetails = {
+      ...groupDetails,
+      avatarPath: URL.createObjectURL(file),
+    } as GroupChatDetails;
+    setGroupDetails(newGroupDetails);
+  };
+
+  const handleCreateGroupChat = async (chatName: string, description: string, isPrivate: boolean, file?: File) => {
     const newGroupChat = await createGroupChat(chatName, description, isPrivate);
+    console.log(newGroupChat);
     setChats(prevChats => {
       const updatedChats = new Map();
       updatedChats.set(newGroupChat.id, newGroupChat);
       prevChats.forEach((prevChat, key) => updatedChats.set(key, prevChat));
       return updatedChats;
     });
+    console.log("FILE", file);
+    if (file) {
+      await handleChangeGroupAvatar(file, newGroupChat.id);
+    }
     setCurrentSidebarItem(ListStateEnum.CHATS);
     dispatch(setCurrentInteractiveListState(ListStateEnum.CHATS));
   };

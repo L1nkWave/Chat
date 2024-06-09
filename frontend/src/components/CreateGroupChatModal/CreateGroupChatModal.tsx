@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useRef, useState } from "react";
 
+import { Avatar } from "@/components/Avatar/Avatar";
 import { CustomButton } from "@/components/CustomButton/CustomButton";
 import { CustomInput } from "@/components/CustomInput/CustomInput";
 import { Icon } from "@/components/Icon/Icon";
@@ -7,7 +8,8 @@ import { Modal, ModalProps } from "@/components/Modal/Modal";
 import { COLORS } from "@/constants/colors";
 
 export type CreateGroupChatModalProps = {
-  onSubmit: (chatName: string, description: string, privacy: boolean) => void;
+  onSubmit: (chatName: string, description: string, privacy: boolean, file?: File) => void;
+  onChangeGroupAvatar?: (file: File, id: string) => void;
 } & Omit<ModalProps, "onSubmit">;
 
 export function CreateGroupChatModal({
@@ -20,6 +22,25 @@ export function CreateGroupChatModal({
   const [chatName, setChatName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [isPrivacy, setIsPrivacy] = React.useState(false);
+  const [preview, setPreview] = useState<string | undefined>(undefined);
+  const [file, setFile] = useState<File | undefined>(undefined);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      setFile(file);
+    }
+  };
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
 
   const handleChatNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setChatName(event.target.value);
@@ -32,7 +53,7 @@ export function CreateGroupChatModal({
   };
 
   const handleSubmit = () => {
-    onSubmit(chatName, description, isPrivacy);
+    onSubmit(chatName, description, isPrivacy, file);
     handleClose();
     setChatName("");
     setDescription("");
@@ -55,6 +76,31 @@ export function CreateGroupChatModal({
                 <Icon name="left-angle" iconSize={28} color={COLORS.blue["200"]} />
               </CustomButton>
               <span className="text-2xl text-blue-200">Create group chat</span>
+            </div>
+            <div className="flex justify-center items-center pt-4">
+              <input
+                accept="image/png, image/gif, image/jpeg"
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+              <CustomButton
+                variant="transparent"
+                className="cursor-pointer max-w-[140px] max-h-[140px]"
+                onClick={handleAvatarClick}
+              >
+                <Avatar
+                  quality={40}
+                  width={100}
+                  height={100}
+                  item={{ id: "none" }}
+                  isGroupAvatar
+                  defaultAvatar="/avatars/group.png"
+                  preview={preview}
+                  alt="Avatar"
+                />
+              </CustomButton>
             </div>
             <div className="mt-8 mb-8 flex flex-col items-center justify-center gap-10">
               <CustomInput

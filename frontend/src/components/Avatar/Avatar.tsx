@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
-import { getAvatarUrl } from "@/api/http/user/user";
+import { getAvatar, getGroupAvatar } from "@/api/http/user/user";
 import { AvatarProps } from "@/components/Avatar/avatar.types";
 import { Status } from "@/components/Status/Status";
 import { defaultUserAvatar } from "@/helpers/defaultUserAvatar";
@@ -11,6 +11,7 @@ export function Avatar({
   preview,
   width,
   height,
+  isGroupAvatar,
   item,
   statusClassName,
   className,
@@ -33,7 +34,7 @@ export function Avatar({
     const fetchImage = async () => {
       try {
         if (item.avatarPath || item.avatarAvailable) {
-          const file = await getAvatarUrl(item?.id as string);
+          const file = isGroupAvatar ? await getGroupAvatar(item.id as string) : await getAvatar(item.id as string);
           const blob = new Blob([file], { type: "image/png" });
 
           const base64Image = await blobToBase64(blob);
