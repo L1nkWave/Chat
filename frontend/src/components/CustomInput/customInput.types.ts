@@ -8,4 +8,6 @@ export type CustomInputProps = {
   error?: string | false;
   innerContainerClassName?: string;
   containerClassName?: string;
+  iconSize?: number;
+  reverseIconPosition?: boolean;
 } & DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement>;

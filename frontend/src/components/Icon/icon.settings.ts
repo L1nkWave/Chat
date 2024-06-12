@@ -37,4 +37,5 @@ export const iconMapping = {
   "users-outline": Icons.UsersOutlineIcon,
   "crown-outline": Icons.CrownOutlineIcon,
   "minus-circle-outline": Icons.MinusCircleOutline,
+  "search-outline": Icons.SearchOutlineIcon,
 };
