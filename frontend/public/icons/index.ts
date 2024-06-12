@@ -22,6 +22,7 @@ export { default as MinusCircleOutline } from "./minus-circle-outline.svg";
 export { default as PenWithMessageIcon } from "./pen-with-message.svg";
 export { default as PinOutlineIcon } from "./pin-outline.svg";
 export { default as RemoveCircleOutlineIcon } from "./remove-circle-outline.svg";
+export { default as SearchOutlineIcon } from "./search-outline.svg";
 export { default as SendOutlineIcon } from "./send-outline.svg";
 export { default as SettingOutlineIcon } from "./setting-outline.svg";
 export { default as SignOutCircleIcon } from "./sign-out-circle.svg";

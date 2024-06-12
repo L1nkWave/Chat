@@ -87,12 +87,12 @@ export function Chat() {
   const [groupDetails, setGroupDetails] = useState<GroupChatDetails | undefined>(undefined);
 
   const [currentSidebarItem, setCurrentSidebarItem] = useState<string>("chat" as SidebarButtonName);
-
   const [isCreateGroupChatModalOpen, setIsCreateGroupChatModalOpen] = useState(false);
 
-  const reFetchGlobalContacts = useCallback(async () => {
+  const [searchValue, setSearchValue] = useState<string>("");
+  const reFetchGlobalContacts = useCallback(async (search?: string) => {
     try {
-      const fetchedGlobalUsers: UserMap = await searchUser();
+      const fetchedGlobalUsers: UserMap = await searchUser(search);
       setGlobalUsers(fetchedGlobalUsers);
     } catch (error) {
       toast.error("Error fetching global users");
@@ -114,9 +114,9 @@ export function Chat() {
     }
   }, []);
 
-  const reFetchContacts = useCallback(async () => {
+  const reFetchContacts = useCallback(async (search?: string) => {
     try {
-      const fetchedContacts = await getContacts();
+      const fetchedContacts = await getContacts(search);
       setContacts(fetchedContacts);
     } catch (error) {
       toast.error("Error fetching contacts");
@@ -163,16 +163,23 @@ export function Chat() {
   }, []);
 
   useAccessTokenEffect(() => {
-    fetchContacts();
-  }, []);
+    fetchContacts(searchValue);
+  }, [searchValue]);
 
   useAccessTokenEffect(() => {
-    fetchGlobalContacts();
-  }, []);
+    fetchGlobalContacts(searchValue);
+  }, [searchValue]);
 
   useAccessTokenEffect(() => {
     fetchChats();
   }, []);
+
+  useAccessTokenEffect(() => {
+    reFetchGlobalContacts(searchValue);
+  }, [searchValue]);
+  useAccessTokenEffect(() => {
+    reFetchContacts(searchValue);
+  }, [searchValue]);
 
   useAccessTokenEffect(() => {
     if (currentMainBoxState !== MainBoxStateEnum.CHAT) {
@@ -450,6 +457,7 @@ export function Chat() {
   };
 
   SIDEBAR_ITEM.buttons[ListStateEnum.CONTACTS].onClick = () => {
+    setSearchValue("");
     dispatch(setCurrentInteractiveListState(ListStateEnum.CONTACTS));
   };
 
@@ -458,6 +466,7 @@ export function Chat() {
   };
 
   SIDEBAR_ITEM.buttons[ListStateEnum.FIND_CONTACTS].onClick = () => {
+    setSearchValue("");
     dispatch(setCurrentInteractiveListState(ListStateEnum.FIND_CONTACTS));
   };
 
@@ -470,13 +479,13 @@ export function Chat() {
   };
 
   const loadGlobalUsers = async (search?: string, offset?: number) => {
-    await fetchGlobalContacts(search, offset);
+    await fetchGlobalContacts(searchValue, offset);
   };
   const loadChats = async (offset?: number) => {
     await fetchChats(offset);
   };
   const loadContacts = async (search?: string, offset?: number) => {
-    await fetchContacts(search, offset);
+    await fetchContacts(searchValue, offset);
   };
   const loadMessages = async (offset?: number) => {
     if (chat && offset && offset < totalMessages) {
@@ -545,6 +554,10 @@ export function Chat() {
     dispatch(setCurrentUser(newCurrentUser));
   };
 
+  const handleChangeSearchValue = (value: string) => {
+    setSearchValue(value);
+  };
+
   return (
     <div className="w-screen flex px-64">
       <SideBar>
@@ -571,6 +584,8 @@ export function Chat() {
         />
       </SideBar>
       <InteractiveList
+        onChangeSearchValue={handleChangeSearchValue}
+        searchValue={searchValue}
         interactiveListVariant={currentInteractiveListState}
         interactiveContact={{
           currentContact: contact,

@@ -18,7 +18,7 @@ export const ScrollList = React.forwardRef<HTMLDivElement, ScrollListProps>(
 
     return (
       <div
-        className={`flex flex-col h-full outline-none bg-dark-500 py-8 gap-2 overflow-y-scroll pr-4 pl-6 ${isMouseEntered ? "scroll-list__scrollbar" : "scroll-list__scrollbar-hidden"} ${className ?? ""}`}
+        className={`flex flex-col h-full outline-none bg-dark-500 py-4 gap-2 overflow-y-scroll pr-4 pl-6 ${isMouseEntered ? "scroll-list__scrollbar" : "scroll-list__scrollbar-hidden"} ${className ?? ""}`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         role="tablist"

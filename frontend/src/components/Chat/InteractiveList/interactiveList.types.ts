@@ -37,6 +37,8 @@ export type InteractiveGlobalContactParams = {
 };
 
 export type InteractiveListProps = {
+  searchValue?: string;
+  onChangeSearchValue: (value: string) => void;
   interactiveListVariant: InteractiveListVariant;
   interactiveContact?: InteractiveContactParams;
   interactiveChat?: InteractiveChatParams;
