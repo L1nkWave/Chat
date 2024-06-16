@@ -1,0 +1,388 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "LW Auth Service",
+    "description": "This API exposes end-points to manage users auth lifecycle",
+    "version": "2024-01-10:04:43Z"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8081/{basePath}",
+      "variables": {
+        "basePath": {
+          "default": "auth"
+        }
+      }
+    }
+  ],
+  "paths": {
+    "/api/v1/auth/login": {
+      "post": {
+        "summary": "Log into account",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserLoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response with 200 status returns tokens",
+            "headers": {
+              "Set-Cookie": {
+                "description": "Sets http-only cookie with refresh token into client's cookies",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Refresh-Token=...; Path=/api/v1/auth/refresh-tokens; Max-Age=3600; Expires=Fri, 19 Jan 2024 09:28:42 GMT; HttpOnly; SameSite=Strict"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokensDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Response with 400 status indicates incorrect credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/auth/login",
+                  "status": 400,
+                  "message": "Incorrect username or password",
+                  "timestamp": 1705653700.223180100
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "summary": "Log out from an account",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Log out user and block his tokens",
+            "headers": {
+              "Set-Cookie": {
+                "description": "Deletes http-only cookie with refresh token on the client side",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Refresh-Token=; Path=/api/v1/auth/refresh-tokens; Max-Age=-1; HttpOnly; SameSite=Strict"
+              }
+            }
+          },
+          "400": {
+            "description": "Response with 400 status indicates absence of access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/auth/logout",
+                  "status": 400,
+                  "message": "Bearer is not present",
+                  "timestamp": 1705653700.223180100
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Indicates that passed token is invalid or expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/auth/logout",
+                  "status": 401,
+                  "message": "Access token is unavailable",
+                  "timestamp": 1705653700.223180100
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh-tokens": {
+      "post": {
+        "summary": "Refresh tokens based on existing refresh token",
+        "responses": {
+          "200": {
+            "description": "Log out user and block his tokens",
+            "headers": {
+              "Set-Cookie": {
+                "description": "Sets http-only cookie with refresh token into client's cookies",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Refresh-Token=...; Path=/api/v1/auth/refresh-tokens; Max-Age=3600; Expires=Fri, 19 Jan 2024 09:28:42 GMT; HttpOnly; SameSite=Strict"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokensDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Token is not detected as http-only \"Refresh-Token\" cookie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/auth/refresh-tokens",
+                  "status": 400,
+                  "message": "Refresh token is not present",
+                  "timestamp": 1705653700.223180100
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Indicates that refresh token is deactivated by the server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/auth/refresh-tokens",
+                  "status": 401,
+                  "message": "Refresh token is unavailable",
+                  "timestamp": 1705653700.223180100
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Indicates that refresh token has no appropriate authority",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/auth/refresh-tokens",
+                  "status": 403,
+                  "message": "You do not have permissions",
+                  "timestamp": 1705653700.223180100
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users": {
+      "delete": {
+        "summary": "Delete a user account",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserDeleteRequest"
+              },
+              "example": {
+                "password": "123qwerty"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Account was successfully deleted"
+          },
+          "400": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/users",
+                  "message": "Credentials not valid",
+                  "status": 400,
+                  "timestamp": 1715001971.916428300
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/users",
+                  "message": "Access token is unavailable",
+                  "status": 401,
+                  "timestamp": 1715001906.764552100
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/validate-token": {
+      "get": {
+        "summary": "Validate access token",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Access token is valid"
+          },
+          "400": {
+            "description": "Authorization header does not contain access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/auth/validate-token",
+                  "status": 400,
+                  "message": "Bearer is not present",
+                  "timestamp": 1705653700.223180100
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Passed access token is not valid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/auth/validate-token",
+                  "status": 401,
+                  "message": "Invalid access token",
+                  "timestamp": 1705653700.223180100
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "nullable": false
+          },
+          "status": {
+            "type": "integer",
+            "nullable": false
+          },
+          "message": {
+            "type": "string",
+            "nullable": false
+          },
+          "timestamp": {
+            "type": "number",
+            "nullable": false
+          }
+        }
+      },
+      "UserLoginRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "nullable": false
+          },
+          "password": {
+            "type": "string",
+            "nullable": false
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ],
+        "example": {
+          "username": "@emmtlor",
+          "password": "qwerty123"
+        }
+      },
+      "UserDeleteRequest": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "nullable": false,
+            "maxLength": 64,
+            "minLength": 3
+          }
+        }
+      },
+      "TokensDto": {
+        "type": "object",
+        "properties": {
+          "refreshExpiration": {
+            "type": "number",
+            "nullable": false
+          },
+          "accessToken": {
+            "type": "string",
+            "nullable": false
+          }
+        },
+        "example": {
+          "refreshExpiration": 1705656522.510558100,
+          "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,42 @@
+server:
+  port: 8082
+
+eureka:
+  client:
+    service-url:
+      defaultZone: 'http://localhost:8761/eureka/'
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+spring:
+  application:
+    name: 'user-service'
+
+  servlet:
+    multipart:
+      max-file-size: 32MB
+      max-request-size: 32MB
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/lw-users
+    username: root
+    password: 123
+
+  jpa:
+    properties:
+      hibernate:
+        show_sql: false
+        format_sql: true
+        highlight_sql: true
+
+    hibernate:
+      ddl-auto: update
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+
+files:
+  storage-folder: 'D:\Files\storage'

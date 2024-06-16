@@ -1,0 +1,65 @@
+
+.parallax-outer {
+    overflow: hidden;
+}
+
+.parallax {
+    height: 110vh;
+    width: 100%;
+    position: relative;
+}
+
+.stroke {
+    position: absolute;
+    width: 100%;
+    top: 64%;
+    transform: scale(3);
+    z-index: 3;
+}
+
+.front-wave,
+.middle-wave,
+.back-wave {
+    position: absolute;
+    width: 100%;
+    top: 65%;
+    transform: scale(3);
+    z-index: 3;
+}
+
+.front-wave {
+    opacity: 40%;
+}
+
+.middle-wave {
+    bottom: 20px;
+    z-index: 2;
+    opacity: 60%;
+}
+
+.back-wave {
+    bottom: 40px;
+    z-index: 1;
+    opacity: 80%;
+}
+
+.link {
+    position: absolute;
+    top: 46%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40%;
+}
+
+.parallax-text {
+    position: absolute;
+    bottom: 25%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--secondaryColor);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    opacity: 0;
+}

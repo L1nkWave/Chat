@@ -1,0 +1,1 @@
+export const RECONNECT_TIMEOUT = 1000;

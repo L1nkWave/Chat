@@ -1,0 +1,914 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "LW User Service",
+    "description": "This API exposes end-points to retrieve users data",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8082/{basePath}",
+      "variables": {
+        "basePath": {
+          "default": "api"
+        }
+      }
+    }
+  ],
+  "paths": {
+    "/v1/users/register": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Create an account for a new user",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserRegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "User was successfully registered"
+          },
+          "400": {
+            "description": "Passed username is already taken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/users/register",
+                  "status": 400,
+                  "message": "username is already taken",
+                  "timestamp": 1705653700.223180100
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Passed username is already taken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/users/register",
+                  "status": 500,
+                  "message": "role_user is not found",
+                  "timestamp": 1705653700.223180100
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/{id}": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Get user information by ID",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retrieved information about user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Access token is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/users/100",
+                  "message": "Access token is invalid",
+                  "status": 400,
+                  "timestamp": 1705653700.223180100
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User with specified ID does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/users/100",
+                  "status": 404,
+                  "message": "user[100] not found",
+                  "timestamp": 1705653700.223180100
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Retrieve a portion of users that have usernames that start with specified one",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/username"
+          },
+          {
+            "$ref": "#/components/parameters/offset"
+          },
+          {
+            "$ref": "#/components/parameters/limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A portion of selected users",
+            "headers": {
+              "X-Total-Count": {
+                "description": "Represents the number of all users whose usernames matched with specified value"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserDto"
+                  },
+                  "nullable": false
+                },
+                "example": [
+                  {
+                    "id": 2,
+                    "username": "@user2",
+                    "name": "User2",
+                    "lastSeen": 1707597104.417882000,
+                    "avatarPath": null,
+                    "bio": null,
+                    "deleted": false,
+                    "blocked": true,
+                    "online": false
+                  },
+                  {
+                    "id": 3,
+                    "username": "@user3",
+                    "name": "User3",
+                    "lastSeen": 1707597134.622333000,
+                    "avatarPath": null,
+                    "bio": null,
+                    "deleted": false,
+                    "blocked": false,
+                    "online": false
+                  },
+                  {
+                    "id": 4,
+                    "username": "@user4",
+                    "name": "User4",
+                    "lastSeen": 1707597134.622333000,
+                    "avatarPath": null,
+                    "bio": null,
+                    "deleted": true,
+                    "blocked": false,
+                    "online": false
+                  }
+                ]
+              }
+            }
+          },
+          "400": {
+            "description": "Access token is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "Invalid token": {
+                    "value": {
+                      "path": "/api/v1/users?username=@user&offset=1&limit=3",
+                      "message": "Access token is invalid",
+                      "status": 400,
+                      "timestamp": 1705653700.223180100
+                    }
+                  },
+                  "Invalid pagination params": {
+                    "value": {
+                      "path": "/api/v1/users/contacts",
+                      "message": "offset: must be greater than 0",
+                      "status": 400,
+                      "timestamp": 1715427319.248288600
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/avatar": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Multipart request to upload user avatar",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "object",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User avatar was successfully changed"
+          },
+          "400": {
+            "description": "Common possible errors that may happen during avatar uploading",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "example 1": {
+                    "value": {
+                      "path": "/api/v1/users/avatar",
+                      "message": "Received file is not an image",
+                      "status": 400,
+                      "timestamp": 1709820925.785678700
+                    }
+                  },
+                  "example 2": {
+                    "value": {
+                      "path": "/api/v1/users/avatar",
+                      "message": "Only one file can be uploaded per request",
+                      "status": 400,
+                      "timestamp": 1709820925.785678700
+                    }
+                  },
+                  "example 3": {
+                    "value": {
+                      "path": "/api/v1/users/avatar",
+                      "message": "Maximum upload size exceeded",
+                      "status": 400,
+                      "timestamp": 1709820925.785678700
+                    }
+                  },
+                  "example 4": {
+                    "value": {
+                      "path": "/api/v1/users/avatar",
+                      "message": "Uploaded file can not be empty",
+                      "status": 400,
+                      "timestamp": 1709821262.760822800
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Delete uploaded user chat avatar",
+        "responses": {
+          "200": {
+            "description": "Uploaded avatar was successfully deleted"
+          },
+          "404": {
+            "description": "User does not have the avatar set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/users/avatar",
+                  "message": "User[1] not found",
+                  "status": 404,
+                  "timestamp": 1709820925.785678700
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/{id}/avatar": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/id"
+        }
+      ],
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Retrieve the user avatar",
+        "responses": {
+          "200": {
+            "description": "User avatar",
+            "content": {
+              "image/png": {},
+              "image/jpeg": {},
+              "image/jpg": {},
+              "image/webp": {},
+              "image/gif": {}
+            }
+          },
+          "404": {
+            "description": "Requested avatar was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "example 1": {
+                    "value": {
+                      "path": "/api/v1/users/2/avatar",
+                      "message": "Requested resource not found",
+                      "status": 404,
+                      "timestamp": 1709825321.086538400
+                    }
+                  },
+                  "example 2": {
+                    "value": {
+                      "path": "/api/v1/users/2232/avatar",
+                      "message": "User[2232] not found",
+                      "status": 404,
+                      "timestamp": 1709825321.086538400
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/batch": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Find users by provided ids array",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/usersIds"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Contains all found users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserDto"
+                  }
+                },
+                "example": [
+                  {
+                    "id": 1,
+                    "username": "user1",
+                    "name": "User 1",
+                    "createdAt": 1707597103.417882000,
+                    "lastSeen": 1707597104.417882000,
+                    "avatarPath": null,
+                    "bio": null,
+                    "online": false
+                  },
+                  {
+                    "id": 2,
+                    "username": "user2",
+                    "name": "User 2",
+                    "createdAt": 1707597133.622333000,
+                    "lastSeen": 1707597134.622333000,
+                    "avatarPath": null,
+                    "bio": null,
+                    "online": false
+                  },
+                  {
+                    "id": 3,
+                    "username": "user3",
+                    "name": "User 3",
+                    "createdAt": 1707597133.622333000,
+                    "lastSeen": 1707597134.622333000,
+                    "avatarPath": null,
+                    "bio": null,
+                    "online": false
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/contacts": {
+      "get": {
+        "tags": [
+          "Contacts"
+        ],
+        "summary": "Retrieve a portion of contacts that have username, name or alias that matched with search parameter",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/search"
+          },
+          {
+            "$ref": "#/components/parameters/offset"
+          },
+          {
+            "$ref": "#/components/parameters/limit"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A portion of selected contacts",
+            "headers": {
+              "X-Total-Count": {
+                "description": "Represents the number of all contacts whose usernames matched with specified value"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ContactDto"
+                  },
+                  "example": [
+                    {
+                      "user": {
+                        "id": 8,
+                        "username": "user8",
+                        "name": "User",
+                        "lastSeen": 1707597134.622333000,
+                        "avatarPath": null,
+                        "bio": null,
+                        "online": false
+                      },
+                      "addedAt": 1707597185.177375000,
+                      "alias": "User"
+                    },
+                    {
+                      "user": {
+                        "id": 9,
+                        "username": "user9",
+                        "name": "User",
+                        "lastSeen": 1707597134.622333000,
+                        "avatarPath": null,
+                        "bio": null,
+                        "online": false
+                      },
+                      "addedAt": 1707597185.177375000,
+                      "alias": "User"
+                    },
+                    {
+                      "user": {
+                        "id": 10,
+                        "username": "user10",
+                        "name": "User",
+                        "lastSeen": 1707597134.622333000,
+                        "avatarPath": null,
+                        "bio": null,
+                        "online": false
+                      },
+                      "addedAt": 1707597185.177375000,
+                      "alias": "User"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "Invalid token": {
+                    "value": {
+                      "path": "/api/v1/users/contacts?search=@user&offset=1&limit=3",
+                      "message": "Access token is invalid",
+                      "status": 400,
+                      "timestamp": 1705653700.223180100
+                    }
+                  },
+                  "Invalid pagination params": {
+                    "value": {
+                      "path": "/api/v1/users/contacts",
+                      "message": "offset: must be greater than 0",
+                      "status": 400,
+                      "timestamp": 1715427319.248288600
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Contacts"
+        ],
+        "summary": "Add new contact to contacts list",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewContactRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successfully added new contact to contacts list",
+            "content": {
+              "application/json": {
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "examples": {
+                  "example 1": {
+                    "value": {
+                      "path": "/api/v1/users/contacts",
+                      "message": "Contact already added",
+                      "status": 400,
+                      "timestamp": 1711993020.601945400
+                    }
+                  },
+                  "example 2": {
+                    "value": {
+                      "path": "/api/v1/users/contacts",
+                      "message": "Invalid user id",
+                      "status": 400,
+                      "timestamp": 1711993020.601945400
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "New contact user does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/users/contacts",
+                  "message": "User[2425] not found",
+                  "status": 404,
+                  "timestamp": 1711993098.066933300
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Contacts"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/id"
+          }
+        ],
+        "summary": "Remove a contact from contacts list",
+        "responses": {
+          "204": {
+            "description": "Contact was successfully removed from the contacts list",
+            "content": {
+              "application/json": {
+
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid contact id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/users/contacts/1",
+                  "message": "Invalid user id",
+                  "status": 400,
+                  "timestamp": 1711993609.215993600
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Contact not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                },
+                "example": {
+                  "path": "/api/v1/users/contacts/1034",
+                  "message": "Contact not found",
+                  "status": 404,
+                  "timestamp": 1711993555.031665800
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "nullable": false
+          },
+          "status": {
+            "type": "integer",
+            "nullable": false
+          },
+          "message": {
+            "type": "string",
+            "nullable": false
+          },
+          "timestamp": {
+            "type": "number",
+            "nullable": false
+          }
+        }
+      },
+      "UserRegisterRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "nullable": false,
+            "minLength": 3,
+            "maxLength": 32
+          },
+          "password": {
+            "type": "string",
+            "nullable": false,
+            "minLength": 3,
+            "maxLength": 64
+          },
+          "name": {
+            "type": "string",
+            "nullable": false,
+            "minLength": 3,
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "username",
+          "password",
+          "name"
+        ],
+        "example": {
+          "username": "@emmtlor",
+          "password": "qwerty123",
+          "name": "Emma Taylor"
+        }
+      },
+      "UserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "nullable": false
+          },
+          "username": {
+            "type": "string",
+            "nullable": false
+          },
+          "name": {
+            "type": "string",
+            "nullable": false
+          },
+          "createdAt": {
+            "type": "number",
+            "nullable": false
+          },
+          "lastSeen": {
+            "type": "number",
+            "nullable": false
+          },
+          "online": {
+            "type": "boolean",
+            "nullable": false
+          },
+          "avatarPath": {
+            "type": "string",
+            "nullable": true
+          },
+          "deleted": {
+            "type": "boolean",
+            "nullable": false
+          },
+          "blocked": {
+            "type": "boolean",
+            "nullable": false
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "example": {
+          "id": 22,
+          "username": "@emmtlor",
+          "name": "Emma Taylor",
+          "createdAt": 1707606183.446933000,
+          "lastSeen": 1707606183.446933000,
+          "avatarPath": null,
+          "deleted": false,
+          "blocked": false,
+          "bio": null,
+          "online": false
+        }
+      },
+      "ContactDto": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserDto"
+          },
+          "addedAt": {
+            "type": "number",
+            "nullable": false,
+            "example": 1707597134.622333000
+          },
+          "alias": {
+            "type": "string",
+            "nullable": false,
+            "example": "User"
+          }
+        }
+      },
+      "NewContactRequest": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "nullable": false,
+            "minimum": 1
+          },
+          "alias": {
+            "type": "string",
+            "nullable": false,
+            "minLength": 3,
+            "maxLength": 64
+          }
+        },
+        "example": {
+          "userId": 222,
+          "alias": "User"
+        }
+      }
+    },
+    "headers": {
+      "X-Total-Count": {
+        "description": "Represents the number of all items",
+        "schema": {
+          "type": "integer"
+        }
+      }
+    },
+    "parameters": {
+      "id": {
+        "in": "path",
+        "name": "id",
+        "required": true,
+        "schema": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "description": "Resource identification",
+        "example": 22
+      },
+      "usersIds": {
+        "in": "query",
+        "name": "usersIds",
+        "required": true,
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "nullable": false
+          },
+          "description": "Array of users ids",
+          "example": [
+            1,
+            2,
+            3
+          ]
+        }
+      },
+      "username": {
+        "in": "query",
+        "name": "username",
+        "schema": {
+          "type": "string"
+        },
+        "description": "Value that is used for matching and returning records",
+        "example": "@user"
+      },
+      "search": {
+        "in": "query",
+        "name": "search",
+        "schema": {
+          "type": "string"
+        },
+        "description": "Value that is used for matching and returning records",
+        "example": "@user"
+      },
+      "offset": {
+        "in": "query",
+        "name": "offset",
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "description": "The number of items to skip before starting to collect the result set",
+        "example": 1
+      },
+      "limit": {
+        "in": "query",
+        "name": "limit",
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "description": "The number of items are needed to retrieve",
+        "example": 3
+      }
+    }
+  }
+}

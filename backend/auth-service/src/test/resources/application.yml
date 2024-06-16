@@ -1,0 +1,36 @@
+server:
+  port: 8081
+
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+
+spring:
+  application:
+    name: 'auth-service'
+
+  datasource:
+    url: 'jdbc:h2:~/test'
+    username: 'sa'
+    password: ''
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    properties:
+      hibernate:
+        show_sql: false
+        format_sql: true
+        highlight_sql: true
+
+    hibernate:
+      ddl-auto: create
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+
+jwt:
+  issuer: 'LW-auth'
+
+logging:
+  level:
+    org.linkwave.auth: INFO

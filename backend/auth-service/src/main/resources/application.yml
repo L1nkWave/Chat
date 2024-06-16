@@ -1,0 +1,44 @@
+server:
+  port: 8081
+
+eureka:
+  client:
+    service-url:
+      defaultZone: 'http://localhost:8761/eureka/'
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+
+spring:
+  application:
+    name: 'auth-service'
+
+  datasource:
+    url: 'jdbc:postgresql://localhost:5432/lw-users'
+    username: 'root'
+    password: '123'
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        show_sql: false
+        format_sql: true
+        highlight_sql: true
+
+    hibernate:
+      ddl-auto: update
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+
+
+jwt:
+  issuer: 'LW-auth'
+
+logging:
+  level:
+    org.linkwave.auth: INFO
