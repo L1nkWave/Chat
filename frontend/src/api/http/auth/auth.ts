@@ -1,6 +1,6 @@
 import axios from "axios";
 
-import {AuthTypes} from "@/api/http/auth/auth.types";
+import { AuthTypes } from "@/api/http/auth/auth.types";
 
 export const authInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,

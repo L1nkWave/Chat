@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 
 import { InteractiveChatParams } from "@/components/Chat/InteractiveList/interactiveList.types";
 import { ChatItem } from "@/components/Chat/UserItem/variants/ChatItem";
@@ -15,10 +15,8 @@ export function ChatList({ chats, onChatClick: handleChatClick, loadChats }: Rea
     const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
     const loadThreshold = 450;
 
-    if (distanceFromBottom < loadThreshold) {
-      if (loadChats) {
-        loadChats(chats?.size);
-      }
+    if (distanceFromBottom < loadThreshold && loadChats) {
+      loadChats(chats?.size);
     }
   }, [chats, loadChats]);
 
