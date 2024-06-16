@@ -55,7 +55,14 @@ export function FileMessage({ message }: Readonly<{ message: MessageParams }>) {
       {loading ? (
         <div className="loader" />
       ) : isImage ? (
-        <Image quality={10} src={fileUrl} alt="Image" className="rounded-2xl h-auto w-auto max-w-[700px]" width={256} height={128} />
+        <Image
+          quality={10}
+          src={fileUrl}
+          alt="Image"
+          className="rounded-2xl h-auto w-auto max-w-[700px]"
+          width={256}
+          height={128}
+        />
       ) : (
         <a href={fileUrl} download={`file_${message.id}`} className="text-blue-500 underline">
           Download file

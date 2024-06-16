@@ -9,7 +9,9 @@ export type ModalProps = {
   onClose: () => void;
   onSubmit: () => void;
   confirmButtonTitle: string;
+  // eslint-disable-next-line react/require-default-props
   submitButtonColor?: string;
+  // eslint-disable-next-line react/require-default-props
   isButtonDisappear?: boolean;
 };
 
@@ -17,16 +19,16 @@ export function Modal({
   isOpen,
   children,
   confirmButtonTitle,
-  submitButtonColor,
   onClose: handleClose,
   onSubmit: handleSubmit,
+  submitButtonColor,
   isButtonDisappear = false,
 }: PropsWithChildren<ModalProps>) {
   if (!isOpen) {
     return null;
   }
   return (
-    <div className="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div className="relative z-50" aria-labelledby="modal-title" aria-modal="true">
       <div className="fixed inset-0 bg-dark-500 bg-opacity-75 transition-opacity" />
       <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
         <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">

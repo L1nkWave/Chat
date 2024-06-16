@@ -36,7 +36,7 @@ export function ProfileSettings({ onChangeAvatar }: ProfileSettingsProps) {
 
   return (
     <div className="w-full flex justify-center items-start">
-      <div className="flex flex-col justify-center items-center rounded-2xl p-10 pt-32 w-full">
+      <div className="flex flex-col justify-center items-center rounded-2xl p-10 pt-32 w-full z-10">
         <input
           accept="image/png, image/gif, image/jpeg"
           type="file"

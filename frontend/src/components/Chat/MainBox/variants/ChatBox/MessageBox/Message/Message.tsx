@@ -56,7 +56,13 @@ export function Message({ chat, message, nextMessage }: Readonly<MessageProps>) 
       )}
       <div className="flex w-full relative h-max z-40">
         {isShowUser && (
-          <Avatar className="self-start max-h-[32px] mr-4" item={message.author} alt="Avatar" width={38} height={38} />
+          <Avatar
+            className="self-start max-h-[32px] mr-4"
+            item={{ id: message.author.id, avatarPath: "/", avatarAvailable: true }}
+            alt="Avatar"
+            width={38}
+            height={38}
+          />
         )}
 
         <div className={`w-full flex flex-col -z-10 ${messageContainer}`}>

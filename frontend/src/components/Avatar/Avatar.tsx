@@ -33,6 +33,7 @@ export function Avatar({
   useEffect(() => {
     const fetchImage = async () => {
       try {
+        console.log("AVATAR:", item);
         if (item.avatarPath || item.avatarAvailable) {
           const file = isGroupAvatar ? await getGroupAvatar(item.id as string) : await getAvatar(item.id as string);
           const blob = new Blob([file], { type: "image/png" });
@@ -66,7 +67,7 @@ export function Avatar({
         height={height}
         style={{ maxWidth: width, maxHeight: height, minWidth: width, minHeight: height }}
         className={`inline-block rounded-full object-fill ${className}`}
-        src={(preview ?? avatarSrc) ?? "/src"}
+        src={preview ?? avatarSrc ?? "/src"}
         {...props}
       />
       {status && online && (
