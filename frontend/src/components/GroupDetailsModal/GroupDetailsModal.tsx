@@ -44,8 +44,8 @@ export function GroupDetailsModal({
   const [isAddButtonClicked, setIsAddButtonClicked] = useState(false);
   const [contacts, setContacts] = useState<ContactsMap>(new Map());
 
-  const fetchContacts = useCallback(async (search?: string, offset?: number, limit?: number) => {
-    const fetchedContacts = await getContacts(search, limit, offset);
+  const fetchContacts = useCallback(async (search?: string, offset?: number) => {
+    const fetchedContacts = await getContacts(search, 99, offset);
     setContacts(prevContacts => {
       const updatedContacts = new Map(prevContacts);
       fetchedContacts.forEach((fetchedContact, key) => {
@@ -55,7 +55,6 @@ export function GroupDetailsModal({
     });
   }, []);
 
-  const [loading, setLoading] = useState(false);
   const scrollListRef = useRef<HTMLDivElement>(null);
 
   const handleScroll = useCallback(() => {
@@ -65,16 +64,15 @@ export function GroupDetailsModal({
 
     const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
     const loadThreshold = 450;
-
-    if (distanceFromBottom < loadThreshold && !loading) {
-      setLoading(true);
+    if (distanceFromBottom < loadThreshold) {
       fetchContacts("", contacts.size);
     }
-  }, [contacts, fetchContacts, loading]);
+  }, [contacts, fetchContacts]);
 
   useEffect(() => {
     fetchContacts();
-  }, []);
+  }, [fetchContacts]);
+
   useEffect(() => {
     const scrollList = scrollListRef.current;
     if (scrollList) {
@@ -85,7 +83,7 @@ export function GroupDetailsModal({
         scrollList.removeEventListener("scroll", handleScroll);
       }
     };
-  }, [handleScroll, loading]);
+  }, [handleScroll]);
 
   const toggleAddMemberButtonClicked = () => {
     setIsAddButtonClicked(!isAddButtonClicked);
@@ -148,7 +146,7 @@ export function GroupDetailsModal({
               <div>
                 <InfoTextBox>
                   <InfoIconShape icon="list-outline" />
-                  {groupDetails.description}
+                  {groupDetails.description || "No description"}
                 </InfoTextBox>
               </div>
               <div className="bg-dark-500 rounded-xl">
