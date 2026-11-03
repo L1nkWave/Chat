@@ -1,1 +1,4 @@
 .idea
+.env
+.env.local
+**/src/main/resources/keys/*.pem

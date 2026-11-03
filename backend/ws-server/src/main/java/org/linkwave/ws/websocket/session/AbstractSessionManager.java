@@ -18,7 +18,7 @@ public abstract class AbstractSessionManager implements SessionManager {
 
     public AbstractSessionManager(Long sessionExpiration) {
         this.sessions = Caffeine.newBuilder()
-                .expireAfterWrite(Duration.ofMinutes(sessionExpiration)) // access token time expiration
+                .expireAfterAccess(Duration.ofMinutes(sessionExpiration)) // access token time expiration
                 .removalListener((String sessionId, WebSocketSession session, RemovalCause cause) -> {
                     if (cause != RemovalCause.EXPIRED) {
                         return;

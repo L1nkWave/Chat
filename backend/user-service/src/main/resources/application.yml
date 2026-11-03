@@ -22,9 +22,9 @@ spring:
       max-request-size: 32MB
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/lw-users
-    username: root
-    password: 123
+    url: jdbc:postgresql://localhost:15432/lw-users
+    username: postgres
+    password: postgres
 
   jpa:
     properties:

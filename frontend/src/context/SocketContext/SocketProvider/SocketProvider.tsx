@@ -1,74 +1,89 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { PropsWithChildren, useEffect, useMemo, useState } from "react";
+import { PropsWithChildren, useEffect, useMemo, useRef, useState } from "react";
 
 import { refreshToken } from "@/api/http/auth/auth";
-import { AuthTypes } from "@/api/http/auth/auth.types";
 import { connectToSocket } from "@/api/socket";
 import { SocketContext } from "@/context/SocketContext/SocketContext";
 import { SocketContextProps, SocketMessageType } from "@/context/SocketContext/socketContext.types";
 import { isTokenExpired } from "@/helpers/DecodeToken/decodeToken";
-import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { useAppSelector } from "@/lib/hooks";
 
-const MAX_RECONNECT_ATTEMPTS = 3;
+const MAX_RECONNECT_ATTEMPTS = 5;
+const BASE_DELAY_MS = 1000;
 
 export function SocketProvider({ children }: Readonly<PropsWithChildren>) {
-  const dispatch = useAppDispatch();
   const { accessToken } = useAppSelector(state => state.user);
   const route = useRouter();
   const [webSocket, setWebSocket] = useState<WebSocket | null>(null);
   const [socketMessage, setSocketMessage] = useState<SocketMessageType>();
-  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const attemptsRef = useRef(0);
 
+  // eslint-disable-next-line sonarjs/cognitive-complexity
   useEffect(() => {
     if (!accessToken) {
       route.push("/sign-in");
       return () => {};
     }
 
-    const newSocket = connectToSocket(accessToken);
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let currentSocket: WebSocket | null = null;
 
-    newSocket.onclose = async () => {
-      if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-        try {
-          let data: AuthTypes = { accessToken, refreshExpiration: 0 };
-          if (isTokenExpired(accessToken)) {
-            data = await refreshToken();
-          }
-          const newWebSocket = connectToSocket(data.accessToken);
-          setWebSocket(newWebSocket);
-          setReconnectAttempts(prevAttempts => prevAttempts + 1);
-        } catch (error) {
-          console.error("Failed to refresh token:", error);
+    const open = (token: string) => {
+      if (!active) return;
+
+      const socket = connectToSocket(token);
+      currentSocket = socket;
+      setWebSocket(socket);
+
+      socket.onopen = () => {
+        attemptsRef.current = 0;
+      };
+
+      socket.onmessage = event => {
+        setSocketMessage(JSON.parse(event.data));
+      };
+
+      socket.onclose = () => {
+        if (!active) return;
+
+        if (attemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
           route.push("/sign-in");
+          return;
         }
-      } else {
-        route.push("/sign-in");
-      }
+
+        attemptsRef.current += 1;
+        const delay = BASE_DELAY_MS * 2 ** (attemptsRef.current - 1);
+
+        timer = setTimeout(async () => {
+          if (!active) return;
+          try {
+            let nextToken = token;
+            if (isTokenExpired(token)) {
+              const data = await refreshToken();
+              nextToken = data.accessToken;
+            }
+            open(nextToken);
+          } catch (error) {
+            console.error("Failed to refresh token:", error);
+            route.push("/sign-in");
+          }
+        }, delay);
+      };
     };
 
-    newSocket.onerror = () => {
-      console.log("Error");
-      route.push("/sign-in");
-    };
-
-    newSocket.onopen = event => {
-      console.log("Open", event);
-    };
-
-    newSocket.onmessage = event => {
-      setSocketMessage(JSON.parse(event.data));
-    };
-
-    setWebSocket(newSocket);
+    open(accessToken);
 
     return () => {
-      if (newSocket.readyState === WebSocket.OPEN) {
-        newSocket.close();
+      active = false;
+      if (timer) clearTimeout(timer);
+      if (currentSocket && currentSocket.readyState === WebSocket.OPEN) {
+        currentSocket.close();
       }
     };
-  }, [accessToken, dispatch, route, reconnectAttempts]);
+  }, [accessToken, route]);
 
   const value = useMemo<SocketContextProps>(() => {
     return {
