@@ -14,12 +14,20 @@ const flushPending = (socket: WebSocket) => {
   }
 };
 
-const sendFrame = (socket: WebSocket, frame: string) => {
+// Gửi ngay nếu socket đã mở; nếu chưa mở thì xếp hàng (chỉ với lệnh không gắn file)
+const sendFrame = (socket: WebSocket, frame: string, queueable = true) => {
   if (socket.readyState === WebSocket.OPEN) {
     socket.send(frame);
-  } else {
+  } else if (queueable) {
     pendingFrames.push(frame);
+  } else {
+    console.warn("Socket chưa sẵn sàng, bỏ qua lệnh gửi file");
   }
+};
+
+// Gọi khi đăng xuất để không gửi lại lệnh của người dùng trước cho tài khoản khác
+export const clearPendingFrames = () => {
+  pendingFrames.length = 0;
 };
 
 export const connectToSocket = (token: string) => {
@@ -60,7 +68,8 @@ export const sendFileMessage = (socket: WebSocket, chatId: string, fileHttpRespo
     socket,
     `${path}
   
-   ${payload}`
+   ${payload}`,
+    false
   );
 };
 

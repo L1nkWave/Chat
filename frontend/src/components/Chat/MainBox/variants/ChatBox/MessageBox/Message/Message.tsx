@@ -22,6 +22,13 @@ export enum MessageType {
   MESSAGE = "MESSAGE",
 }
 
+const MEMBER_ACTION_LABELS: Record<string, string> = {
+  ADD: "đã được thêm vào nhóm",
+  JOIN: "đã tham gia nhóm",
+  LEAVE: "đã rời nhóm",
+  KICK: "đã bị mời ra khỏi nhóm",
+};
+
 export function Message({ chat, message, nextMessage }: Readonly<MessageProps>) {
   const { currentUser } = useAppSelector(state => state.user);
   const messageCreatedAt = format(message.createdAt * 1000, "H:mm");
@@ -33,6 +40,10 @@ export function Message({ chat, message, nextMessage }: Readonly<MessageProps>) 
   const shouldShowDate = !nextDate || nextDate.getDate() !== date.getDate();
   const isShowUser = chat.type === ChatType.GROUP && !isCurrentUserAuthor;
   const isTextMessage = message.action === MessageType.MESSAGE;
+  const isFileMessage = message.action === MessageType.FILE;
+  // Các tin thông báo thành viên (thêm, tham gia, rời, bị mời ra) không phải file
+  const memberLabel = MEMBER_ACTION_LABELS[message.action];
+  const memberName = (message as MessageParams & { name?: string }).name ?? message.author.name;
 
   let messageContainer: string;
   let messageCloudStyle: string;
@@ -70,7 +81,13 @@ export function Message({ chat, message, nextMessage }: Readonly<MessageProps>) 
             className={`text-gray-200 px-6 py-2 whitespace-pre-wrap break-all ${messageCloudStyle} ${!isTextMessage && "bg-transparent py-0 my-0"}`}
           >
             {isShowUser && <p className="text-blue-100 text-start font-semibold">{message.author.name}</p>}
-            {isTextMessage ? message.text : <FileMessage message={message} />}
+            {isTextMessage && message.text}
+            {isFileMessage && <FileMessage message={message} />}
+            {!isTextMessage && !isFileMessage && memberLabel && (
+              <p className="text-center text-gray-400 text-sm">
+                {memberName} {memberLabel}
+              </p>
+            )}
           </div>
           <div className="flex gap-2">
             <span className="text-sm text-gray-400">{messageCreatedAt}</span>

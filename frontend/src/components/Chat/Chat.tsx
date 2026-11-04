@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useContext, useState } from "react";
+import React, { useCallback, useContext, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { v4 as uuidv4 } from "uuid";
 
@@ -82,6 +82,8 @@ export function Chat() {
 
   const [chats, setChats] = useState<ChatMap>(new Map());
   const [chat, setChat] = useState<ChatParams | undefined>(undefined);
+  const activeChatIdRef = useRef<string | undefined>(undefined);
+  activeChatIdRef.current = chat?.id;
   const [currentMessages, setCurrentMessages] = useState<MessagesMap>(new Map());
   const [totalMessages, setTotalMessages] = useState<number>(0);
   const [groupDetails, setGroupDetails] = useState<GroupChatDetails | undefined>(undefined);
@@ -229,7 +231,8 @@ export function Chat() {
         fetchChats,
         currentUser,
         setChats,
-        setCurrentMessages
+        setCurrentMessages,
+        () => activeChatIdRef.current
       );
       checkUnreadMessages(webSocket as WebSocket);
       if (chat?.id !== (socketMessage as MessageLikeMessage).chatId) {
@@ -448,6 +451,7 @@ export function Chat() {
       setGroupDetails(await getGroupChatDetailsById(currentChat.id));
       setContact(undefined);
     }
+    activeChatIdRef.current = currentChat.id;
     setChat(currentChat);
     setCurrentMessages(new Map());
     dispatch(setCurrentMainBoxState(MainBoxStateEnum.CHAT));

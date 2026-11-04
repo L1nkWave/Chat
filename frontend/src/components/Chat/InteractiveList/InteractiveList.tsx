@@ -3,6 +3,7 @@ import React, { useContext, useEffect } from "react";
 import { toast } from "react-toastify";
 
 import { logout } from "@/api/http";
+import { clearPendingFrames } from "@/api/socket";
 import { Avatar } from "@/components/Avatar/Avatar";
 import { ListStateEnum } from "@/components/Chat/chat.types";
 import { InteractiveListProps } from "@/components/Chat/InteractiveList/interactiveList.types";
@@ -45,6 +46,7 @@ export function InteractiveList({
         console.log("Socket closed");
       };
       webSocket.close();
+      clearPendingFrames();
 
       await logout();
       localStorage.removeItem("accessToken");

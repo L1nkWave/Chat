@@ -13,8 +13,15 @@ export const handleUsernameBlur = (formik: FormikValues) => {
 };
 
 export const axiosErrorHandler = (error: unknown) => {
+  console.error("Auth request failed:", error);
   if (error instanceof AxiosError) {
-    toast.error(formatSystemAlertMessage(error.response?.data.message) ?? messages.DEFAULT_ERROR_MESSAGE);
+    if (!error.response) {
+      // Không có phản hồi: thường do gateway chưa chạy, sai URL, hoặc bị chặn CORS
+      toast.error("Không kết nối được máy chủ. Kiểm tra API gateway (8080), Eureka và CORS.");
+    } else {
+      const message = formatSystemAlertMessage(error.response.data?.message);
+      toast.error(message ?? messages.DEFAULT_ERROR_MESSAGE);
+    }
   } else {
     toast.error(messages.DEFAULT_ERROR_MESSAGE);
   }

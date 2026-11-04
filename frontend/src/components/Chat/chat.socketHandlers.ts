@@ -206,7 +206,8 @@ export const messageHandler = async (
   fetchChats: () => Promise<void>,
   currentUser: UserParams | null,
   setChats: React.Dispatch<React.SetStateAction<ChatMap>>,
-  setCurrentMessages: React.Dispatch<React.SetStateAction<MessagesMap>>
+  setCurrentMessages: React.Dispatch<React.SetStateAction<MessagesMap>>,
+  getActiveChatId: () => string | undefined
   // eslint-disable-next-line sonarjs/cognitive-complexity
 ) => {
   if (
@@ -284,6 +285,12 @@ export const messageHandler = async (
   if (!currentChats.has(socketMessage.chatId)) {
     await fetchChats();
   }
+
+  // Sau các lệnh await, người dùng có thể đã chuyển sang nhóm khác: không chèn tin của nhóm cũ vào nhóm mới
+  if (getActiveChatId() !== socketMessage.chatId) {
+    return;
+  }
+
   setCurrentMessages(prevMessages => {
     const updatedMessages = new Map<string, MessageParams>();
     updatedMessages.set(messageId, {
