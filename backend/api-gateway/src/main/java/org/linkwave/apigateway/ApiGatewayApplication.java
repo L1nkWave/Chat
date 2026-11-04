@@ -1,6 +1,6 @@
 package org.linkwave.apigateway;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -15,7 +15,6 @@ public class ApiGatewayApplication {
 	@Bean
 	public ObjectMapper objectMapper() {
 		final var mapper = new ObjectMapper();
-		mapper.findAndRegisterModules();
 		return mapper;
 	}
 

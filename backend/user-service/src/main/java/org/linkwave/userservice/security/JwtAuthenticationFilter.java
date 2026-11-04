@@ -1,6 +1,6 @@
 package org.linkwave.userservice.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,7 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.AuthenticationConverter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -30,11 +30,11 @@ import static org.springframework.http.HttpMethod.POST;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final List<RequestMatcher> matchersWhiteList = List.of(
-            new AntPathRequestMatcher("/api/v1/users/register", POST.name()),
-            new AntPathRequestMatcher("/api/v1/users/{id}/online", PATCH.name())
+            PathPatternRequestMatcher.withDefaults().matcher(POST, "/api/v1/users/register"),
+            PathPatternRequestMatcher.withDefaults().matcher(PATCH, "/api/v1/users/{id}/online")
     );
 
-    private final RequestMatcher requestMatcher = new AntPathRequestMatcher("/api/v*/users/**");
+    private final RequestMatcher requestMatcher = PathPatternRequestMatcher.withDefaults().matcher("/api/v*/users/**");
     private final AuthenticationConverter authenticationConverter;
     private final ObjectMapper objectMapper;
 

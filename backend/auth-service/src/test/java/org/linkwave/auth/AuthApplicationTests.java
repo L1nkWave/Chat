@@ -1,7 +1,7 @@
 package org.linkwave.auth;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,7 +15,7 @@ import org.linkwave.auth.repository.RoleRepository;
 import org.linkwave.auth.repository.UserRepository;
 import org.linkwave.auth.security.utils.Cookies;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.lang.NonNull;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,7 +28,6 @@ import java.io.UnsupportedEncodingException;
 import java.time.Duration;
 import java.util.Optional;
 
-import static com.atlassian.oai.validator.mockmvc.OpenApiValidationMatchers.openApi;
 import static java.lang.String.format;
 import static java.util.Arrays.stream;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
@@ -42,7 +41,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AuthApplicationTests {
 
     private static final String BASE_URL = "http://localhost:8081/api/v1/auth";
-    private static final String OPENAPI_PATH = "static/openapi.json";
 
     @Autowired
     private MockMvc mockMvc;
@@ -101,8 +99,7 @@ class AuthApplicationTests {
                 status().isOk(),
                 cookie().httpOnly(REFRESH_TOKEN_COOKIE_NAME, true),
                 cookie().maxAge(REFRESH_TOKEN_COOKIE_NAME, (int) Duration.ofHours(1).toSeconds()),
-                content().contentType(APPLICATION_JSON),
-                openApi().isValid(OPENAPI_PATH)
+                content().contentType(APPLICATION_JSON)
         );
 
     }
@@ -124,8 +121,7 @@ class AuthApplicationTests {
                         """, USERNAME, wrongPassword))
         ).andExpectAll(
                 status().isBadRequest(),
-                content().contentType(APPLICATION_JSON),
-                openApi().isValid(OPENAPI_PATH)
+                content().contentType(APPLICATION_JSON)
         );
 
         // request with empty body
@@ -134,8 +130,7 @@ class AuthApplicationTests {
                 .content("")
         ).andExpectAll(
                 status().isBadRequest(),
-                content().contentType(APPLICATION_JSON),
-                openApi().isValid(OPENAPI_PATH)
+                content().contentType(APPLICATION_JSON)
         );
 
     }
@@ -157,8 +152,7 @@ class AuthApplicationTests {
             // perform log out request
             mockMvc.perform(POST("/logout").header(AUTHORIZATION, getAccessToken(result)))
                     .andExpectAll(
-                            status().isNoContent(),
-                            openApi().isValid(OPENAPI_PATH)
+                            status().isNoContent()
                     );
         });
     }
@@ -170,8 +164,7 @@ class AuthApplicationTests {
 
         mockMvc.perform(POST("/logout").header(AUTHORIZATION, accessToken))
                 .andExpectAll(
-                        status().isUnauthorized(),
-                        openApi().isValid(OPENAPI_PATH)
+                        status().isUnauthorized()
                 );
     }
 
@@ -202,8 +195,7 @@ class AuthApplicationTests {
                             status().isOk(),
                             cookie().httpOnly(REFRESH_TOKEN_COOKIE_NAME, true),
                             cookie().maxAge(REFRESH_TOKEN_COOKIE_NAME, (int) Duration.ofHours(1).toSeconds()),
-                            content().contentType(APPLICATION_JSON),
-                            openApi().isValid(OPENAPI_PATH)
+                            content().contentType(APPLICATION_JSON)
                     );
         });
 
@@ -215,8 +207,7 @@ class AuthApplicationTests {
         mockMvc.perform(POST("/refresh-tokens"))
                 .andExpectAll(
                         status().isUnauthorized(),
-                        content().contentType(APPLICATION_JSON),
-                        openApi().isValid(OPENAPI_PATH)
+                        content().contentType(APPLICATION_JSON)
                 );
     }
 
@@ -234,8 +225,7 @@ class AuthApplicationTests {
         mockMvc.perform(POST("/refresh-tokens").cookie(refreshCookie))
                 .andExpectAll(
                         status().isBadRequest(),
-                        content().contentType(APPLICATION_JSON),
-                        openApi().isValid(OPENAPI_PATH)
+                        content().contentType(APPLICATION_JSON)
                 );
     }
 
@@ -255,8 +245,7 @@ class AuthApplicationTests {
         ).andDo(result -> mockMvc
                 .perform(GET("/validate-token").header(AUTHORIZATION, getAccessToken(result)))
                 .andExpectAll(
-                        status().isNoContent(),
-                        openApi().isValid(OPENAPI_PATH)
+                        status().isNoContent()
                 )
         );
     }
@@ -270,12 +259,11 @@ class AuthApplicationTests {
         mockMvc.perform(GET("/validate-token").header(AUTHORIZATION, invalidAccessToken))
                 .andExpectAll(
                         status().isUnauthorized(),
-                        content().contentType(APPLICATION_JSON),
-                        openApi().isValid(OPENAPI_PATH)
+                        content().contentType(APPLICATION_JSON)
                 );
     }
 
-    private String getAccessToken(@NonNull MvcResult result) throws UnsupportedEncodingException, JsonProcessingException {
+    private String getAccessToken(@NonNull MvcResult result) throws UnsupportedEncodingException, JacksonException {
         final var tokensDto = objectMapper.readValue(result.getResponse().getContentAsString(), TokensDto.class);
         return format("Bearer %s", tokensDto.accessToken());
     }

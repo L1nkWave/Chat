@@ -1,6 +1,6 @@
 package org.linkwave.auth.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.auth.repository.DeactivatedTokenRepository;

@@ -1,6 +1,6 @@
 package org.linkwave.ws.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.linkwave.shared.auth.BearerAuthenticationConverter;
 import org.linkwave.shared.auth.JwtAccessParser;
 import org.linkwave.ws.security.JwtAuthConfigurer;

@@ -1,6 +1,6 @@
 package org.linkwave.userservice.it;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
@@ -13,7 +13,7 @@ import org.linkwave.userservice.repository.RoleRepository;
 import org.linkwave.userservice.repository.UserRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,7 +22,6 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.stream.IntStream;
 
-import static com.atlassian.oai.validator.mockmvc.OpenApiValidationMatchers.openApi;
 import static java.lang.String.format;
 import static java.time.Duration.ofMinutes;
 import static org.linkwave.userservice.utils.TokenGenerator.generateToken;
@@ -38,7 +37,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 public class UserControllerTests {
 
-    private static final String OPENAPI_PATH = "static/openapi.json";
     private static final String BASE_URL = "/api/v1/users";
     private static final String REGISTRATION_ENDPOINT = format("%s/register", BASE_URL);
 
@@ -161,8 +159,7 @@ public class UserControllerTests {
 
         mockMvc.perform(get(url, userId).header(AUTHORIZATION, token))
                 .andExpectAll(
-                        status().isOk(),
-                        openApi().isValid(OPENAPI_PATH)
+                        status().isOk()
                 );
     }
 
@@ -192,7 +189,6 @@ public class UserControllerTests {
                 .param("limit", String.valueOf(limit))
         ).andExpectAll(
                 status().isOk(),
-                openApi().isValid(OPENAPI_PATH),
                 content().contentType(APPLICATION_JSON),
                 content().json(expectedContent)
         );

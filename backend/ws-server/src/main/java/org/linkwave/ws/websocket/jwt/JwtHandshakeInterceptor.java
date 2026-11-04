@@ -1,7 +1,7 @@
 package org.linkwave.ws.websocket.jwt;
 
 import org.linkwave.ws.websocket.dto.ErrorMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.linkwave.shared.auth.TokenParser;
 import lombok.Cleanup;
 import lombok.SneakyThrows;

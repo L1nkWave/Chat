@@ -1,6 +1,6 @@
 package org.linkwave.auth.security.filter;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.linkwave.shared.auth.Token;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -21,7 +21,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.CredentialsExpiredException;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -39,7 +39,7 @@ import static org.springframework.http.HttpHeaders.SET_COOKIE;
 
 public class JwtTokensRefreshFilter extends OncePerRequestFilter {
 
-    private final RequestMatcher requestMatcher = new AntPathRequestMatcher("/api/v1/auth/refresh-tokens", HttpMethod.POST.name());
+    private final RequestMatcher requestMatcher = PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, "/api/v1/auth/refresh-tokens");
     private final RefreshTokenFactory refreshTokenFactory = new RefreshTokenFactoryImpl();
     private final AccessTokenFactory accessTokenFactory = new AccessTokenFactoryImpl();
 

@@ -1,6 +1,6 @@
 package org.linkwave.ws.unit;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import lombok.SneakyThrows;
@@ -142,7 +142,6 @@ public class WebSocketRouterBroadcastTest {
     private WebSocketRouter constructWebSocketRouter(BroadcastManager broadcastManager) {
         // build object mapper
         final var objectMapper = new ObjectMapper();
-        objectMapper.findAndRegisterModules();
 
         // build web socket router
         final var argumentResolver = new DefaultRouteHandlerArgumentResolver(

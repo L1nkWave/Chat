@@ -1,7 +1,7 @@
 package org.linkwave.ws.websocket.routing.args;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.linkwave.ws.websocket.routing.MessageContext;
 import org.linkwave.ws.websocket.routing.Payload;
@@ -37,7 +37,7 @@ public class PayloadResolverStrategy implements ArgumentResolverStrategy {
             return paramType.equals(String.class)
                     ? payload
                     : objectMapper.readValue(payload, paramType);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new InvalidMessageFormatException(format("invalid json payload for route [%s]", route));
         }
 

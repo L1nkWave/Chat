@@ -1,6 +1,6 @@
 package org.linkwave.userservice.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.linkwave.shared.auth.BearerAuthenticationConverter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,8 +41,8 @@ public class SecurityConfiguration {
                 .sessionManagement(AbstractHttpConfigurer::disable)
 
                 .authorizeHttpRequests(matcherRegistry -> matcherRegistry
-                        .requestMatchers("/api/v1/users/register", POST.name()).permitAll()
-                        .requestMatchers("/actuator/health", GET.name()).permitAll()
+                        .requestMatchers(POST, "/api/v1/users/register").permitAll()
+                        .requestMatchers(GET, "/actuator/health").permitAll()
                         .requestMatchers("/api/v1/users/{id}/online").permitAll()
                         .requestMatchers("/api/v*/users/**").hasRole("USER")
                         .anyRequest().authenticated())

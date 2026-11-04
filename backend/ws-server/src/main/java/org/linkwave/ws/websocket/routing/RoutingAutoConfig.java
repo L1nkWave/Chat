@@ -1,6 +1,6 @@
 package org.linkwave.ws.websocket.routing;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.linkwave.ws.repository.ChatRepository;
 import org.linkwave.ws.repository.SessionRepository;
 import org.linkwave.ws.websocket.jwt.UserPrincipal;

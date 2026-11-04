@@ -1,6 +1,6 @@
 package org.linkwave.auth;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -17,7 +17,6 @@ public class AuthApplication {
 	@Bean
 	public ObjectMapper objectMapper() {
 		var objectMapper = new ObjectMapper();
-		objectMapper.findAndRegisterModules();
 		return objectMapper;
 	}
 

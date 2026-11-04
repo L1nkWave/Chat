@@ -1,6 +1,6 @@
 package org.linkwave.auth.security.filter;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.linkwave.shared.auth.Token;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -23,7 +23,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.AuthenticationConverter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -38,7 +38,7 @@ public class JwtTokensInitializerFilter extends OncePerRequestFilter {
 
     private final Logger log = LoggerFactory.getLogger(JwtTokensInitializerFilter.class);
 
-    private final RequestMatcher requestMatcher = new AntPathRequestMatcher("/api/v1/auth/login", HttpMethod.POST.name());
+    private final RequestMatcher requestMatcher = PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.POST, "/api/v1/auth/login");
     private final RefreshTokenFactory refreshTokenFactory = new RefreshTokenFactoryImpl();
     private final AccessTokenFactory accessTokenFactory = new AccessTokenFactoryImpl();
 

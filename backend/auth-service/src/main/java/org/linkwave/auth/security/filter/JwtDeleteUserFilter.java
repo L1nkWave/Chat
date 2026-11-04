@@ -1,6 +1,7 @@
 package org.linkwave.auth.security.filter;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,7 +19,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -27,7 +28,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtDeleteUserFilter extends OncePerRequestFilter {
 
-    private final RequestMatcher matcher = new AntPathRequestMatcher("/api/v1/users", HttpMethod.DELETE.name());
+    private final RequestMatcher matcher = PathPatternRequestMatcher.withDefaults().matcher(HttpMethod.DELETE, "/api/v1/users");
 
     private final ObjectMapper objectMapper;
     private final AuthenticationEntryPoint authenticationEntryPoint;
@@ -57,7 +58,7 @@ public class JwtDeleteUserFilter extends OncePerRequestFilter {
             try {
                 final UserDeleteRequest deleteRequest = objectMapper.readValue(request.getInputStream(), UserDeleteRequest.class);
                 password = deleteRequest.password();
-            } catch (IOException e) {
+            } catch (IOException | JacksonException e) {
                 throw new BadCredentialsException("Invalid request body");
             }
 

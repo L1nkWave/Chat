@@ -1,6 +1,6 @@
 package org.linkwave.ws.websocket.routing;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.ws.websocket.routing.broadcast.BroadcastManager;

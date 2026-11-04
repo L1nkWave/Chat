@@ -1,6 +1,6 @@
 package org.linkwave.chatservice;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.linkwave.shared.storage.LocalFileStorageService;
 import org.linkwave.shared.storage.FileStorageService;
 import org.modelmapper.ModelMapper;
@@ -22,7 +22,6 @@ public class ChatServiceApplication {
     @Bean
     public ObjectMapper objectMapper() {
         final var objectMapper = new ObjectMapper();
-        objectMapper.findAndRegisterModules();
         return objectMapper;
     }
 

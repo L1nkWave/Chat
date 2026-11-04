@@ -1,6 +1,7 @@
 package org.linkwave.auth.security;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.linkwave.auth.dto.UserLoginRequest;
@@ -24,7 +25,7 @@ public class CredentialsAuthenticationConverter implements AuthenticationConvert
                     loginRequest.username(),
                     loginRequest.password()
             );
-        } catch (IOException e) {
+        } catch (IOException | JacksonException e) {
             return null;
         }
     }
