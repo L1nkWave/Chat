@@ -7,8 +7,10 @@ import { FileMessage } from "@/components/Chat/MainBox/variants/ChatBox/MessageB
 import { DoubleCheckIcon } from "@/components/DoubleCheckIcon/DoubleCheckIcon";
 import { Icon } from "@/components/Icon/Icon";
 import { COLORS } from "@/constants/colors";
+// eslint-disable-next-line import/named
 import { formatDate } from "@/helpers/FormatDate/formatDate";
 import { DateFormat } from "@/helpers/FormatDate/formatDate.types";
+import { toDate } from "@/helpers/FormatDate/toDate";
 import { useAppSelector } from "@/lib/hooks";
 
 export type MessageProps = {
@@ -31,9 +33,9 @@ const MEMBER_ACTION_LABELS: Record<string, string> = {
 
 export function Message({ chat, message, nextMessage }: Readonly<MessageProps>) {
   const { currentUser } = useAppSelector(state => state.user);
-  const messageCreatedAt = format(message.createdAt * 1000, "H:mm");
-  const date = new Date(message.createdAt * 1000);
-  const nextDate = nextMessage && new Date(nextMessage.createdAt * 1000);
+  const messageCreatedAt = format(toDate(message.createdAt), "H:mm");
+  const date = toDate(message.createdAt);
+  const nextDate = nextMessage && toDate(nextMessage.createdAt);
   const isCurrentUserAuthor = message.author.id === currentUser?.id;
   const isPreviousMessageAuthor = nextMessage?.author.id === message.author.id;
   const isFirstMessageFromUser = !isPreviousMessageAuthor;

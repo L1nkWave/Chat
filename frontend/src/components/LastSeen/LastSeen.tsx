@@ -2,8 +2,10 @@ import { isToday } from "date-fns/isToday";
 
 import { Icon } from "@/components/Icon/Icon";
 import { LastSeenProps } from "@/components/LastSeen/lastSeen.types";
+// eslint-disable-next-line import/named
 import { formatDate } from "@/helpers/FormatDate/formatDate";
 import { DateFormat } from "@/helpers/FormatDate/formatDate.types";
+import { toDate } from "@/helpers/FormatDate/toDate";
 import { UserStatus } from "@/lib/features/user/userSlice.types";
 
 export function LastSeen({
@@ -16,7 +18,7 @@ export function LastSeen({
   let lastSeenDate;
 
   if (!online) {
-    const convertedLastSeen = lastSeen * 1000;
+    const convertedLastSeen = toDate(lastSeen);
     if (isToday(convertedLastSeen)) {
       lastSeenDate = `Today ${formatDate(convertedLastSeen, DateFormat.HOURS_AND_MINUTES)}`;
     } else {

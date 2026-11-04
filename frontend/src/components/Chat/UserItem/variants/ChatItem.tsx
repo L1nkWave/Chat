@@ -5,6 +5,7 @@ import { ChatType } from "@/api/socket/index.types";
 import { Avatar } from "@/components/Avatar/Avatar";
 import { MessageType } from "@/components/Chat/MainBox/variants/ChatBox/MessageBox/Message/Message";
 import { ChatItemProps } from "@/components/Chat/UserItem/userItem.types";
+import { toDate } from "@/helpers/FormatDate/toDate";
 
 export function ChatItem({ chat, onClick, className }: Readonly<ChatItemProps>) {
   if (!chat) {
@@ -73,8 +74,8 @@ export function ChatItem({ chat, onClick, className }: Readonly<ChatItemProps>) 
       <div className="min-w-10">
         <p className="text-gray-300 text-sm">
           {chat.lastMessage
-            ? format(chat.lastMessage.createdAt * 1000, "HH:mm")
-            : format(chat.createdAt * 1000, "HH:mm")}
+            ? format(toDate(chat.lastMessage.createdAt), "HH:mm")
+            : format(toDate(chat.createdAt), "HH:mm")}
         </p>
         <div className="flex w-full justify-center items-center bg-blue-300 rounded-lg mt-1">
           {!!chat.unreadMessages && <p className="text-white text-xs p-1">{chat.unreadMessages}</p>}
