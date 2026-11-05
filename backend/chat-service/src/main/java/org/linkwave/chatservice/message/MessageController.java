@@ -12,12 +12,17 @@ import org.linkwave.chatservice.message.file.CreatedFileMessage;
 import org.linkwave.chatservice.message.text.EditTextMessage;
 import org.linkwave.chatservice.message.text.NewTextMessage;
 import org.linkwave.chatservice.message.text.UpdatedTextMessage;
+import org.linkwave.shared.storage.FileSignatures;
 import org.springframework.data.util.Pair;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 
@@ -84,8 +89,20 @@ public class MessageController {
     }
 
     @GetMapping("/messages/{messageId}/file")
-    public byte[] getAttachedFile(@PathVariable String messageId) {
-        return messageService.getAttachedFile(userDetails().id(), messageId);
+    public ResponseEntity<byte[]> getAttachedFile(@PathVariable String messageId) {
+        final AttachedFile file = messageService.getAttachedFile(userDetails().id(), messageId);
+
+        // only images are rendered inline; everything else is downloaded, never executed in the browser
+        final String disposition = FileSignatures.isInlineSafe(file.contentType()) ? "inline" : "attachment";
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(file.contentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.builder(disposition)
+                        .filename(file.filename(), StandardCharsets.UTF_8)
+                        .build()
+                        .toString())
+                .header("X-Content-Type-Options", "nosniff")
+                .body(file.content());
     }
 
     @GetMapping("/{chatId}/messages")
@@ -102,7 +119,7 @@ public class MessageController {
         return chatMessages.getSecond();
     }
 
-    @PatchMapping("/messages/{id}/text")
+    @RequestMapping(value = "/messages/{id}/text", method = {RequestMethod.PATCH, RequestMethod.POST})
     public UpdatedTextMessage editTextMessage(@PathVariable String id,
                                               @Valid @RequestBody EditTextMessage editMessage) {
         return messageService.editTextMessage(userDetails().id(), id, editMessage);
@@ -119,7 +136,7 @@ public class MessageController {
         messageService.clearMessages(userDetails().id(), chatId);
     }
 
-    @PatchMapping("/{chatId}/messages/readers")
+    @RequestMapping(value = "/{chatId}/messages/readers", method = {RequestMethod.PATCH, RequestMethod.POST})
     public ReadMessages readMessages(@PathVariable String chatId,
                                      @RequestParam("to") Instant timestamp) {
         return messageService.readMessages(userDetails().id(), chatId, timestamp);

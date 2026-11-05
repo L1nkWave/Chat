@@ -50,7 +50,7 @@ public class UserController {
         return userService.getUser(id);
     }
 
-    @PatchMapping("/{id}/online")
+    @RequestMapping(value = "/{id}/online", method = {RequestMethod.PATCH, RequestMethod.POST})
     public void updateUserStatus(@PathVariable Long id, @RequestParam Boolean value) {
         userService.setUserStatus(id, value);
     }

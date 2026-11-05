@@ -23,6 +23,7 @@ import org.linkwave.chatservice.message.text.TextMessage;
 import org.linkwave.chatservice.message.text.UpdatedTextMessage;
 import org.linkwave.chatservice.user.User;
 import org.linkwave.chatservice.user.UserService;
+import org.linkwave.shared.storage.FileSignatures;
 import org.linkwave.shared.storage.FileStorageService;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.util.Pair;
@@ -130,18 +131,23 @@ public class MessageServiceImpl implements MessageService {
             throw new PrivacyViolationException();
         }
 
+        // the type is decided by the content, never by the client's Content-Type or file name
+        final byte[] content = attachedFile.getBytes();
+        final FileSignatures.Detected detected = FileSignatures.detect(content, attachedFile.getOriginalFilename())
+                .orElseThrow(() -> new UnacceptableRequestDataException("File type is not allowed"));
+
         final Path dirPath = Path.of(MESSAGE_FILE_PATH.toString(), chatId);
-        final String generatedFilename = fileStorageService.storeFile(
-                dirPath, String.valueOf(initiator.userId()), attachedFile
+        final String generatedFilename = fileStorageService.storeContent(
+                dirPath, String.valueOf(initiator.userId()), content, detected.extension()
         );
 
         final var message = FileMessage.builder()
                 .action(FILE)
                 .authorId(initiator.userId())
                 .storageFilename(generatedFilename)
-                .filename(attachedFile.getOriginalFilename())
-                .contentType(attachedFile.getContentType())
-                .size(attachedFile.getSize())
+                .filename(FileSignatures.sanitizeName(attachedFile.getOriginalFilename()))
+                .contentType(detected.mimeType())
+                .size(content.length)
                 .build();
 
         try {
@@ -167,16 +173,16 @@ public class MessageServiceImpl implements MessageService {
 
         if (message instanceof FileMessage file) {
             return message.getAuthorId().equals(senderId) &&
-                   file.getFilename().equals(fileMessage.getFilename()) &&
-                   file.getSize() == fileMessage.getSize() &&
-                   file.getContentType().equals(fileMessage.getContentType());
+                    file.getFilename().equals(fileMessage.getFilename()) &&
+                    file.getSize() == fileMessage.getSize() &&
+                    file.getContentType().equals(fileMessage.getContentType());
         }
 
         return false;
     }
 
     @Override
-    public byte[] getAttachedFile(Long userId, String messageId) {
+    public AttachedFile getAttachedFile(Long userId, String messageId) {
         final Message message = getMessage(messageId);
         final Chat chat = message.getChat();
 
@@ -191,7 +197,11 @@ public class MessageServiceImpl implements MessageService {
                         String.valueOf(message.getAuthorId()),
                         fileMessage.getStorageFilename()
                 );
-                return fileStorageService.readFileAsBytes(fileStoragePath);
+                return new AttachedFile(
+                        fileStorageService.readFileAsBytes(fileStoragePath),
+                        fileMessage.getContentType(),
+                        fileMessage.getFilename()
+                );
             } catch (IOException e) {
                 throw new ResourceNotFoundException();
             }
@@ -285,7 +295,7 @@ public class MessageServiceImpl implements MessageService {
     private void checkPermissions(Long userId, @NonNull Message message) {
         final Chat chat = message.getChat();
         if (chatService.isMember(userId, chat) &&
-            (isMessageSender(message, userId) || chatService.isAdmin(userId, chat))) {
+                (isMessageSender(message, userId) || chatService.isAdmin(userId, chat))) {
             return;
         }
         throw new PrivacyViolationException("Do not have permissions to modify the message");

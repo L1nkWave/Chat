@@ -90,6 +90,23 @@
                         <arg>-processor</arg>
                         <arg>lombok.launch.AnnotationProcessorHider$AnnotationProcessor,org.springframework.data.mongodb.repository.support.MongoAnnotationProcessor</arg>
                     </compilerArgs>
+                    <!-- Every processor named in -processor must be on the processor path, so Mongo's processor is added here -->
+                    <annotationProcessorPaths combine.self="override">
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </path>
+                        <path>
+                            <groupId>org.springframework.data</groupId>
+                            <artifactId>spring-data-mongodb</artifactId>
+                        </path>
+                        <!-- Spring Data's Mongo processor extends the Querydsl APT base class -->
+                        <path>
+                            <groupId>com.querydsl</groupId>
+                            <artifactId>querydsl-apt</artifactId>
+                            <version>5.1.0</version>
+                        </path>
+                    </annotationProcessorPaths>
                 </configuration>
             </plugin>
         </plugins>

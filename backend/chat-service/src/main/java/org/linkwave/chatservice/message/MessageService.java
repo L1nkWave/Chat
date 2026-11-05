@@ -25,7 +25,7 @@ public interface MessageService {
 
     boolean isOwnFileMessage(Long senderId, String chatId, CreatedFileMessage message);
 
-    byte[] getAttachedFile(Long userId, String messageId);
+    AttachedFile getAttachedFile(Long userId, String messageId);
 
     UpdatedTextMessage editTextMessage(Long senderId, String messageId, @NonNull EditTextMessage editTextMessage);
 

@@ -35,7 +35,7 @@ public class WSChatsController {
         chatRepository.addMember(userDetails().id(), id);
     }
 
-    @PatchMapping("/{id}/unread_messages")
+    @RequestMapping(value = "/{id}/unread_messages", method = {RequestMethod.PATCH, RequestMethod.POST})
     public void addUnreadMessage(@PathVariable String id, @RequestParam Long senderId) {
         final Set<Long> members = chatRepository.getMembers(id);
         members.remove(senderId);

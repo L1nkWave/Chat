@@ -9,6 +9,11 @@ import java.util.Set;
 public interface ChatRepository<U, C> extends SessionRepository<U> {
     void loadChats(Map<C, Set<ChatMember>> chatsMembers);
 
+    /**
+     * Adds missing members to chats without touching existing unread counters.
+     */
+    void syncMembers(Map<C, Set<ChatMember>> chatsMembers);
+
     void addMember(U userId, Set<C> chats);
 
     default void addMember(U userId, C chatId) {

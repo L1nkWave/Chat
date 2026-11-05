@@ -82,7 +82,7 @@ public class ChatController {
                               @RequestParam Long recipientId) {
         final Chat chat = chatService.findDuoChat(id);
         if (chatService.isMember(userDetails().id(), chat) &&
-            chatService.isMember(recipientId, chat)) {
+                chatService.isMember(recipientId, chat)) {
             return;
         }
         throw new ResourceNotFoundException("Membership is not confirmed");
@@ -140,7 +140,7 @@ public class ChatController {
         return chatService.removeGroupChatMember(id, requestInitiator(request), memberId);
     }
 
-    @PatchMapping("/{id}/group/members/{memberId}/roles")
+    @RequestMapping(value = "/{id}/group/members/{memberId}/roles", method = {RequestMethod.PATCH, RequestMethod.POST})
     public void changeMemberRole(@PathVariable String id,
                                  @PathVariable Long memberId,
                                  @RequestParam ChatRole role) {

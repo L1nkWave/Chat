@@ -1,36 +1,72 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
+/* next-themes toggles the "dark" class on <html> */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Semantic tokens. Components use bg-paper, text-ink, ... and never raw hex values. */
 :root {
-    --primaryColor: #ffffff;
-    --secondaryColor: #000000;
-    --foreground-rgb: 0, 0, 0;
-    --background-start-rgb: 214, 219, 220;
-    --background-end-rgb: 255, 255, 255;
+    --paper: #f6f9fb;
+    --surface: #ffffff;
+    --ink: #0e2a40;
+    --muted: #4d6478;
+    --line: #d3e0ea;
+    --primary: #13578a;
+    --primary-ink: #ffffff;
+    --sky: #7dc4ee;
+    --danger: #b42318;
+    color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-    :root {
-        --foreground-rgb: 255, 255, 255;
-        --background-start-rgb: 0, 0, 0;
-        --background-end-rgb: 0, 0, 0;
+.dark {
+    --paper: #0a1a27;
+    --surface: #112638;
+    --ink: #e8f1f8;
+    --muted: #9ab3c7;
+    --line: #22405a;
+    --primary: #7dc4ee;
+    --primary-ink: #0a1a27;
+    --sky: #1b4a6b;
+    --danger: #f97066;
+    color-scheme: dark;
+}
+
+@theme inline {
+    --color-paper: var(--paper);
+    --color-surface: var(--surface);
+    --color-ink: var(--ink);
+    --color-muted: var(--muted);
+    --color-line: var(--line);
+    --color-primary: var(--primary);
+    --color-primary-ink: var(--primary-ink);
+    --color-sky: var(--sky);
+    --color-danger: var(--danger);
+    --color-success: #2e9d6b;
+
+    --font-sans: "Be Vietnam Pro", system-ui, sans-serif;
+    --font-serif: "Noto Serif", Georgia, serif;
+}
+
+@layer base {
+    html {
+        background: var(--paper);
+        color: var(--ink);
+    }
+
+    body {
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+    }
+
+    ::selection {
+        background: var(--sky);
+        color: var(--ink);
+    }
+
+    input::placeholder {
+        color: var(--muted);
+        opacity: 1;
     }
 }
-
-@layer utilities {
-    .no-scrollbar::-webkit-scrollbar {
-        display: none;
-    }
-
-    .no-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-    }
-}
-
-body {
-    background-color: var(--primaryColor);
-    color: var(--secondaryColor);
-}
-

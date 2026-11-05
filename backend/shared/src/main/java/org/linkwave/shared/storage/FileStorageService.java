@@ -9,26 +9,29 @@ import java.nio.file.Path;
 public interface FileStorageService {
 
     /**
-     * Stores passed file into storage.
+     * Stores already validated content under a server-generated name.
+     * The client's file name is never used on disk.
      *
      * @param rootDirPath the path that contains folders with stored files
      * @param folderName  the name of the folder you want to store file in
-     * @param file        the file that is supposed to be stored in storage
-     * @return generated filename for passed file
+     * @param content     validated file content
+     * @param extension   extension chosen by the server from the detected type, without a dot
+     * @return generated filename
      * @throws IOException if the root dir not found or can't create folder in root dir
      * @see LocalFileStorageService
      */
-    String storeFile(@NonNull Path rootDirPath,
-                     @NonNull String folderName,
-                     @NonNull MultipartFile file) throws IOException;
+    String storeContent(@NonNull Path rootDirPath,
+                        @NonNull String folderName,
+                        @NonNull byte[] content,
+                        @NonNull String extension) throws IOException;
 
     /**
+     * Stores passed picture into storage. The type is decided from the file content,
+     * not from the Content-Type header.
      *
-     * Stores passed picture into storage. Acts almost identically as {@link  FileStorageService#storeFile}
-     * but additionally checks if passed file is a picture.
-     *
-     * @return generated filename for passed file
-     * @throws IOException if the root dir not found, can't create folder in root dir, or file is not an image
+     * @return generated filename
+     * @throws IOException              if the root dir not found or can't create folder in root dir
+     * @throws IllegalArgumentException if the content is not a supported image
      */
     String storePicture(@NonNull Path rootDirPath,
                         @NonNull String folderName,

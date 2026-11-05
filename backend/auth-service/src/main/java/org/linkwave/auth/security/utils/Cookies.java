@@ -18,6 +18,7 @@ public class Cookies {
     public static ResponseCookie createRefreshCookie(String value, long ttlInSeconds) {
         return ResponseCookie.from(REFRESH_TOKEN, value)
                 .httpOnly(true)
+                .secure(true) // sent only over HTTPS; browsers still accept it on localhost
                 .sameSite(STRICT_SAME_SITE)
                 .maxAge(ttlInSeconds)
                 .path("/api/v1/auth/refresh-tokens")

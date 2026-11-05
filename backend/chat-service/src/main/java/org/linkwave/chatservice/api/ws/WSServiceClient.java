@@ -20,7 +20,7 @@ public interface WSServiceClient {
             @PathVariable String chatId
     );
 
-    @PatchMapping("/{id}/unread_messages")
+    @PostMapping("/{id}/unread_messages")
     void addUnreadMessage(
             @RequestHeader(AUTHORIZATION) String authHeader,
             @PathVariable String id,

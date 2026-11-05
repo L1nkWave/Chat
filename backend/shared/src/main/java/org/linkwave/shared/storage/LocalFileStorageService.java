@@ -13,9 +13,6 @@ import static java.lang.String.format;
 
 public class LocalFileStorageService implements FileStorageService {
 
-    public static final int MAX_FILENAME_LENGTH = 32;
-    public static final String DEFAULT_FILENAME = "f";
-
     @Value("${files.storage-folder}")
     private String storageRootFolder;
 
@@ -23,50 +20,32 @@ public class LocalFileStorageService implements FileStorageService {
     public String storePicture(@NonNull Path rootDirPath,
                                @NonNull String folderName,
                                @NonNull MultipartFile file) throws IOException {
-        final String contentType = file.getContentType();
-        if (contentType == null || !contentType.startsWith("image")) {
+
+        final FileSignatures.Detected detected = FileSignatures.detect(file.getBytes(), file.getOriginalFilename())
+                .orElse(null);
+        if (!FileSignatures.isImage(detected)) {
             throw new IllegalArgumentException("Received file is not an image");
         }
-        return storeFile(rootDirPath, folderName, file);
+        return storeContent(rootDirPath, folderName, file.getBytes(), detected.extension());
     }
 
     @Override
-    public String storeFile(@NonNull Path rootDirPath,
-                            @NonNull String folderName,
-                            @NonNull MultipartFile file) throws IOException {
+    public String storeContent(@NonNull Path rootDirPath,
+                               @NonNull String folderName,
+                               @NonNull byte[] content,
+                               @NonNull String extension) throws IOException {
 
-        // create chat folder if it does not exist
+        // create folder if it does not exist
         Path folder = convertToStoragePath(rootDirPath.toString(), folderName);
         if (!folder.toFile().exists()) {
             folder = Files.createDirectories(folder);
         }
 
-        final String filename = format("%s-%s", UUID.randomUUID(), resolveFilename(file));
+        final String filename = format("%s.%s", UUID.randomUUID(), extension);
 
-        // save file to chat folder
-        Files.write(Path.of(folder.toString(), filename), file.getBytes());
+        // save file to folder
+        Files.write(Path.of(folder.toString(), filename), content);
         return filename;
-    }
-
-    private String resolveFilename(@NonNull MultipartFile file) {
-
-        final String originalFilename = file.getOriginalFilename();
-
-        if (originalFilename == null || originalFilename.length() > MAX_FILENAME_LENGTH) {
-
-            final String contentType = file.getContentType();
-
-            if (contentType != null) { // save file format
-                final int idx = contentType.indexOf("/");
-                final String fileFormat = idx != -1 && idx + 1 < contentType.length()
-                        ? contentType.substring(idx + 1)
-                        : "";
-                return format("%s.%s", DEFAULT_FILENAME, fileFormat);
-            } else {
-                return DEFAULT_FILENAME;
-            }
-        }
-        return originalFilename;
     }
 
     @Override

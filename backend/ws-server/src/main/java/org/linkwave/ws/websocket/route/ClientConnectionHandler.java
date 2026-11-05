@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.toSet;
 import static org.linkwave.shared.utils.Bearers.append;
 
@@ -60,11 +59,6 @@ public class ClientConnectionHandler implements AfterConnectionEstablished, Afte
 
         log.debug("-> user:[{}] connected, SSID={}", principal.getName(), sessionId);
 
-        if (chatRepository.hasSessions(userId)) {
-            chatRepository.saveSession(userId, sessionId);
-            return;
-        }
-
         // fetch users chats
         final String bearer = append(principal.rawAccessToken());
         final Set<String> chats;
@@ -76,21 +70,27 @@ public class ClientConnectionHandler implements AfterConnectionEstablished, Afte
             throw new IllegalStateException("Chats cannot be resolved", e);
         }
 
-        // find chats that have not loaded yet
-        final List<String> nonExistingChats = chats.stream()
-                .filter(not(chatRepository::chatExists))
-                .toList();
+        // always reconcile membership: Redis can miss members added outside the ws flow
+        // or keep stale data after a restart, so it must not depend on chat existence
+        syncChatsMembership(bearer, chats);
 
-        // load chats with all members
-        if (!nonExistingChats.isEmpty()) {
-            final var chatsMembers = chatClient.getChatsMembers(bearer, nonExistingChats);
-            chatRepository.loadChats(chatsMembers);
+        if (chatRepository.hasSessions(userId)) {
+            chatRepository.saveSession(userId, sessionId);
+            return;
         }
 
         // notify & add connected user to predefined chats
         notifyChatMembersWith(Action.ONLINE, chats, userId);
         chatRepository.saveSession(userId, sessionId);
         userClient.updateUserStatus(userId, Boolean.TRUE);
+    }
+
+    private void syncChatsMembership(String bearer, Set<String> chats) {
+        if (chats.isEmpty()) {
+            return;
+        }
+        final var chatsMembers = chatClient.getChatsMembers(bearer, List.copyOf(chats));
+        chatRepository.syncMembers(chatsMembers);
     }
 
     @Override

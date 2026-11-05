@@ -48,6 +48,24 @@ public class RedisChatRepository implements ChatRepository<Long, String> {
     }
 
     @Override
+    public void syncMembers(Map<String, Set<ChatMember>> chatsMembers) {
+        executeInTxn(redisTemplate, ops -> {
+                    final var setOps = ops.opsForSet();
+                    final var hashOps = ops.opsForHash();
+                    chatsMembers.forEach((chatId, members) -> {
+                        final var membersIds = members.stream().map(ChatMember::getId).toList();
+                        if (membersIds.isEmpty()) {
+                            return;
+                        }
+                        setOps.add(chatKey(chatId), membersIds.stream().map(String::valueOf).toArray(String[]::new));
+                        // putIfAbsent keeps existing unread counters intact
+                        membersIds.forEach(memberId -> hashOps.putIfAbsent(userChatsKey(memberId), chatId, "0"));
+                    });
+                }
+        );
+    }
+
+    @Override
     public void addMember(Long userId, @NonNull Set<String> chats) {
         if (!chats.isEmpty()) {
             executeInTxn(redisTemplate, ops -> chats.forEach(chatId -> {

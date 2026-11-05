@@ -31,7 +31,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final List<RequestMatcher> matchersWhiteList = List.of(
             PathPatternRequestMatcher.withDefaults().matcher(POST, "/api/v1/users/register"),
-            PathPatternRequestMatcher.withDefaults().matcher(PATCH, "/api/v1/users/{id}/online")
+            PathPatternRequestMatcher.withDefaults().matcher(PATCH, "/api/v1/users/{id}/online"),
+            PathPatternRequestMatcher.withDefaults().matcher(POST, "/api/v1/users/{id}/online")
     );
 
     private final RequestMatcher requestMatcher = PathPatternRequestMatcher.withDefaults().matcher("/api/v*/users/**");

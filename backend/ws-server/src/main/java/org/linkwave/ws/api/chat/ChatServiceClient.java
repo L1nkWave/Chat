@@ -67,7 +67,7 @@ public interface ChatServiceClient {
             @PathVariable Long memberId
     );
 
-    @PatchMapping("/{chatId}/group/members/{memberId}/roles")
+    @PostMapping("/{chatId}/group/members/{memberId}/roles")
     void changeMemberRole(
             @RequestHeader(AUTHORIZATION) String authHeader,
             @PathVariable String chatId, @PathVariable Long memberId,
@@ -93,7 +93,7 @@ public interface ChatServiceClient {
             @RequestParam Long recipientId
     );
 
-    @PatchMapping("/messages/{messageId}/text")
+    @PostMapping("/messages/{messageId}/text")
     UpdatedTextMessage editTextMessage(
             @RequestHeader(AUTHORIZATION) String authHeader,
             @PathVariable String messageId,
@@ -123,7 +123,7 @@ public interface ChatServiceClient {
     @DeleteMapping("/{chatId}/messages")
     void clearMessages(@RequestHeader(AUTHORIZATION) String authHeader, @PathVariable String chatId);
 
-    @PatchMapping("/{chatId}/messages/readers")
+    @PostMapping("/{chatId}/messages/readers")
     ReadMessages readMessages(
             @RequestHeader(AUTHORIZATION) String authHeader,
             @PathVariable String chatId,
