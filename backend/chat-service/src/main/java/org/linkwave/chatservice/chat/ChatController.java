@@ -127,13 +127,6 @@ public class ChatController {
         chatService.removeGroupChatMember(userDetails().id(), id);
     }
 
-    @PostMapping("/{id}/group/members/{userId}")
-    @ResponseStatus(CREATED)
-    public ChatMemberDto addMember(@PathVariable String id, @PathVariable Long userId,
-                                   @NonNull HttpServletRequest request) {
-        return chatService.addGroupChatMember(id, requestInitiator(request), userId);
-    }
-
     @DeleteMapping("/{id}/group/members/{memberId}")
     public ChatMemberDto removeMember(@PathVariable String id, @PathVariable Long memberId,
                                       @NonNull HttpServletRequest request) {

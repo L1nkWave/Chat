@@ -1,6 +1,7 @@
 package org.linkwave.ws.websocket.jwt;
 
 import org.linkwave.ws.websocket.dto.ErrorMessage;
+import org.linkwave.ws.websocket.ticket.WsTicketService;
 import tools.jackson.databind.ObjectMapper;
 import org.linkwave.shared.auth.TokenParser;
 import lombok.Cleanup;
@@ -8,7 +9,6 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.ws.websocket.dto.Action;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
@@ -19,74 +19,64 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.HandshakeInterceptor;
 
-import java.time.ZonedDateTime;
-import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
-import static java.lang.String.format;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
+/**
+ * Accepts a WebSocket handshake only with a valid single-use ticket
+ * (obtained from POST /api/v1/ws-tickets). The access token itself is never
+ * accepted in the URL or in headers at this point.
+ */
 @Slf4j
 @Component
 public class JwtHandshakeInterceptor implements HandshakeInterceptor {
 
-    public static final String TOKEN_HEADER_KEY = HttpHeaders.AUTHORIZATION;
-    public static final String TOKEN_PARAM_KEY = "access";
+    public static final String TICKET_PARAM_KEY = "ticket";
+    public static final String TOKEN_ATTRIBUTE_KEY = "access-token";
     public static final String CONTENT_HEADER_KEY = "Content";
-    public static final String BEARER_PREFIX = "Bearer ";
+    public static final String HANDSHAKE_PATH = "/ws";
 
     private final TokenParser tokenParser;
+    private final WsTicketService ticketService;
     private final ObjectMapper objectMapper;
 
-    public JwtHandshakeInterceptor(TokenParser tokenParser, @Lazy ObjectMapper objectMapper) {
+    public JwtHandshakeInterceptor(TokenParser tokenParser,
+                                   WsTicketService ticketService,
+                                   @Lazy ObjectMapper objectMapper) {
         this.tokenParser = tokenParser;
+        this.ticketService = ticketService;
         this.objectMapper = objectMapper;
     }
 
-    @SneakyThrows
     @Override
     public boolean beforeHandshake(@NonNull ServerHttpRequest request,
                                    @NonNull ServerHttpResponse response,
                                    @NonNull WebSocketHandler wsHandler,
                                    @NonNull Map<String, Object> attributes) {
 
-        final List<String> authorizationHeader = request.getHeaders().get(TOKEN_HEADER_KEY);
-        final String error;
-        final String token;
+        final String ticket = ((ServletServerHttpRequest) request).getServletRequest()
+                .getParameter(TICKET_PARAM_KEY);
 
-        // check header & token format
-        if (authorizationHeader != null && !authorizationHeader.isEmpty()) {
-
-            final String headerValue = authorizationHeader.get(0);
-            if (!headerValue.startsWith(BEARER_PREFIX)) {
-                error = format("Header \"%s\" contains invalid bearer format", TOKEN_HEADER_KEY);
-                log.debug("-> beforeHandshake(): {}", error);
-                fillResponse(response, error);
-                return false;
-            }
-
-            token = headerValue.substring(BEARER_PREFIX.length());
-        } else { // check parameter & token format
-            final String paramValue = ((ServletServerHttpRequest) request).getServletRequest().getParameter(TOKEN_PARAM_KEY);
-
-            if (paramValue == null || paramValue.isBlank()) {
-                error = format("Parameter \"%s\" is empty", TOKEN_PARAM_KEY);
-                log.debug("-> beforeHandshake(): {}", error);
-                fillResponse(response, error);
-                return false;
-            }
-
-            token = paramValue;
-        }
-
-        if (tokenParser.isInvalid(token)) {
-            error = "invalid access token";
-            log.debug("-> beforeHandshake(): {}", error);
-            fillResponse(response, error);
+        if (ticket == null || ticket.isBlank()) {
+            reject(response, "ticket is missing");
             return false;
         }
 
-        attributes.put(TOKEN_PARAM_KEY, token);
+        // GETDEL: the ticket is gone after this call, so it cannot be replayed
+        final Optional<String> token = ticketService.consume(ticket);
+        if (token.isEmpty()) {
+            reject(response, "ticket is invalid or expired");
+            return false;
+        }
+
+        if (tokenParser.isInvalid(token.get())) {
+            reject(response, "invalid access token");
+            return false;
+        }
+
+        attributes.put(TOKEN_ATTRIBUTE_KEY, token.get());
         return true;
     }
 
@@ -97,11 +87,16 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
                                Exception exception) {
     }
 
+    private void reject(@NonNull ServerHttpResponse response, @NonNull String error) {
+        log.debug("-> beforeHandshake(): {}", error);
+        fillResponse(response, error);
+    }
+
     @SneakyThrows
     private void fillResponse(@NonNull ServerHttpResponse response, @NonNull String error) {
         final var servletResponse = ((ServletServerHttpResponse) response).getServletResponse();
         final var jsonApiError = objectMapper.writeValueAsString(ErrorMessage.builder()
-                .path("/ws-gate")
+                .path(HANDSHAKE_PATH)
                 .error(error)
                 .action(Action.ERROR)
                 .build());

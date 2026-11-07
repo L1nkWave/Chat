@@ -298,6 +298,22 @@ function createGroup(res, me, _params, body) {
     send(res, 201, groupSummary(g));
 }
 
+// Chỉ chủ nhóm được đổi tên. Mọi thành viên nhận sự kiện để làm mới danh sách.
+function renameGroup(res, me, [groupId], body) {
+    const g = requireMember(res, me, groupId);
+    if (!g) return;
+    if (g.ownerId !== me) {
+        return send(res, 403, { message: "Chỉ chủ nhóm mới được đổi tên nhóm." });
+    }
+    const title = typeof body.title === "string" ? body.title.trim() : "";
+    if (title.length < 3 || title.length > MAX_TITLE) {
+        return send(res, 400, { message: "Tên nhóm cần từ 3 đến 64 ký tự." });
+    }
+    g.title = title;
+    notifyGroup(g, { type: "membership", conversationId: g.id });
+    send(res, 200, groupSummary(g));
+}
+
 // Mọi thành viên đều mời được, nhưng người được mời phải chấp nhận.
 function inviteToGroup(res, me, [groupId], body) {
     const g = requireMember(res, me, groupId);
@@ -393,6 +409,7 @@ const routes = [
     { method: "GET", re: /^\/api\/v1\/chat\/conversations\/([a-z0-9]+)\/messages$/, handler: listMessages },
     { method: "GET", re: /^\/api\/v1\/chat\/conversations\/([a-z0-9]+)\/members$/, handler: listMembers },
     { method: "POST", re: /^\/api\/v1\/chat\/groups$/, handler: createGroup },
+    { method: "PATCH", re: /^\/api\/v1\/chat\/groups\/([a-z0-9]+)$/, handler: renameGroup },
     { method: "POST", re: /^\/api\/v1\/chat\/groups\/([a-z0-9]+)\/invitations$/, handler: inviteToGroup },
     { method: "DELETE", re: /^\/api\/v1\/chat\/groups\/([a-z0-9]+)\/members\/([a-z0-9]+)$/, handler: removeMember },
     { method: "POST", re: /^\/api\/v1\/chat\/groups\/([a-z0-9]+)\/leave$/, handler: leaveGroup },
@@ -419,7 +436,7 @@ const httpServer = http.createServer(async (req, res) => {
         return dropSocketsRoute(res, url);
     }
 
-    const body = req.method === "POST" ? await readJson(req) : {};
+    const body = req.method === "POST" || req.method === "PATCH" ? await readJson(req) : {};
 
     if (req.method === "POST" && pathname === "/api/v1/auth/login") {
         const user = users.get(body.username);

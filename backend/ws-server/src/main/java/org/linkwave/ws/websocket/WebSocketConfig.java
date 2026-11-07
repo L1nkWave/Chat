@@ -1,6 +1,7 @@
 package org.linkwave.ws.websocket;
 
 import lombok.RequiredArgsConstructor;
+import org.linkwave.ws.websocket.jwt.JwtHandshakeInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.NonNull;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
@@ -20,7 +21,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
     @Override
     public void registerWebSocketHandlers(@NonNull WebSocketHandlerRegistry registry) {
-        registry.addHandler(rootHandler, "/ws-gate")
+        registry.addHandler(rootHandler, JwtHandshakeInterceptor.HANDSHAKE_PATH)
                 .addInterceptors(handshakeInterceptor)
                 .setHandshakeHandler(handshakeHandler)
                 .setAllowedOrigins("*");

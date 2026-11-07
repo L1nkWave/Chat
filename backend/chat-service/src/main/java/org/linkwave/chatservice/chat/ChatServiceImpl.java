@@ -412,6 +412,55 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
+    public ChatMemberDto acceptGroupInvitation(String chatId, Long inviterId, @NonNull RequestInitiator invitee) {
+        final Long inviteeId = invitee.userId();
+        final GroupChat groupChat = findGroupChat(chatId);
+
+        if (isMember(inviteeId, groupChat)) {
+            throw new BadRequestDataException("You are already a member");
+        }
+        if (groupChat.getMembersCount() >= groupChat.getMembersLimit()) {
+            throw new ChatOptionsViolationException("All members slots are occupied");
+        }
+
+        final UserDto user = userServiceClient.getUser(inviteeId, invitee.bearer());
+        if (user.isDeleted()) {
+            throw new BadCredentialsException("Invalid user ID id");
+        }
+
+        final ChatMember newMember = groupChat.addMember(inviteeId);
+        final var message = MemberMessage.builder()
+                .authorId(inviterId)
+                .action(Action.ADD)
+                .chat(groupChat)
+                .memberId(inviteeId)
+                .createdAt(newMember.getJoinedAt())
+                .build();
+
+        try {
+            txnTemplate.executeWithoutResult(txnStatus -> {
+                userService.createUserIfNeed(inviteeId);
+                messageService.saveMessage(message);
+                updateChat(groupChat);
+            });
+        } catch (TransactionException e) {
+            throw new ServiceErrorException(e);
+        }
+
+        return ChatMemberDto.builder()
+                .id(user.getId())
+                .joinedAt(newMember.getJoinedAt())
+                .role(newMember.getRole())
+                .details(ChatMemberDetailsDto.builder()
+                        .name(user.getName())
+                        .username(user.getUsername())
+                        .isOnline(user.isOnline())
+                        .isAvatarAvailable(nonNull(user.getAvatarPath()))
+                        .build())
+                .build();
+    }
+
+    @Override
     public ChatMemberDto addGroupChatMember(String chatId, @NonNull RequestInitiator initiator) {
 
         final Long userId = initiator.userId();

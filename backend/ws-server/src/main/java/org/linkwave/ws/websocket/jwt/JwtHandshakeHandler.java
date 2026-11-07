@@ -24,7 +24,7 @@ public class JwtHandshakeHandler extends AbstractHandshakeHandler {
                                       @NonNull WebSocketHandler wsHandler,
                                       @NonNull Map<String, Object> attributes) {
 
-        final var token = Optional.ofNullable(attributes.get(JwtHandshakeInterceptor.TOKEN_PARAM_KEY))
+        final var token = Optional.ofNullable(attributes.get(JwtHandshakeInterceptor.TOKEN_ATTRIBUTE_KEY))
                 .map(Object::toString)
                 .orElseThrow(() -> new IllegalStateException("Not found access token"));
 

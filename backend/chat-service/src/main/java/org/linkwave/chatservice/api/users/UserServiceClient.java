@@ -37,6 +37,13 @@ public interface UserServiceClient {
             @RequestHeader("Authorization") String authHeader
     );
 
+    @GetMapping
+    List<UserDto> searchUsers(
+            @RequestParam String username,
+            @RequestParam int offset, @RequestParam int limit,
+            @RequestHeader("Authorization") String authHeader
+    );
+
     default Map<Long, ContactDto> fetchAllContacts(@NonNull RequestInitiator initiator, int batchSize) {
         final String username = ""; // any username is matched
         int offset = 0;

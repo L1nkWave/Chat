@@ -141,6 +141,7 @@ export function MembersPanel({
                                  onNotice,
                              }: MembersPanelProps) {
     const [username, setUsername] = useState("");
+    const [newTitle, setNewTitle] = useState("");
     const [busy, setBusy] = useState(false);
 
     async function invite(e: FormEvent<HTMLFormElement>) {
@@ -152,6 +153,25 @@ export function MembersPanel({
             await chatApi.inviteToGroup(groupId, target);
             setUsername("");
             onNotice(`Đã gửi lời mời tới ${target}. Người này cần chấp nhận để vào nhóm.`, "info");
+        } catch (err) {
+            onNotice(errorMessage(err), "error");
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function rename(e: FormEvent<HTMLFormElement>) {
+        e.preventDefault();
+        const title = newTitle.trim();
+        if (title.length < 3 || title.length > 64) {
+            onNotice("Tên nhóm cần từ 3 đến 64 ký tự.", "error");
+            return;
+        }
+        setBusy(true);
+        try {
+            await chatApi.renameGroup(groupId, title);
+            setNewTitle("");
+            onNotice("Đã đổi tên nhóm.", "info");
         } catch (err) {
             onNotice(errorMessage(err), "error");
         } finally {
@@ -195,11 +215,11 @@ export function MembersPanel({
                     <li key={m.userId} className="flex items-center justify-between gap-2 text-sm">
                         <span className="min-w-0 truncate">{m.name}</span>
                         <span className="flex shrink-0 items-center gap-2">
-              {m.isOwner ? (
-                  <span className="rounded-full bg-sky/30 px-2 py-0.5 text-xs text-primary">
-                  Chủ nhóm
-                </span>
-              ) : null}
+                            {m.isOwner ? (
+                                <span className="rounded-full bg-sky/30 px-2 py-0.5 text-xs text-primary">
+                                    Chủ nhóm
+                                </span>
+                            ) : null}
                             {isOwner && !m.isOwner ? (
                                 <button
                                     type="button"
@@ -210,10 +230,30 @@ export function MembersPanel({
                                     Xóa
                                 </button>
                             ) : null}
-            </span>
+                        </span>
                     </li>
                 ))}
             </ul>
+
+            {isOwner ? (
+                <form onSubmit={rename} className="flex gap-2">
+                    <input
+                        value={newTitle}
+                        onChange={(e) => setNewTitle(e.target.value)}
+                        placeholder="Tên nhóm mới"
+                        aria-label="Tên nhóm mới"
+                        maxLength={64}
+                        className="h-9 min-w-0 flex-1 rounded-lg border border-line bg-paper px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-sky"
+                    />
+                    <button
+                        type="submit"
+                        disabled={busy || !newTitle.trim()}
+                        className="h-9 rounded-lg border border-line px-3 text-sm hover:bg-paper disabled:opacity-40"
+                    >
+                        Đổi tên
+                    </button>
+                </form>
+            ) : null}
 
             <form onSubmit={invite} className="flex gap-2">
                 <input

@@ -31,8 +31,7 @@ public class ApiGatewayRouterConfig {
 
     @Bean
     public RouteLocator routeLocator(@NonNull RouteLocatorBuilder builder,
-                                     @Qualifier("authHeaderFilter") GatewayFilter authHeaderGatewayFilter,
-                                     @Qualifier("authParamFilter") GatewayFilter authParamGatewayFilter) {
+                                     @Qualifier("authHeaderFilter") GatewayFilter authHeaderGatewayFilter) {
         return builder.routes()
                 .route(r -> r
                         .path(
@@ -59,8 +58,14 @@ public class ApiGatewayRouterConfig {
                         .filters(f -> f.filter(authHeaderGatewayFilter))
                         .uri(CHAT_SERVICE.getUrl()))
                 .route(r -> r
-                        .path("/ws-gate")
-                        .filters(f -> f.filter(authParamGatewayFilter))
+                        .path("/api/v1/ws-tickets")
+                        .and()
+                        .method(POST)
+                        .filters(f -> f.filter(authHeaderGatewayFilter))
+                        .uri(WS_SERVER.getUrl()))
+                // handshake is authorized by the single-use ticket inside ws-server, not by the gateway
+                .route(r -> r
+                        .path("/ws")
                         .uri(WS_SERVER.getUrl()))
                 .build();
     }

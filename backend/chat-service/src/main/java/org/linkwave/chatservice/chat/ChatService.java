@@ -166,6 +166,9 @@ public interface ChatService {
 
     ChatMemberDto addGroupChatMember(String chatId, @NonNull RequestInitiator initiator, Long userId);
 
+    /** Adds the invitee to the group after they accepted an invitation. No admin check. */
+    ChatMemberDto acceptGroupInvitation(String chatId, Long inviterId, @NonNull RequestInitiator invitee);
+
     void removeGroupChatMember(Long userId, String chatId);
 
     ChatMemberDto removeGroupChatMember(String chatId, @NonNull RequestInitiator initiator, Long memberId);
