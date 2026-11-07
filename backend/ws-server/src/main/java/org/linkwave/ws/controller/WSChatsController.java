@@ -11,6 +11,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Set;
 
 import static org.springframework.http.HttpStatus.CREATED;
+import org.linkwave.ws.websocket.dto.Action;
+import org.linkwave.ws.websocket.dto.InvitationMessage;
+import org.linkwave.ws.websocket.routing.broadcast.instances.MessageDelegate;
+import tools.jackson.databind.ObjectMapper;
+import org.springframework.web.bind.annotation.RequestBody;
+import static org.springframework.http.HttpStatus.NO_CONTENT;
 
 @Slf4j
 @RestController
@@ -19,6 +25,8 @@ import static org.springframework.http.HttpStatus.CREATED;
 public class WSChatsController {
 
     private final ChatRepository<Long, String> chatRepository;
+    private final MessageDelegate messageDelegate;
+    private final ObjectMapper objectMapper;
 
     @PostMapping
     @ResponseStatus(CREATED)
@@ -40,6 +48,20 @@ public class WSChatsController {
         final Set<Long> members = chatRepository.getMembers(id);
         members.remove(senderId);
         chatRepository.changeUnreadMessages(id, members, 1);
+    }
+
+    @PostMapping("/invitations")
+    @ResponseStatus(NO_CONTENT)
+    public void notifyInvitation(@RequestBody InvitationNotification notification) {
+        final var message = InvitationMessage.builder()
+                .action(Action.INVITATION)
+                .inviteeId(notification.inviteeId())
+                .invitationId(notification.invitationId())
+                .chatId(notification.chatId())
+                .groupTitle(notification.groupTitle())
+                .inviter(notification.inviter())
+                .build();
+        messageDelegate.handleMessage(objectMapper.writeValueAsString(message));
     }
 
     private DefaultUserDetails userDetails() {

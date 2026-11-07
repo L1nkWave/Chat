@@ -21,6 +21,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toSet;
+import org.linkwave.ws.websocket.dto.InvitationMessage;
 
 @Slf4j
 @Component
@@ -95,6 +96,10 @@ public class MessageDelegateImpl implements MessageDelegate {
                         .map(chatRepository::getUserSessions)
                         .flatMap(Set::stream)
                         .collect(toSet());
+            }
+            case INVITATION -> {
+                final var invitation = mapper.readValue(message, InvitationMessage.class);
+                members = chatRepository.getUserSessions(invitation.getInviteeId());
             }
             case BIND, ERROR -> throw new IllegalStateException("Unsupported message action");
             default -> {

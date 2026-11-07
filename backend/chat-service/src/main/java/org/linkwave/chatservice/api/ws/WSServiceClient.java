@@ -27,4 +27,11 @@ public interface WSServiceClient {
             @RequestParam Long senderId
     );
 
+
+    @PostMapping("/invitations")
+    void notifyInvitation(
+            @RequestHeader(AUTHORIZATION) String authHeader,
+            @RequestBody InvitationNotification notification
+    );
+
 }

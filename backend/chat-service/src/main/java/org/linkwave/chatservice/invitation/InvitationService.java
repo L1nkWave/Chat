@@ -19,7 +19,12 @@ import java.util.List;
 import static org.linkwave.chatservice.invitation.InvitationStatus.ACCEPTED;
 import static org.linkwave.chatservice.invitation.InvitationStatus.DECLINED;
 import static org.linkwave.chatservice.invitation.InvitationStatus.PENDING;
+import feign.FeignException;
+import lombok.extern.slf4j.Slf4j;
+import org.linkwave.chatservice.api.ws.InvitationNotification;
+import org.linkwave.chatservice.api.ws.WSServiceClient;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class InvitationService {
@@ -27,6 +32,7 @@ public class InvitationService {
     private final ChatService chatService;
     private final UserServiceClient userServiceClient;
     private final GroupInvitationRepository invitationRepository;
+    private final WSServiceClient wsServiceClient;
 
     /**
      * Any member of a group can invite another user. The invitee must accept before joining.
@@ -66,7 +72,9 @@ public class InvitationService {
                 .createdAt(Instant.now())
                 .build());
 
-        return toDto(saved, chat, initiator.bearer());
+        final InvitationDto dto = toDto(saved, chat, initiator.bearer());
+        notifyInvitee(inviteeId, dto, initiator.bearer());
+        return dto;
     }
 
     public List<InvitationDto> listPending(@NonNull RequestInitiator initiator) {
@@ -84,6 +92,12 @@ public class InvitationService {
         // Thêm thành viên trước; nếu lỗi (nhóm đầy, đã là thành viên...) thì lời mời vẫn ở trạng thái PENDING
         chatService.acceptGroupInvitation(invitation.getChatId(), invitation.getInviterId(), invitee);
 
+        try {
+            wsServiceClient.loadNewGroupChat(invitee.bearer(), invitation.getChatId());
+        } catch (FeignException e) {
+            log.warn("cannot register membership in ws-server: {}", e.getMessage());
+        }
+
         invitation.setStatus(ACCEPTED);
         invitationRepository.save(invitation);
     }
@@ -92,6 +106,15 @@ public class InvitationService {
         final GroupInvitation invitation = findOwnPendingInvitation(invitee.userId(), invitationId);
         invitation.setStatus(DECLINED);
         invitationRepository.save(invitation);
+    }
+
+    private void notifyInvitee(Long inviteeId, InvitationDto dto, String bearer) {
+        try {
+            wsServiceClient.notifyInvitation(bearer, new InvitationNotification(
+                    inviteeId, dto.id(), dto.groupId(), dto.groupTitle(), dto.inviter()));
+        } catch (FeignException e) {
+            log.warn("cannot notify invitee {}: {}", inviteeId, e.getMessage());
+        }
     }
 
     private GroupInvitation findOwnPendingInvitation(Long userId, String invitationId) {

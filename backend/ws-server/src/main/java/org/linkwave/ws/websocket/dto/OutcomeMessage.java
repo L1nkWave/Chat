@@ -10,5 +10,6 @@ import lombok.experimental.SuperBuilder;
 public class OutcomeMessage extends IdentifiedMessage {
 
     private String text;
+    private String senderName;
 
 }

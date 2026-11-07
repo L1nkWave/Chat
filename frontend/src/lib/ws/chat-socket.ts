@@ -1,4 +1,6 @@
 import { ApiError, apiFetch } from "@/lib/api/client";
+import { currentUserId } from "@/lib/auth/token";
+import type { Message } from "@/lib/chat/types";
 import {
     decodeFrame,
     encodeFrame,
@@ -51,14 +53,13 @@ export class ChatSocket {
         return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
     }
 
-    send(conversationId: string, text: string, attachmentId?: string): boolean {
+    // attachmentId chưa được hỗ trợ qua WebSocket; sẽ làm ở đợt gửi tệp
+    send(conversationId: string, text: string, _attachmentId?: string): boolean {
         if (!this.isOpen() || !this.ws) return false;
         this.ws.send(
-            encodeFrame("/chat", {
-                type: "send",
-                conversationId,
+            encodeFrame(`/chat/${conversationId}/send`, {
+                tmpMessageId: crypto.randomUUID(),
                 text,
-                attachmentId: attachmentId ?? null,
             }),
         );
         return true;
@@ -88,6 +89,8 @@ export class ChatSocket {
         ws.onopen = () => {
             if (gen !== this.generation) return;
             this.attempt = 0;
+            const userId = currentUserId();
+            if (userId) this.handlers.onSession({ userId, name: "" });
             this.handlers.onStatus("open");
         };
 
@@ -117,15 +120,55 @@ export class ChatSocket {
     }
 
     private dispatch(raw: string) {
+        // Khung có "path=" là của client; server gửi JSON thuần có trường "action"
         const frame = decodeFrame(raw);
-        if (!frame) return;
+        if (frame) {
+            if (frame.path === "/error") this.handlers.onError(frame.payload as ErrorPayload);
+            return;
+        }
 
-        if (frame.path === "/session") {
-            this.handlers.onSession(frame.payload as SessionPayload);
-        } else if (frame.path === "/chat") {
-            this.handlers.onChatEvent(frame.payload as ChatEvent);
-        } else if (frame.path === "/error") {
-            this.handlers.onError(frame.payload as ErrorPayload);
+        let data: Record<string, unknown>;
+        try {
+            data = JSON.parse(raw) as Record<string, unknown>;
+        } catch {
+            return;
+        }
+        this.dispatchAction(data);
+    }
+
+    private dispatchAction(data: Record<string, unknown>) {
+        switch (data.action) {
+            case "MESSAGE": {
+                const message: Message = {
+                    id: String(data.id),
+                    conversationId: String(data.chatId),
+                    senderId: String(data.senderId),
+                    senderName: typeof data.senderName === "string" ? data.senderName : "",
+                    text: typeof data.text === "string" ? data.text : "",
+                    time: String(data.timestamp),
+                    attachment: null,
+                };
+                this.handlers.onChatEvent({ type: "message", message });
+                return;
+            }
+            case "INVITATION":
+                this.handlers.onChatEvent({ type: "invitation" });
+                return;
+            case "JOIN":
+            case "LEAVE":
+            case "ADD":
+            case "KICK":
+            case "SET_ROLE":
+                this.handlers.onChatEvent({ type: "membership", conversationId: String(data.chatId) });
+                return;
+            case "ERROR":
+                this.handlers.onError({
+                    code: "ERROR",
+                    message: typeof data.error === "string" ? data.error : "Có lỗi xảy ra",
+                });
+                return;
+            default:
+                return;
         }
     }
 }

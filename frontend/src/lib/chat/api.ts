@@ -1,60 +1,83 @@
 import { ApiError, apiFetch } from "@/lib/api/client";
 import type { Conversation, Invitation, Member, Message } from "./types";
+import {
+    toConversation,
+    toMembers,
+    toMessages,
+    type BackendChat,
+    type BackendGroupDetails,
+    type BackendMessage,
+} from "./mappers";
 
 export function errorMessage(err: unknown): string {
     return err instanceof ApiError ? err.message : "Đã có lỗi xảy ra. Vui lòng thử lại.";
 }
 
 const enc = encodeURIComponent;
+const BASE = "/api/v1/chats";
 
-// Đường dẫn khớp với backend chat-service (/api/v1/chats, số nhiều).
-// Các hàm lời mời (invitations) chưa có ở backend, sẽ nối sau khi thêm module invitation.
+async function getGroupDetails(groupId: string): Promise<BackendGroupDetails> {
+    return apiFetch<BackendGroupDetails>(`${BASE}/${enc(groupId)}/group`);
+}
+
 export const chatApi = {
-    listConversations: () =>
-        apiFetch<Conversation[]>("/api/v1/chats?offset=0&limit=50"),
+    listConversations: async (): Promise<Conversation[]> => {
+        const chats = await apiFetch<BackendChat[]>(`${BASE}?offset=0&limit=50`);
+        return chats.map(toConversation);
+    },
 
-    listMessages: (conversationId: string) =>
-        apiFetch<Message[]>(`/api/v1/chats/${enc(conversationId)}/messages`),
+    listMessages: async (conversationId: string): Promise<Message[]> => {
+        const list = await apiFetch<BackendMessage[]>(
+            `${BASE}/${enc(conversationId)}/messages?offset=0&limit=50`,
+        );
+        return toMessages(list, conversationId);
+    },
 
-    listMembers: (conversationId: string) =>
-        apiFetch<Member[]>(`/api/v1/chats/${enc(conversationId)}/group`),
+    listMembers: async (conversationId: string): Promise<Member[]> => {
+        return toMembers(await getGroupDetails(conversationId));
+    },
 
-    // Backend nhận "name" (không phải "title")
-    createGroup: (title: string) =>
-        apiFetch<Conversation>("/api/v1/chats/group", {
+    createGroup: async (title: string): Promise<Conversation> => {
+        const chat = await apiFetch<BackendChat>(`${BASE}/group`, {
             method: "POST",
             body: JSON.stringify({ name: title, isPrivate: false }),
-        }),
+        });
+        return toConversation(chat);
+    },
 
-    // Backend PATCH yêu cầu đủ name, membersLimit (0-1000), isPrivate
-    renameGroup: (groupId: string, name: string, membersLimit = 128, isPrivate = false) =>
-        apiFetch<void>(`/api/v1/chats/${enc(groupId)}/group`, {
+    // Backend PATCH bắt buộc đủ các trường, nên lấy giá trị hiện tại trước
+    renameGroup: async (groupId: string, name: string): Promise<void> => {
+        const current = await getGroupDetails(groupId);
+        await apiFetch<void>(`${BASE}/${enc(groupId)}/group`, {
             method: "PATCH",
-            body: JSON.stringify({ name, membersLimit, isPrivate }),
-        }),
+            body: JSON.stringify({
+                name,
+                description: current.description ?? null,
+                membersLimit: current.membersLimit,
+                isPrivate: current.isPrivate,
+            }),
+        });
+    },
 
-    // Chưa có ở backend: thêm trực tiếp không cần đồng ý, cần đổi khi có invitation
     inviteToGroup: (groupId: string, username: string) =>
-        apiFetch<{ id: string }>(`/api/v1/chats/${enc(groupId)}/invitations`, {
+        apiFetch<{ id: string }>(`${BASE}/${enc(groupId)}/invitations`, {
             method: "POST",
             body: JSON.stringify({ username }),
         }),
 
     removeMember: (groupId: string, userId: string) =>
-        apiFetch<void>(
-            `/api/v1/chats/${enc(groupId)}/group/members/${enc(userId)}`,
-            { method: "DELETE" },
-        ),
+        apiFetch<void>(`${BASE}/${enc(groupId)}/group/members/${enc(userId)}`, {
+            method: "DELETE",
+        }),
 
     leaveGroup: (groupId: string) =>
-        apiFetch<void>(`/api/v1/chats/${enc(groupId)}/group/members`, { method: "DELETE" }),
+        apiFetch<void>(`${BASE}/${enc(groupId)}/group/members`, { method: "DELETE" }),
 
-    // Chưa có ở backend
-    listInvitations: () => apiFetch<Invitation[]>("/api/v1/chats/invitations"),
+    listInvitations: () => apiFetch<Invitation[]>(`${BASE}/invitations`),
 
     acceptInvitation: (id: string) =>
-        apiFetch<void>(`/api/v1/chats/invitations/${enc(id)}/accept`, { method: "POST" }),
+        apiFetch<void>(`${BASE}/invitations/${enc(id)}/accept`, { method: "POST" }),
 
     declineInvitation: (id: string) =>
-        apiFetch<void>(`/api/v1/chats/invitations/${enc(id)}/decline`, { method: "POST" }),
+        apiFetch<void>(`${BASE}/invitations/${enc(id)}/decline`, { method: "POST" }),
 };

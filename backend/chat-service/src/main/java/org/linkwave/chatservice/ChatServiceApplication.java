@@ -1,8 +1,7 @@
 package org.linkwave.chatservice;
 
-import tools.jackson.databind.ObjectMapper;
-import org.linkwave.shared.storage.LocalFileStorageService;
 import org.linkwave.shared.storage.FileStorageService;
+import org.linkwave.shared.storage.LocalFileStorageService;
 import org.modelmapper.ModelMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -10,6 +9,8 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.mongodb.MongoDatabaseFactory;
 import org.springframework.data.mongodb.MongoTransactionManager;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 @SpringBootApplication
 @EnableFeignClients
@@ -21,8 +22,7 @@ public class ChatServiceApplication {
 
     @Bean
     public ObjectMapper objectMapper() {
-        final var objectMapper = new ObjectMapper();
-        return objectMapper;
+        return JsonMapper.builder().build();
     }
 
     @Bean
@@ -31,7 +31,7 @@ public class ChatServiceApplication {
     }
 
     @Bean
-    public MongoTransactionManager transactionManager(MongoDatabaseFactory databaseFactory)  {
+    public MongoTransactionManager transactionManager(MongoDatabaseFactory databaseFactory) {
         return new MongoTransactionManager(databaseFactory);
     }
 

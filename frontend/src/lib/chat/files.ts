@@ -71,6 +71,6 @@ export async function uploadFile(file: File): Promise<Attachment> {
 
 // Tải tệp về dạng blob để gắn token. <img src> không gửi được header Authorization.
 export async function fetchAttachmentBlob(id: string): Promise<Blob> {
-    const res = await authedFetch(`/api/v1/chat/files/${encodeURIComponent(id)}`);
+    const res = await authedFetch(`/api/v1/chats/messages/${encodeURIComponent(id)}/file`);
     return res.blob();
 }
