@@ -32,7 +32,7 @@ spring:
       replica-set-name: 'rs0'
 
 files:
-  storage-folder: 'D:\Files\storage'
+  storage-folder: '${FILE_STORAGE_FOLDER:./storage}'
 
 logging:
   level:

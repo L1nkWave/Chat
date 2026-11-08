@@ -47,19 +47,7 @@ public interface ChatRepository<T extends Chat> extends MongoRepository<T, Strin
                                 $eq: ?0
                             }
                         }
-                    },
-                    $or: [
-                      {
-                        '_class': {
-                          $eq: 'org.linkwave.chatservice.chat.group.GroupChat'
-                        }
-                      },
-                      {
-                        lastMessage: {
-                          $exists: true
-                        }
-                      }
-                    ]
+                    }
                 }
             }
             """,
@@ -78,19 +66,7 @@ public interface ChatRepository<T extends Chat> extends MongoRepository<T, Strin
                             $eq: ?0
                           }
                         }
-                      },
-                      $or: [
-                          {
-                            '_class': {
-                              $eq: 'org.linkwave.chatservice.chat.group.GroupChat'
-                            }
-                          },
-                          {
-                            lastMessage: {
-                              $exists: true
-                            }
-                          }
-                      ]
+                      }
                     }
                     """,
             count = true)

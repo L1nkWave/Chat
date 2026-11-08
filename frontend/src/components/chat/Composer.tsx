@@ -10,6 +10,42 @@ type ComposerProps = {
     onSend: (text: string, file: File | null) => Promise<boolean>;
 };
 
+function PaperclipIcon({ size = 18 }: { size?: number }) {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            width={size}
+            height={size}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+        >
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+        </svg>
+    );
+}
+
+function SendIcon() {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            width={18}
+            height={18}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.8}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+        >
+            <path d="M5 12h14M13 6l6 6-6 6" />
+        </svg>
+    );
+}
+
 export function Composer({ onSend }: ComposerProps) {
     const [draft, setDraft] = useState("");
     const [file, setFile] = useState<File | null>(null);
@@ -44,16 +80,17 @@ export function Composer({ onSend }: ComposerProps) {
     return (
         <div className="border-t border-line bg-surface">
             {file || fileError ? (
-                <div className="flex items-center gap-2 px-4 pt-3 text-sm">
+                <div className="flex items-center gap-3 px-4 pt-3 text-sm sm:px-8">
                     {file ? (
                         <>
-              <span className="min-w-0 truncate rounded-lg bg-paper px-3 py-1.5">
-                📎 {file.name}
-              </span>
+                            <span className="flex min-w-0 items-center gap-2 rounded-md border border-line bg-paper px-3 py-1.5 text-ink">
+                                <PaperclipIcon size={15} />
+                                <span className="truncate">{file.name}</span>
+                            </span>
                             <button
                                 type="button"
                                 onClick={() => setFile(null)}
-                                className="text-xs text-muted underline-offset-2 hover:underline"
+                                className="text-xs text-muted underline-offset-4 hover:text-ink hover:underline"
                             >
                                 Bỏ tệp
                             </button>
@@ -69,7 +106,7 @@ export function Composer({ onSend }: ComposerProps) {
                     e.preventDefault();
                     void submit();
                 }}
-                className="flex items-end gap-2 px-4 py-3"
+                className="flex items-end gap-2 px-4 py-3 sm:px-8"
             >
                 <input
                     ref={inputRef}
@@ -84,9 +121,9 @@ export function Composer({ onSend }: ComposerProps) {
                     type="button"
                     onClick={() => inputRef.current?.click()}
                     aria-label="Đính kèm tệp"
-                    className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-line text-lg transition-colors hover:bg-paper"
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-md border border-line bg-surface text-muted transition-colors hover:bg-tint hover:text-ink"
                 >
-                    +
+                    <PaperclipIcon />
                 </button>
                 <textarea
                     value={draft}
@@ -102,14 +139,16 @@ export function Composer({ onSend }: ComposerProps) {
                     maxLength={MAX_LENGTH}
                     placeholder="Nhập tin nhắn"
                     aria-label="Nhập tin nhắn"
-                    className="max-h-40 min-h-11 flex-1 resize-none rounded-xl border border-line bg-paper px-3 py-2.5 text-[15px] outline-none focus-visible:ring-2 focus-visible:ring-sky"
+                    className="max-h-40 min-h-11 flex-1 resize-none rounded-md border border-line bg-paper px-3.5 py-2.5 text-[15px] text-ink outline-none transition-colors placeholder:text-muted focus:border-primary"
                 />
                 <button
                     type="submit"
                     disabled={!canSend}
-                    className="h-11 rounded-xl bg-primary px-5 text-sm font-medium text-primary-ink transition-opacity disabled:opacity-40"
+                    aria-label={sending ? "Đang gửi" : "Gửi tin nhắn"}
+                    className="flex h-11 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-ink transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                    {sending ? "Đang gửi..." : "Gửi"}
+                    <span className="hidden sm:inline">{sending ? "Đang gửi..." : "Gửi"}</span>
+                    <SendIcon />
                 </button>
             </form>
         </div>

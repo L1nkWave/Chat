@@ -3,11 +3,11 @@ import type { ButtonHTMLAttributes } from "react";
 type ButtonVariant = "primary" | "outline";
 
 const base =
-    "inline-flex h-11 items-center justify-center rounded-md px-5 text-[15px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60";
+    "inline-flex h-11 items-center justify-center rounded-md px-5 text-[15px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50";
 
 const variants: Record<ButtonVariant, string> = {
-    primary: "bg-primary text-primary-ink hover:opacity-90",
-    outline: "border border-line text-ink hover:bg-sky/30",
+    primary: "bg-primary text-primary-ink hover:bg-primary-hover",
+    outline: "border border-line bg-surface text-ink hover:bg-tint",
 };
 
 /** Classes for elements that must look like a button but are links, e.g. <Link>. */

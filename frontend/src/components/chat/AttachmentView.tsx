@@ -17,6 +17,7 @@ export function AttachmentView({ attachment, mine }: AttachmentViewProps) {
     const image = isImage(attachment.contentType);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [zoomed, setZoomed] = useState(false);
 
     useEffect(() => {
         if (!image) return;
@@ -39,6 +40,16 @@ export function AttachmentView({ attachment, mine }: AttachmentViewProps) {
         };
     }, [attachment.id, image]);
 
+    // Đóng ảnh phóng to bằng phím Esc
+    useEffect(() => {
+        if (!zoomed) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setZoomed(false);
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [zoomed]);
+
     async function download() {
         setError(null);
         try {
@@ -60,17 +71,63 @@ export function AttachmentView({ attachment, mine }: AttachmentViewProps) {
         return (
             <div className="mb-1">
                 {previewUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                        src={previewUrl}
-                        alt={attachment.filename}
-                        className="max-h-72 max-w-full rounded-lg object-contain"
-                    />
+                    <button
+                        type="button"
+                        onClick={() => setZoomed(true)}
+                        aria-label={`Xem ảnh ${attachment.filename}`}
+                        className="block max-w-full"
+                    >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src={previewUrl}
+                            alt={attachment.filename}
+                            className="max-h-72 max-w-full rounded-lg object-contain"
+                        />
+                    </button>
                 ) : (
                     <div className="grid h-24 w-48 place-items-center rounded-lg bg-paper text-xs text-muted">
                         {error ?? "Đang tải ảnh..."}
                     </div>
                 )}
+
+                {zoomed && previewUrl ? (
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={attachment.filename}
+                        onClick={() => setZoomed(false)}
+                        className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/85 p-4"
+                    >
+                        <div className="absolute right-4 top-4 flex gap-2">
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    void download();
+                                }}
+                                className="rounded-lg bg-white/90 px-3 py-1.5 text-sm text-black hover:bg-white"
+                            >
+                                Tải về
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setZoomed(false)}
+                                aria-label="Đóng xem ảnh"
+                                className="rounded-lg bg-white/90 px-3 py-1.5 text-sm text-black hover:bg-white"
+                            >
+                                Đóng
+                            </button>
+                        </div>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src={previewUrl}
+                            alt={attachment.filename}
+                            onClick={(e) => e.stopPropagation()}
+                            className="max-h-full max-w-full rounded-lg object-contain"
+                        />
+                        <p className="text-sm text-white/80">{attachment.filename}</p>
+                    </div>
+                ) : null}
             </div>
         );
     }
@@ -84,12 +141,12 @@ export function AttachmentView({ attachment, mine }: AttachmentViewProps) {
                     mine ? "bg-primary-ink/10" : "bg-paper"
                 }`}
             >
-        <span className="min-w-0">
-          <span className="block truncate font-medium">{attachment.filename}</span>
-          <span className={`block text-xs ${mine ? "text-primary-ink/70" : "text-muted"}`}>
-            {formatSize(attachment.size)} · Nhấn để tải về
-          </span>
-        </span>
+                <span className="min-w-0">
+                    <span className="block truncate font-medium">{attachment.filename}</span>
+                    <span className={`block text-xs ${mine ? "text-primary-ink/70" : "text-muted"}`}>
+                        {formatSize(attachment.size)} · Nhấn để tải về
+                    </span>
+                </span>
             </button>
             {error ? <p className="mt-1 text-xs text-danger">{error}</p> : null}
         </div>

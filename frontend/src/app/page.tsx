@@ -26,14 +26,14 @@ export default function HomePage() {
                 </div>
             </header>
 
-            <main className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-12 px-4 pb-20 pt-6 sm:px-8 lg:grid-cols-[1fr_1.05fr] lg:pt-16">
-                <section className="flex flex-col gap-7">
-                    <h1 className="font-serif text-[40px] font-semibold leading-[1.15] sm:text-[52px]">
+            <main className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-14 px-4 pb-20 pt-8 sm:px-8 lg:grid-cols-[1fr_1.05fr] lg:pt-16">
+                <section className="flex flex-col gap-8">
+                    <h1 className="font-serif text-[40px] font-semibold leading-[1.12] tracking-[-0.02em] sm:text-[52px]">
                         Chat nội bộ của Đại học Sài Gòn
                     </h1>
                     <p className="max-w-[46ch] text-[17px] leading-relaxed text-muted">
-                        Nhắn tin giữa sinh viên, giảng viên và các nhóm học tập trong cùng một nơi. Gửi tin, gửi tệp và theo dõi
-                        tin chưa đọc ngay trong một cửa sổ.
+                        Nhắn tin giữa sinh viên, giảng viên và các nhóm học tập trong cùng một nơi. Thành viên chỉ vào nhóm
+                        khi đã được mời và đồng ý.
                     </p>
                     <div className="flex flex-col gap-3 sm:flex-row">
                         <Link href="/login" className={buttonClasses("primary")}>
@@ -45,24 +45,24 @@ export default function HomePage() {
                     </div>
                 </section>
 
-                <section aria-label="Ví dụ cuộc trò chuyện" className="rounded-xl border border-line bg-surface p-5 sm:p-6">
-                    <div className="mb-5 flex items-center gap-3 border-b border-line pb-4">
-            <span className="flex size-9 items-center justify-center rounded-full bg-sky/40 font-semibold text-primary">
-              NĐ
-            </span>
+                <section aria-label="Ví dụ cuộc trò chuyện" className="rounded-lg border border-line bg-surface">
+                    <div className="flex items-center gap-3 border-b border-line px-5 py-4">
+                        <span className="grid size-9 place-items-center rounded-md bg-tint font-semibold text-primary">
+                            DC
+                        </span>
                         <div className="flex flex-col">
                             <span className="font-medium">Nhóm đồ án DCT1222</span>
                             <span className="text-sm text-muted">3 thành viên</span>
                         </div>
                     </div>
 
-                    <ul className="flex flex-col gap-4">
+                    <ul className="flex flex-col gap-4 px-5 py-6">
                         {sampleMessages.map((message) => (
                             <li key={message.id} className={`flex flex-col gap-1 ${message.mine ? "items-end" : "items-start"}`}>
                                 <span className="text-sm text-muted">{message.author}</span>
                                 <p
-                                    className={`max-w-[32ch] rounded-lg px-4 py-2.5 text-[15px] leading-relaxed ${
-                                        message.mine ? "bg-primary text-primary-ink" : "bg-paper text-ink"
+                                    className={`max-w-[32ch] rounded-md px-4 py-2.5 text-[15px] leading-relaxed ${
+                                        message.mine ? "bg-tint text-ink" : "border border-line text-ink"
                                     }`}
                                 >
                                     {message.text}

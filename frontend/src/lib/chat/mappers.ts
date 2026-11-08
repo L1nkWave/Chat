@@ -47,9 +47,18 @@ export type BackendGroupDetails = {
 // Chỉ hiển thị tin nhắn văn bản và tệp; tin hệ thống (vào/rời nhóm) bỏ qua tạm thời
 const SHOWN_ACTIONS: BackendMessage["action"][] = ["MESSAGE", "FILE"];
 
+// Tin hệ thống không có nội dung, nên dùng câu mô tả ngắn thay vì để trống
+const SYSTEM_PREVIEW: Partial<Record<BackendMessage["action"], string>> = {
+    JOIN: "Có thành viên mới tham gia nhóm",
+    ADD: "Có thành viên được thêm vào nhóm",
+    LEAVE: "Có thành viên đã rời nhóm",
+    KICK: "Có thành viên bị xóa khỏi nhóm",
+};
+
 function previewOf(message?: BackendMessage | null): string {
     if (!message) return "";
     if (message.action === "FILE") return `📎 ${message.filename ?? "Tệp đính kèm"}`;
+    if (SYSTEM_PREVIEW[message.action]) return SYSTEM_PREVIEW[message.action] as string;
     return message.text ?? "";
 }
 

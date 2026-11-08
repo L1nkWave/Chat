@@ -13,6 +13,7 @@ import java.util.Set;
 import static org.springframework.http.HttpStatus.CREATED;
 import org.linkwave.ws.websocket.dto.Action;
 import org.linkwave.ws.websocket.dto.InvitationMessage;
+import org.linkwave.ws.websocket.dto.MemberMessage;
 import org.linkwave.ws.websocket.routing.broadcast.instances.MessageDelegate;
 import tools.jackson.databind.ObjectMapper;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -63,6 +64,35 @@ public class WSChatsController {
                 .build();
         messageDelegate.handleMessage(objectMapper.writeValueAsString(message));
     }
+
+    // chat-service gọi sau mỗi thay đổi thành viên (REST) để phát realtime tới nhóm
+    @PostMapping("/{chatId}/membership")
+    @ResponseStatus(NO_CONTENT)
+    public void notifyMembership(@PathVariable String chatId,
+                                 @RequestBody MembershipNotification notification) {
+        final Action action = Action.valueOf(notification.action());
+        log.debug("-> notifyMembership(): action={}, chatId={}", action, chatId);
+
+        if (action == Action.JOIN) {
+            chatRepository.addMember(notification.memberId(), chatId);
+        }
+
+        final var message = MemberMessage.builder()
+                .action(action)
+                .senderId(notification.initiatorId())
+                .chatId(chatId)
+                .memberId(notification.memberId())
+                .build();
+
+        // phát trước khi gỡ khỏi Redis để người bị kick/rời nhóm cũng nhận được sự kiện
+        messageDelegate.handleMessage(objectMapper.writeValueAsString(message));
+
+        if (action == Action.KICK || action == Action.LEAVE) {
+            chatRepository.removeMember(notification.memberId(), chatId);
+        }
+    }
+
+    public record MembershipNotification(String action, Long memberId, Long initiatorId) {}
 
     private DefaultUserDetails userDetails() {
         return (DefaultUserDetails) SecurityContextHolder.getContext()

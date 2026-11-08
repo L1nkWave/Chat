@@ -267,10 +267,7 @@ public class ChatServiceImpl implements ChatService {
 
         selectedChats.forEach(chat -> {
             final MessageDto lastMessage = chat.getLastMessage();
-            if (lastMessage == null) {
-                return;
-            }
-            final MessageAuthorDto author = lastMessage.getAuthor();
+            final MessageAuthorDto author = lastMessage == null ? null : lastMessage.getAuthor();
 
             if (chat instanceof DuoChatDto duoChat) {
                 final Long companionId = duoChat.getUser().getId();
@@ -280,7 +277,7 @@ public class ChatServiceImpl implements ChatService {
                     duoChat.setAvatarAvailable(user.getAvatarPath() != null);
                     duoChat.setUser(modelMapper.map(user, CompanionDto.class));
                 }
-            } else { // add author details for group chats only
+            } else if (author != null) { // add author details for group chats only
                 final UserDto user = usersMap.get(author.getId());
                 author.setUsername(user.getUsername());
                 author.setName(user.getName());

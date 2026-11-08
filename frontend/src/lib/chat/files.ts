@@ -1,6 +1,14 @@
 import { ApiError } from "@/lib/api/client";
 import { getAccessToken } from "@/lib/auth/session";
-import type { Attachment } from "./types";
+
+// Tệp đã được lưu thành tin nhắn trên server (khớp với CreatedFileMessage của chat-service).
+export type CreatedFile = {
+    id: string;
+    createdAt: string;
+    filename: string;
+    contentType: string;
+    size: number;
+};
 
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
@@ -57,16 +65,17 @@ async function authedFetch(path: string, init: RequestInit = {}): Promise<Respon
     return res;
 }
 
-export async function uploadFile(file: File): Promise<Attachment> {
-    const res = await authedFetch(
-        `/api/v1/chat/files?filename=${encodeURIComponent(file.name)}`,
-        {
-            method: "POST",
-            headers: { "Content-Type": file.type },
-            body: file,
-        },
-    );
-    return (await res.json()) as Attachment;
+// Tải tệp lên một cuộc trò chuyện (multipart, trường "file"). Server lưu thành tin nhắn
+// và trả về thông tin tệp. Việc phát tới người nhận làm qua WebSocket /chat/{id}/send_file.
+// Không tự đặt Content-Type: trình duyệt tự thêm boundary cho multipart.
+export async function uploadFile(chatId: string, file: File): Promise<CreatedFile> {
+    const form = new FormData();
+    form.append("file", file, file.name);
+    const res = await authedFetch(`/api/v1/chats/${encodeURIComponent(chatId)}/messages/file`, {
+        method: "POST",
+        body: form,
+    });
+    return (await res.json()) as CreatedFile;
 }
 
 // Tải tệp về dạng blob để gắn token. <img src> không gửi được header Authorization.

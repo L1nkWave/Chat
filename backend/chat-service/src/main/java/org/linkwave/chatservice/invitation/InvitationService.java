@@ -98,6 +98,16 @@ public class InvitationService {
             log.warn("cannot register membership in ws-server: {}", e.getMessage());
         }
 
+        try {
+            wsServiceClient.notifyMembership(
+                    invitee.bearer(),
+                    invitation.getChatId(),
+                    new WSServiceClient.MembershipNotification("JOIN", invitee.userId(), invitee.userId())
+            );
+        } catch (FeignException e) {
+            log.warn("cannot broadcast join in chat {}: {}", invitation.getChatId(), e.getMessage());
+        }
+
         invitation.setStatus(ACCEPTED);
         invitationRepository.save(invitation);
     }

@@ -9,7 +9,7 @@ const getServerSnapshot = () => false;
 
 export function ThemeToggle() {
     const { resolvedTheme, setTheme } = useTheme();
-    // Avoids a hydration mismatch: the resolved theme is unknown on the server
+    // Tránh lệch hydration: giao diện đang dùng chỉ biết được ở phía trình duyệt.
     const mounted = useSyncExternalStore(subscribe, getMountedSnapshot, getServerSnapshot);
     const isDark = resolvedTheme === "dark";
 
@@ -19,7 +19,8 @@ export function ThemeToggle() {
             disabled={!mounted}
             onClick={() => setTheme(isDark ? "light" : "dark")}
             aria-label={isDark ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"}
-            className="flex size-10 items-center justify-center rounded-full border border-line text-ink transition-colors hover:bg-sky/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50"
+            title={isDark ? "Giao diện sáng" : "Giao diện tối"}
+            className="grid size-10 place-items-center rounded-md text-muted transition-colors hover:bg-tint hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50"
         >
             {mounted && isDark ? <SunIcon /> : <MoonIcon />}
         </button>

@@ -1,5 +1,6 @@
 import { ApiError, apiFetch } from "@/lib/api/client";
 import { currentUserId } from "@/lib/auth/token";
+import type { CreatedFile } from "@/lib/chat/files";
 import type { Message } from "@/lib/chat/types";
 import {
     decodeFrame,
@@ -53,8 +54,8 @@ export class ChatSocket {
         return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
     }
 
-    // attachmentId chưa được hỗ trợ qua WebSocket; sẽ làm ở đợt gửi tệp
-    send(conversationId: string, text: string, _attachmentId?: string): boolean {
+    // Gửi tin chữ: server phát lại qua sự kiện MESSAGE.
+    send(conversationId: string, text: string): boolean {
         if (!this.isOpen() || !this.ws) return false;
         this.ws.send(
             encodeFrame(`/chat/${conversationId}/send`, {
@@ -62,6 +63,13 @@ export class ChatSocket {
                 text,
             }),
         );
+        return true;
+    }
+
+    // Báo server về tệp đã tải lên (REST). Server kiểm tra quyền rồi phát lại qua sự kiện FILE.
+    sendFile(conversationId: string, file: CreatedFile): boolean {
+        if (!this.isOpen() || !this.ws) return false;
+        this.ws.send(encodeFrame(`/chat/${conversationId}/send_file`, file));
         return true;
     }
 
@@ -151,20 +159,50 @@ export class ChatSocket {
                 this.handlers.onChatEvent({ type: "message", message });
                 return;
             }
+            case "FILE": {
+                // Tin nhắn tệp: id của tin cũng là id dùng để tải tệp (GET /messages/{id}/file)
+                const message: Message = {
+                    id: String(data.id),
+                    conversationId: String(data.chatId),
+                    senderId: String(data.senderId),
+                    senderName: "",
+                    text: "",
+                    time: String(data.timestamp),
+                    attachment: {
+                        id: String(data.id),
+                        filename: String(data.filename),
+                        contentType: String(data.contentType),
+                        size: Number(data.size),
+                    },
+                };
+                this.handlers.onChatEvent({ type: "message", message });
+                return;
+            }
             case "INVITATION":
                 this.handlers.onChatEvent({ type: "invitation" });
+                return;
+            case "KICK":
+                // Server gửi KICK cho cả nhóm và riêng người bị xóa (user:{memberId})
+                this.handlers.onChatEvent({
+                    type: "membership",
+                    conversationId: String(data.chatId),
+                    kicked: String(data.memberId) === currentUserId(),
+                });
                 return;
             case "JOIN":
             case "LEAVE":
             case "ADD":
-            case "KICK":
             case "SET_ROLE":
-                this.handlers.onChatEvent({ type: "membership", conversationId: String(data.chatId) });
+                this.handlers.onChatEvent({
+                    type: "membership",
+                    conversationId: String(data.chatId),
+                    kicked: false,
+                });
                 return;
             case "ERROR":
                 this.handlers.onError({
                     code: "ERROR",
-                    message: typeof data.error === "string" ? data.error : "Có lỗi xảy ra",
+                    message: "Có lỗi từ máy chủ chat. Vui lòng thử lại.",
                 });
                 return;
             default:

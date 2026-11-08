@@ -48,16 +48,21 @@ async function refreshAccessToken(): Promise<boolean> {
     return pendingRefresh;
 }
 
+// Thông báo của máy chủ là tiếng Anh, nên hiển thị theo mã lỗi bằng tiếng Việt.
+const STATUS_MESSAGES: Record<number, string> = {
+    400: "Thông tin gửi lên chưa hợp lệ. Vui lòng kiểm tra lại.",
+    401: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+    403: "Bạn không có quyền thực hiện thao tác này.",
+    404: "Không tìm thấy dữ liệu yêu cầu.",
+    409: "Dữ liệu đã tồn tại hoặc xung đột với dữ liệu khác.",
+    413: "Tệp quá lớn để tải lên.",
+    415: "Định dạng tệp không được hỗ trợ.",
+    429: "Bạn thao tác quá nhanh. Vui lòng đợi một lúc rồi thử lại.",
+};
+
 async function readErrorMessage(res: Response): Promise<string> {
-    try {
-        const data = (await res.json()) as { message?: string };
-        if (data.message) {
-            return data.message;
-        }
-    } catch {
-        // The body is not JSON; fall back to the generic message
-    }
-    return FALLBACK_ERROR;
+    if (res.status >= 500) return "Máy chủ đang gặp sự cố. Vui lòng thử lại sau.";
+    return STATUS_MESSAGES[res.status] ?? FALLBACK_ERROR;
 }
 
 export async function apiFetch<T>(path: string, init: ApiRequestInit = {}): Promise<T> {

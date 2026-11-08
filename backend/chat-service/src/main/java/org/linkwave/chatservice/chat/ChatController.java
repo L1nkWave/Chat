@@ -11,7 +11,10 @@ import org.linkwave.chatservice.chat.duo.NewChatRequest;
 import org.linkwave.chatservice.chat.group.GroupChatDetailsDto;
 import org.linkwave.chatservice.chat.group.GroupChatDto;
 import org.linkwave.chatservice.chat.group.NewGroupChatRequest;
+import org.linkwave.chatservice.api.ws.WSServiceClient;
 import org.linkwave.chatservice.chat.group.UpdateGroupChat;
+import org.linkwave.chatservice.common.RequestInitiator;
+import feign.FeignException;
 import org.linkwave.chatservice.common.ResourceNotFoundException;
 import org.linkwave.chatservice.common.UnacceptableRequestDataException;
 import org.springframework.data.util.Pair;
@@ -36,6 +39,7 @@ import static org.springframework.http.MediaType.*;
 public class ChatController {
 
     private final ChatService chatService;
+    private final WSServiceClient wsServiceClient;
 
     @GetMapping
     public List<ChatDto> getUserChats(@RequestParam int offset, @RequestParam int limit,
@@ -115,6 +119,19 @@ public class ChatController {
         return chatService.getChatsMembers(userDetails().id(), ids);
     }
 
+    // Phát sự kiện thành viên realtime qua ws-server để các client khác không cần tải lại
+    private void notifyMembership(String chatId, RequestInitiator initiator, String action, Long memberId) {
+        try {
+            wsServiceClient.notifyMembership(
+                    initiator.bearer(),
+                    chatId,
+                    new WSServiceClient.MembershipNotification(action, memberId, initiator.userId())
+            );
+        } catch (FeignException e) {
+            log.warn("cannot broadcast {} in chat {}: {}", action, chatId, e.getMessage());
+        }
+    }
+
     @PostMapping("/{id}/group/members")
     @ResponseStatus(CREATED)
     public ChatMemberDto joinGroupChat(@PathVariable String id, @NonNull HttpServletRequest request) {
@@ -123,21 +140,29 @@ public class ChatController {
 
     @DeleteMapping("/{id}/group/members")
     @ResponseStatus(NO_CONTENT)
-    public void leaveGroupChat(@PathVariable String id) {
-        chatService.removeGroupChatMember(userDetails().id(), id);
+    public void leaveGroupChat(@PathVariable String id, @NonNull HttpServletRequest request) {
+        final RequestInitiator initiator = requestInitiator(request);
+        chatService.removeGroupChatMember(initiator.userId(), id);
+        notifyMembership(id, initiator, "LEAVE", initiator.userId());
     }
 
     @DeleteMapping("/{id}/group/members/{memberId}")
     public ChatMemberDto removeMember(@PathVariable String id, @PathVariable Long memberId,
                                       @NonNull HttpServletRequest request) {
-        return chatService.removeGroupChatMember(id, requestInitiator(request), memberId);
+        final RequestInitiator initiator = requestInitiator(request);
+        final ChatMemberDto removed = chatService.removeGroupChatMember(id, initiator, memberId);
+        notifyMembership(id, initiator, "KICK", memberId);
+        return removed;
     }
 
     @RequestMapping(value = "/{id}/group/members/{memberId}/roles", method = {RequestMethod.PATCH, RequestMethod.POST})
     public void changeMemberRole(@PathVariable String id,
                                  @PathVariable Long memberId,
-                                 @RequestParam ChatRole role) {
-        chatService.changeMemberRole(id, userDetails().id(), memberId, role);
+                                 @RequestParam ChatRole role,
+                                 @NonNull HttpServletRequest request) {
+        final RequestInitiator initiator = requestInitiator(request);
+        chatService.changeMemberRole(id, initiator.userId(), memberId, role);
+        notifyMembership(id, initiator, "SET_ROLE", memberId);
     }
 
     @PatchMapping("/{id}/group")

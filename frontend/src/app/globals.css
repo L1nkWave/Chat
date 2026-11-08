@@ -3,29 +3,37 @@
 /* next-themes toggles the "dark" class on <html> */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Semantic tokens. Components use bg-paper, text-ink, ... and never raw hex values. */
+/*
+ * Bảng màu lấy từ logo SGU: navy #125582 cho chữ và hành động chính,
+ * xanh nhạt #75c7ef cho điểm nhấn, nền trắng xám rất nhạt.
+ * Components chỉ dùng token (bg-paper, text-ink, ...), không dùng mã hex trực tiếp.
+ */
 :root {
-    --paper: #f6f9fb;
+    --paper: #f5f8fa;
     --surface: #ffffff;
-    --ink: #0e2a40;
-    --muted: #4d6478;
-    --line: #d3e0ea;
-    --primary: #13578a;
+    --ink: #0d2538;
+    --muted: #4a6074;
+    --line: #d4e1ea;
+    --primary: #125582;
+    --primary-hover: #0c4066;
     --primary-ink: #ffffff;
-    --sky: #7dc4ee;
+    --sky: #75c7ef;
+    --tint: #e9f5fc;
     --danger: #b42318;
     color-scheme: light;
 }
 
 .dark {
     --paper: #0a1a27;
-    --surface: #112638;
+    --surface: #10263a;
     --ink: #e8f1f8;
     --muted: #9ab3c7;
     --line: #22405a;
-    --primary: #7dc4ee;
+    --primary: #75c7ef;
+    --primary-hover: #a6d9f5;
     --primary-ink: #0a1a27;
-    --sky: #1b4a6b;
+    --sky: #1d4c6e;
+    --tint: #17354d;
     --danger: #f97066;
     color-scheme: dark;
 }
@@ -37,10 +45,12 @@
     --color-muted: var(--muted);
     --color-line: var(--line);
     --color-primary: var(--primary);
+    --color-primary-hover: var(--primary-hover);
     --color-primary-ink: var(--primary-ink);
     --color-sky: var(--sky);
+    --color-tint: var(--tint);
     --color-danger: var(--danger);
-    --color-success: #2e9d6b;
+    --color-success: #2e7d5b;
 
     --font-sans: "Be Vietnam Pro", system-ui, sans-serif;
     --font-serif: "Noto Serif", Georgia, serif;
@@ -50,6 +60,7 @@
     html {
         background: var(--paper);
         color: var(--ink);
+        scrollbar-color: var(--line) transparent;
     }
 
     body {
@@ -60,13 +71,46 @@
         text-rendering: optimizeLegibility;
     }
 
+    /* Các phần trình duyệt tự vẽ cũng phải theo bảng màu */
     ::selection {
         background: var(--sky);
         color: var(--ink);
     }
 
-    input::placeholder {
+    input,
+    textarea {
+        caret-color: var(--primary);
+    }
+
+    :focus-visible {
+        outline: 2px solid var(--primary);
+        outline-offset: 2px;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
         color: var(--muted);
         opacity: 1;
+    }
+
+    ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: var(--line);
+        border-radius: 999px;
+        border: 3px solid transparent;
+        background-clip: content-box;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background-color: var(--muted);
+        background-clip: content-box;
     }
 }

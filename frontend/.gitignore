@@ -34,3 +34,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.idea
+.env
+.env.local
+
+# Khóa private không được đưa lên git. Chạy backend/scripts/gen-keys.ps1 để tạo khóa mới.
+# Khóa public vẫn được commit (chỉ dùng để xác thực).
+**/src/main/resources/keys/*private*.pem
+
+# Thư mục lưu file upload khi chạy local
+**/storage/

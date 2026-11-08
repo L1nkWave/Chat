@@ -28,6 +28,16 @@ public interface WSServiceClient {
     );
 
 
+    @PostMapping("/{chatId}/membership")
+    void notifyMembership(
+            @RequestHeader(AUTHORIZATION) String authHeader,
+            @PathVariable String chatId,
+            @RequestBody MembershipNotification notification
+    );
+
+    // action: JOIN | LEAVE | KICK | SET_ROLE
+    record MembershipNotification(String action, Long memberId, Long initiatorId) {}
+
     @PostMapping("/invitations")
     void notifyInvitation(
             @RequestHeader(AUTHORIZATION) String authHeader,

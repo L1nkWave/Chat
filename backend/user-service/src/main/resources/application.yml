@@ -42,4 +42,4 @@ spring:
         physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
 
 files:
-  storage-folder: 'D:\Files\storage'
+  storage-folder: '${FILE_STORAGE_FOLDER:./storage}'
