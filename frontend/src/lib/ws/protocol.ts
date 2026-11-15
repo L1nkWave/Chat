@@ -11,7 +11,10 @@ export type ChatEvent =
     | { type: "message"; message: Message }
     | { type: "invitation" }
     | { type: "membership"; conversationId: string; kicked: boolean }
-    | { type: "chatDeleted"; conversationId: string };
+    | { type: "chatDeleted"; conversationId: string }
+    | { type: "messageUpdated"; conversationId: string; messageId: string; text: string; editedAt?: string }
+    | { type: "messageRemoved"; conversationId: string; messageId: string; removedAt?: string }
+    | { type: "historyCleared"; conversationId: string };
 
 export type ErrorPayload = { code: string; message: string };
 

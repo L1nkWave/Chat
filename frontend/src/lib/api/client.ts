@@ -22,7 +22,7 @@ const FALLBACK_ERROR = "Có lỗi xảy ra, vui lòng thử lại.";
 // Shared promise so that parallel 401s trigger a single refresh call
 let pendingRefresh: Promise<boolean> | null = null;
 
-async function refreshAccessToken(): Promise<boolean> {
+export async function refreshAccessToken(): Promise<boolean> {
     if (!pendingRefresh) {
         pendingRefresh = (async () => {
             try {
@@ -62,6 +62,15 @@ const STATUS_MESSAGES: Record<number, string> = {
 
 async function readErrorMessage(res: Response): Promise<string> {
     if (res.status >= 500) return "Máy chủ đang gặp sự cố. Vui lòng thử lại sau.";
+    // Ưu tiên thông báo cụ thể của máy chủ (ví dụ "Bạn đã báo cáo tin nhắn này"), trừ 401 để giữ thông báo phiên hết hạn
+    if (res.status !== 401) {
+        try {
+            const body = (await res.json()) as { message?: unknown };
+            if (typeof body.message === "string" && body.message.trim()) return body.message;
+        } catch {
+            // Không phải JSON: dùng thông báo theo mã trạng thái
+        }
+    }
     return STATUS_MESSAGES[res.status] ?? FALLBACK_ERROR;
 }
 

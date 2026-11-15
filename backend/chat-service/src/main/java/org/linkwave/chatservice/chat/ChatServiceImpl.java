@@ -251,10 +251,23 @@ public class ChatServiceImpl implements ChatService {
         }
     }
 
+    /** Đoạn chat đã bị ẩn chỉ hiện lại khi có tin mới gửi sau mốc ẩn. */
+    private boolean isVisibleFor(Chat chat, Long userId) {
+        return chat.getMembers().stream()
+                .filter(member -> userId.equals(member.getId()))
+                .findFirst()
+                .map(member -> member.getHiddenBefore() == null
+                        || (chat.getLastMessage() != null
+                        && chat.getLastMessage().getCreatedAt().isAfter(member.getHiddenBefore())))
+                .orElse(true);
+    }
+
     @Override
     public Pair<Long, List<ChatDto>> getUserChats(@NonNull RequestInitiator initiator, int offset, int limit) {
 
-        final List<Chat> userChats = chatRepository.getUserChats(initiator.userId(), offset, limit);
+        final List<Chat> userChats = chatRepository.getUserChats(initiator.userId(), offset, limit).stream()
+                .filter(chat -> isVisibleFor(chat, initiator.userId()))
+                .toList();
         final long chatsTotalCount = chatRepository.getUserChatsTotalCount(initiator.userId());
 
         final Set<Long> usersIds = new HashSet<>();

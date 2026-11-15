@@ -72,7 +72,7 @@ public class JwtTokensRefreshFilter extends OncePerRequestFilter {
         }
 
         final Optional<Cookie> optionalCookie = Stream.of(request.getCookies() != null
-                ? request.getCookies() : new Cookie[0])
+                        ? request.getCookies() : new Cookie[0])
                 .filter(cookie -> cookie.getName().equals(REFRESH_TOKEN))
                 .findAny();
 
@@ -93,8 +93,10 @@ public class JwtTokensRefreshFilter extends OncePerRequestFilter {
                 throw new AccessDeniedException("You do not have permissions");
             }
 
-            // mark existing tokens as deactivated
-            tokenRepository.save(new DeactivatedToken(token.id(), token.expireAt()));
+            // đánh dấu token cũ đã dùng; nếu yêu cầu khác vừa dùng token này thì từ chối
+            if (tokenRepository.insertIfAbsent(token.id(), token.expireAt()) == 0) {
+                throw new BadCredentialsException("Refresh token is unavailable");
+            }
 
             // find user by username
             final var userDetails = userDetailsService.loadUserByUsername(token.username());

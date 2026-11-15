@@ -41,6 +41,13 @@ public class Message implements DtoConverter<MessageDto>, FetchMessageMapping {
 
     private boolean isRead;
 
+    /** Thời điểm tin bị xóa. Nội dung đã bị xóa khỏi tin, bản gốc nằm trong message_revisions. */
+    private Instant removedAt;
+
+    public void setRemovedAt(Instant removedAt) {
+        this.removedAt = removedAt;
+    }
+
     @Builder.Default
     private List<MessageReaction> reactions = new ArrayList<>();
 

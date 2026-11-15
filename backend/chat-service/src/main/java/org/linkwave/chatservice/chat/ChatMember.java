@@ -17,4 +17,11 @@ public class ChatMember {
     private ChatRole role;
     private Instant joinedAt;
 
+    /** Người này đã ẩn đoạn chat tại thời điểm này: chỉ thấy tin gửi sau mốc này. Null nghĩa là không ẩn. */
+    private Instant hiddenBefore;
+
+    public ChatMember(Long id, ChatRole role, Instant joinedAt) {
+        this(id, role, joinedAt, null);
+    }
+
 }

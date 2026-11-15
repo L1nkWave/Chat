@@ -15,6 +15,7 @@ public class MessageDto {
 
     private String id;
     private Instant createdAt;
+    private String text;
     private Author author;
 
     @Getter

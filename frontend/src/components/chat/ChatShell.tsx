@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { useRouter } from "next/navigation";
 import { Logo } from "@/components/brand/Logo";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
-import { apiFetch } from "@/lib/api/client";
+import { ApiError, apiFetch, refreshAccessToken } from "@/lib/api/client";
 import { logout } from "@/lib/auth/auth-api";
 import { setAccessToken } from "@/lib/auth/session";
 import { chatApi, errorMessage } from "@/lib/chat/api";
@@ -188,23 +188,15 @@ export function ChatShell() {
         if (id) void loadMessages(id);
     }, [loadConversations, loadInvitations, loadMessages]);
 
-    // Khôi phục phiên từ refresh cookie. Access token chỉ nằm trong bộ nhớ,
-    // nên sau khi tải lại trang phải xin token mới.
+    // Khôi phục phiên từ refresh cookie. Dùng chung promise làm mới với các request khác,
+    // nên chế độ StrictMode (chạy effect hai lần) không gửi cùng một refresh token hai lần.
     useEffect(() => {
         let cancelled = false;
-        apiFetch<TokensDto>("/api/v1/auth/refresh-tokens", {
-            method: "POST",
-            skipAuth: true,
-            skipRefresh: true,
-        })
-            .then((tokens) => {
-                if (cancelled) return;
-                setAccessToken(tokens.accessToken);
-                setReady(true);
-            })
-            .catch(() => {
-                if (!cancelled) router.replace("/login");
-            });
+        void refreshAccessToken().then((ok) => {
+            if (cancelled) return;
+            if (ok) setReady(true);
+            else router.replace("/login");
+        });
         return () => {
             cancelled = true;
         };
@@ -233,7 +225,11 @@ export function ChatShell() {
             });
             setConversations((prev) => {
                 const target = prev.find((c) => c.id === message.conversationId);
-                if (!target) return prev;
+                if (!target) {
+                    // Đoạn chat đã ẩn vừa có tin mới: tải lại danh sách để hiện lại
+                    void loadConversations();
+                    return prev;
+                }
                 const isOpen = activeIdRef.current === message.conversationId;
                 const isOwn = message.senderId === meRef.current;
                 const unread = isOpen || isOwn ? 0 : target.unread + 1;
@@ -254,6 +250,31 @@ export function ChatShell() {
             onChatEvent: (event: ChatEvent) => {
                 if (event.type === "message") {
                     receive(event.message);
+                } else if (event.type === "messageUpdated") {
+                    setMessages((prev) => ({
+                        ...prev,
+                        [event.conversationId]: (prev[event.conversationId] ?? []).map((m) =>
+                            m.id === event.messageId ? { ...m, text: event.text, edited: true, editedAt: event.editedAt ?? m.editedAt } : m,
+                        ),
+                    }));
+                } else if (event.type === "messageRemoved") {
+                    setMessages((prev) => ({
+                        ...prev,
+                        [event.conversationId]: (prev[event.conversationId] ?? []).map((m) =>
+                            m.id === event.messageId
+                                ? { ...m, text: "", removedAt: event.removedAt ?? new Date().toISOString() }
+                                : m,
+                        ),
+                    }));
+                } else if (event.type === "historyCleared") {
+                    // Đoạn chat bị ẩn ở phía mình: bỏ khỏi danh sách, không ảnh hưởng người khác
+                    setMessages((prev) => {
+                        const next = { ...prev };
+                        delete next[event.conversationId];
+                        return next;
+                    });
+                    setConversations((prev) => prev.filter((c) => c.id !== event.conversationId));
+                    setActiveId((current) => (current === event.conversationId ? null : current));
                 } else if (event.type === "invitation") {
                     void loadInvitations();
                 } else if (event.type === "chatDeleted") {
@@ -374,6 +395,45 @@ export function ChatShell() {
         if (!activeId) return;
         const sent = socketRef.current?.deleteGroup(activeId) ?? false;
         if (!sent) showNotice("Chưa kết nối được tới máy chủ. Vui lòng thử lại sau.", "error");
+    }
+
+    // Sửa, xóa tin và xóa đoạn chat qua WebSocket; server phát sự kiện tới các thành viên
+    function editMessage(messageId: string, text: string) {
+        const sent = socketRef.current?.editMessage(messageId, text) ?? false;
+        if (!sent) showNotice("Chưa kết nối được tới máy chủ. Vui lòng thử lại sau.", "error");
+    }
+
+    function removeMessage(messageId: string) {
+        const sent = socketRef.current?.removeMessage(messageId) ?? false;
+        if (!sent) showNotice("Chưa kết nối được tới máy chủ. Vui lòng thử lại sau.", "error");
+    }
+
+    function clearActiveHistory() {
+        if (!activeId) return;
+        if (!window.confirm("Ẩn đoạn chat này khỏi danh sách của bạn? Tin nhắn vẫn được giữ, đoạn chat sẽ hiện lại khi có tin mới.")) return;
+        // Ẩn ở phía mình ngay; phía đối phương không bị ảnh hưởng
+        const hiddenId = activeId;
+        setConversations((prev) => prev.filter((c) => c.id !== hiddenId));
+        setMessages((prev) => {
+            const next = { ...prev };
+            delete next[hiddenId];
+            return next;
+        });
+        setActiveId(null);
+        const sent = socketRef.current?.clearHistory(hiddenId) ?? false;
+        if (!sent) showNotice("Chưa kết nối được tới máy chủ. Vui lòng thử lại sau.", "error");
+    }
+
+    async function reportMessage(messageId: string, category: string, reason?: string) {
+        try {
+            await chatApi.reportMessage(messageId, category, reason);
+            showNotice("Đã gửi báo cáo. Cảm ơn bạn đã góp phần giữ môi trường học tập lành mạnh.", "info");
+        } catch (err) {
+            showNotice(
+                err instanceof ApiError ? err.message : "Không gửi được báo cáo. Vui lòng thử lại.",
+                "error",
+            );
+        }
     }
 
     function handleLeft() {
@@ -665,6 +725,15 @@ export function ChatShell() {
                                     </p>
                                 </div>
                             </div>
+                            {active.kind === "direct" && !active.pinned ? (
+                                <button
+                                    type="button"
+                                    onClick={clearActiveHistory}
+                                    className="hidden shrink-0 items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:bg-tint hover:text-ink lg:flex"
+                                >
+                                    Ẩn đoạn chat
+                                </button>
+                            ) : null}
                             {active.kind === "group" ? (
                                 <button
                                     type="button"
@@ -721,6 +790,9 @@ export function ChatShell() {
                                     messages={displayMessages}
                                     currentUserId={me}
                                     isGroup={active.kind === "group"}
+                                    onEdit={editMessage}
+                                    onRemove={removeMessage}
+                                    onReport={reportMessage}
                                     hasOlder={hasOlder[active.id] ?? false}
                                     loadingOlder={loadingOlder}
                                     onLoadOlder={() => void loadOlder()}

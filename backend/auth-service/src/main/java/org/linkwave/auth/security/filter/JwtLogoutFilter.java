@@ -61,8 +61,10 @@ public class JwtLogoutFilter extends OncePerRequestFilter {
                 throw new CredentialsExpiredException("Access token is unavailable");
             }
 
-            // mark tokens as deactivated by their id
-            tokenRepository.save(new DeactivatedToken(accessToken.id(), accessToken.expireAt()));
+            // đánh dấu token đã vô hiệu hóa; nếu yêu cầu khác vừa đăng xuất bằng token này thì từ chối
+            if (tokenRepository.insertIfAbsent(accessToken.id(), accessToken.expireAt()) == 0) {
+                throw new CredentialsExpiredException("Access token is unavailable");
+            }
 
             // clear cookie
             final var cookie = Cookies.createRefreshCookie("", -1);

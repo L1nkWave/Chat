@@ -95,6 +95,12 @@ export const chatApi = {
         return toConversation(chat);
     },
 
+    reportMessage: (messageId: string, category: string, reason?: string) =>
+        apiFetch<void>(`${BASE}/messages/${enc(messageId)}/report`, {
+            method: "POST",
+            body: JSON.stringify({ category, reason: reason ?? null }),
+        }),
+
     listInvitations: () => apiFetch<Invitation[]>(`${BASE}/invitations`),
 
     acceptInvitation: (id: string) =>

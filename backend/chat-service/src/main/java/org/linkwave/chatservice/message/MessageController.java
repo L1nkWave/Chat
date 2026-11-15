@@ -31,6 +31,10 @@ import static org.linkwave.chatservice.common.RequestUtils.userDetails;
 import static org.linkwave.shared.utils.Headers.TOTAL_COUNT;
 import static org.springframework.http.HttpStatus.*;
 import org.linkwave.chatservice.bot.BotService;
+import org.linkwave.chatservice.moderation.ModerationService;
+import java.util.Optional;
+import org.linkwave.chatservice.revision.MessageRevisionService;
+import org.linkwave.chatservice.revision.RevisionAction;
 
 @Slf4j
 @RestController
@@ -40,6 +44,8 @@ public class MessageController {
 
     private final MessageService messageService;
     private final BotService botService;
+    private final ModerationService moderationService;
+    private final MessageRevisionService messageRevisionService;
 
     @JsonView(New.class)
     @PostMapping("/{chatId}/messages")
@@ -55,8 +61,20 @@ public class MessageController {
     public MessageDto saveTextMessage(@PathVariable String chatId,
                                       @Valid @RequestBody NewTextMessage message,
                                       @NonNull HttpServletRequest request) {
-        final MessageDto sent = messageService.saveTextMessage(userDetails().id(), chatId, message);
-        botService.onUserMessage(requestInitiator(request), chatId, message.getText());
+        final Long senderId = userDetails().id();
+        final var initiator = requestInitiator(request);
+        final Optional<String> violation = moderationService.findViolation(message.getText());
+        final NewTextMessage toSave = violation.isPresent() ? new NewTextMessage(ModerationService.INVALID_TEXT) : message;
+
+        final MessageDto sent = messageService.saveTextMessage(senderId, chatId, toSave);
+        if (violation.isPresent()) {
+            moderationService.recordViolation(senderId, chatId);
+            messageRevisionService.record(RevisionAction.AUTO_BLOCKED, chatId, null, senderId, senderId, message.getText());
+            botService.warnUser(initiator, moderationService.warningFor(
+                    userDetails().username(), message.getText(), Instant.now()));
+        }
+        sent.setText(toSave.getText());
+        botService.onUserMessage(initiator, chatId, toSave.getText());
         return sent;
     }
 
@@ -127,7 +145,14 @@ public class MessageController {
     @RequestMapping(value = "/messages/{id}/text", method = {RequestMethod.PATCH, RequestMethod.POST})
     public UpdatedTextMessage editTextMessage(@PathVariable String id,
                                               @Valid @RequestBody EditTextMessage editMessage) {
-        return messageService.editTextMessage(userDetails().id(), id, editMessage);
+        final Long editorId = userDetails().id();
+        final Optional<String> violation = moderationService.findViolation(editMessage.getText());
+        final EditTextMessage toSave = violation.isPresent() ? new EditTextMessage(ModerationService.INVALID_TEXT) : editMessage;
+        if (violation.isPresent()) {
+            moderationService.recordViolation(editorId, id);
+            messageRevisionService.record(RevisionAction.AUTO_BLOCKED, null, id, editorId, editorId, editMessage.getText());
+        }
+        return messageService.editTextMessage(editorId, id, toSave);
     }
 
     @DeleteMapping("/messages/{id}")
@@ -138,6 +163,9 @@ public class MessageController {
     @DeleteMapping("/{chatId}/messages")
     @ResponseStatus(NO_CONTENT)
     public void clearMessages(@PathVariable String chatId) {
+        if (botService.isBotChat(chatId)) {
+            throw new UnacceptableRequestDataException("Không thể xóa đoạn chat với trợ lý hệ thống");
+        }
         messageService.clearMessages(userDetails().id(), chatId);
     }
 

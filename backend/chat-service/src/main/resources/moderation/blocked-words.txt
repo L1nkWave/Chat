@@ -1,0 +1,5 @@
+# Danh sách từ ngữ không phù hợp. Mỗi dòng một từ hoặc cụm từ.
+# Dòng bắt đầu bằng # là chú thích, bị bỏ qua.
+# Không cần viết hoa, không cần dấu: hệ thống tự chuẩn hóa khi kiểm tra.
+# Sau khi sửa file này, khởi động lại chat-service.
+thu-vi-test

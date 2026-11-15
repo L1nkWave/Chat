@@ -23,6 +23,12 @@ public class MessageDto {
     @JsonView({Detailed.class, New.class})
     private Instant createdAt;
 
+    @JsonView({Detailed.class, New.class})
+    private String text;
+
+    @JsonView({Detailed.class, New.class})
+    private Instant removedAt;
+
     @JsonView({Detailed.class})
     private MessageAuthorDto author;
 

@@ -23,6 +23,7 @@ import java.util.Set;
 
 import static java.util.stream.Collectors.toSet;
 import static org.linkwave.chatservice.common.RequestUtils.userDetails;
+import org.linkwave.chatservice.chat.duo.NewChatRequest;
 
 /**
  * Trợ lý hệ thống. Chỉ phản hồi trong chat 1-1 giữa người dùng và tài khoản bot.
@@ -117,6 +118,55 @@ public class BotService {
 
     private boolean allowed(Command command, Set<String> authorities) {
         return command.roles().isEmpty() || command.roles().stream().anyMatch(authorities::contains);
+    }
+
+    /** Gửi cảnh báo vào chat riêng với bot (tạo chat nếu chưa có). Không ném lỗi ra ngoài. */
+    public void warnUser(@NonNull RequestInitiator initiator, String text) {
+        try {
+            if (botUserId == null || botUserId == 0L) {
+                return;
+            }
+            final String chatId = findOrCreateBotChat(initiator);
+            final MessageDto sent = messageService.saveTextMessage(botUserId, chatId, new NewTextMessage(text));
+            wsClient.notifyBotMessage(initiator.bearer(), new BotMessageNotification(
+                    sent.getId(), chatId, botUserId, BOT_NAME, text, Instant.now().truncatedTo(ChronoUnit.MILLIS)));
+        } catch (RuntimeException e) {
+            log.warn("bot failed to send warning to user {}: {}", initiator.userId(), e.getMessage());
+        }
+    }
+
+    private String findOrCreateBotChat(RequestInitiator initiator) {
+        try {
+            return chatService.findChat(initiator.userId(), botUserId).getId();
+        } catch (ChatNotFoundException e) {
+            return chatService.createChat(initiator, new NewChatRequest(botUserId)).getId();
+        }
+    }
+
+    /** Cảnh báo người vi phạm theo quyết định của admin. Bỏ qua nếu người đó chưa có chat với bot. */
+    public void warnAuthor(Long authorId, String bearer, String text) {
+        try {
+            if (botUserId == null || botUserId == 0L || authorId == null) {
+                return;
+            }
+            final String chatId;
+            try {
+                chatId = chatService.findChat(authorId, botUserId).getId();
+            } catch (ChatNotFoundException e) {
+                log.warn("cannot warn author {}: no bot chat yet", authorId);
+                return;
+            }
+            final MessageDto sent = messageService.saveTextMessage(botUserId, chatId, new NewTextMessage(text));
+            wsClient.notifyBotMessage(bearer, new BotMessageNotification(
+                    sent.getId(), chatId, botUserId, BOT_NAME, text, Instant.now().truncatedTo(ChronoUnit.MILLIS)));
+        } catch (RuntimeException e) {
+            log.warn("bot failed to warn author {}: {}", authorId, e.getMessage());
+        }
+    }
+
+    /** Chat riêng với trợ lý hệ thống: không được xóa đoạn chat. */
+    public boolean isBotChat(String chatId) {
+        return botUserId != null && botUserId != 0L && isBotDuoChat(chatId);
     }
 
     private boolean isBotDuoChat(String chatId) {

@@ -20,6 +20,9 @@ export type BackendMessage = {
     filename?: string;
     contentType?: string;
     size?: number;
+    edited?: boolean;
+    editedAt?: string;
+    removedAt?: string;
 };
 
 export type BackendChat = {
@@ -98,7 +101,10 @@ export function toMessage(message: BackendMessage, conversationId: string): Mess
         conversationId,
         senderId: message.author ? String(message.author.id) : "",
         senderName: message.author?.name || message.author?.username || "",
-        text: message.action === "MESSAGE" ? message.text ?? "" : "",
+        text: message.removedAt ? "" : message.action === "MESSAGE" ? message.text ?? "" : "",
+        edited: message.edited ?? false,
+        editedAt: message.editedAt,
+        removedAt: message.removedAt,
         time: message.createdAt,
         attachment,
     };

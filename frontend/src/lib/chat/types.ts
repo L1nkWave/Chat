@@ -26,6 +26,9 @@ export type Message = {
     text: string;
     time: string;
     attachment?: Attachment | null;
+    edited?: boolean;
+    editedAt?: string;
+    removedAt?: string;
 };
 
 export type Invitation = {

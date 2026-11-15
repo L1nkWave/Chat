@@ -43,6 +43,9 @@ import static java.util.function.Predicate.not;
 import static java.util.stream.StreamSupport.stream;
 import static org.linkwave.chatservice.common.ListUtils.iterateChunks;
 import static org.linkwave.chatservice.message.Action.*;
+import org.linkwave.chatservice.chat.ChatMember;
+import org.linkwave.chatservice.revision.MessageRevisionService;
+import org.linkwave.chatservice.revision.RevisionAction;
 
 @Slf4j
 @Service
@@ -60,6 +63,7 @@ public class MessageServiceImpl implements MessageService {
     private final MessageRepository messageRepository;
     private final FileStorageService fileStorageService;
     private final ModelMapper modelMapper;
+    private final MessageRevisionService messageRevisionService;
 
     private Message createMessage(Long senderId, Instant creationTime, Action action) {
         final Message message = Message.builder()
@@ -225,6 +229,8 @@ public class MessageServiceImpl implements MessageService {
 
         final Chat chat = message.getChat();
         if (message instanceof TextMessage textMessage) {
+            messageRevisionService.record(RevisionAction.EDITED, chat.getId(), messageId,
+                    message.getAuthorId(), senderId, textMessage.getText());
             textMessage.setText(editTextMessage.getText());
             textMessage.setEditedAt(Instant.now());
             textMessage.setEdited(true);
@@ -266,7 +272,14 @@ public class MessageServiceImpl implements MessageService {
             chatService.updateChat(chat);
         }
 
-        messageRepository.delete(message);
+        messageRevisionService.record(RevisionAction.REMOVED, chat.getId(), messageId,
+                message.getAuthorId(), senderId,
+                message instanceof TextMessage removedText ? removedText.getText() : null);
+        message.setRemovedAt(Instant.now());
+        if (message instanceof TextMessage clearedText) {
+            clearedText.setText(null);
+        }
+        updateMessage(message);
 
         return RemovedMessage.builder()
                 .chatId(chat.getId())
@@ -285,10 +298,11 @@ public class MessageServiceImpl implements MessageService {
     @Transactional
     @Override
     public void clearMessages(Long senderId, String chatId) {
+        // Ẩn đoạn chat với riêng người này; tin nhắn vẫn được giữ trong database
         final Chat chat = chatService.findChat(chatId);
-        chatService.checkMemberRole(chat, senderId, ChatRole.ADMIN);
-        messageRepository.deleteAllChatMessages(chatId);
-        chat.setLastMessage(null);
+        final ChatMember member = chatService.findChatMember(senderId, chat)
+                .orElseThrow(PrivacyViolationException::new);
+        member.setHiddenBefore(Instant.now());
         chatService.updateChat(chat);
     }
 

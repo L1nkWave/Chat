@@ -80,6 +80,25 @@ export class ChatSocket {
         return true;
     }
 
+    // Route sửa tin nhận payload là chuỗi thuần (không phải JSON)
+    editMessage(messageId: string, text: string): boolean {
+        if (!this.isOpen() || !this.ws) return false;
+        this.ws.send(`path=/chat/edit_text_message/${encodeURIComponent(messageId)}\n\n${text}`);
+        return true;
+    }
+
+    removeMessage(messageId: string): boolean {
+        if (!this.isOpen() || !this.ws) return false;
+        this.ws.send(encodeFrame(`/chat/remove_message/${encodeURIComponent(messageId)}`, {}));
+        return true;
+    }
+
+    clearHistory(conversationId: string): boolean {
+        if (!this.isOpen() || !this.ws) return false;
+        this.ws.send(encodeFrame(`/chat/${encodeURIComponent(conversationId)}/clear_history`, {}));
+        return true;
+    }
+
     private async connect(gen: number) {
         this.handlers.onStatus(this.attempt === 0 ? "connecting" : "reconnecting");
 
@@ -211,6 +230,26 @@ export class ChatSocket {
                     type: "chatDeleted",
                     conversationId: String(data.chatId),
                 });
+                return;
+            case "UPD_MESSAGE":
+                this.handlers.onChatEvent({
+                    type: "messageUpdated",
+                    conversationId: String(data.chatId),
+                    messageId: String(data.id),
+                    text: typeof data.text === "string" ? data.text : "",
+                    editedAt: typeof data.timestamp === "string" ? data.timestamp : undefined,
+                });
+                return;
+            case "REMOVE":
+                this.handlers.onChatEvent({
+                    type: "messageRemoved",
+                    conversationId: String(data.chatId),
+                    messageId: String(data.id),
+                    removedAt: typeof data.timestamp === "string" ? data.timestamp : new Date().toISOString(),
+                });
+                return;
+            case "CLEAR_HISTORY":
+                this.handlers.onChatEvent({ type: "historyCleared", conversationId: String(data.chatId) });
                 return;
             case "ERROR":
                 this.handlers.onError({

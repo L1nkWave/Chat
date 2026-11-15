@@ -75,7 +75,7 @@ public class ChatRoutes {
                 .chatId(id)
                 .senderId(userId)
                 .senderName(messageDto.getAuthor() == null ? null : messageDto.getAuthor().getName())
-                .text(message.text())
+                .text(messageDto.getText())
                 .timestamp(messageDto.getCreatedAt())
                 .build());
     }
@@ -178,7 +178,6 @@ public class ChatRoutes {
                 .build());
     }
 
-    @Broadcast
     @Endpoint(value = "/{id}/clear_history", conditions = ChatMembership.class)
     public Box<ChatMessage> clearChatHistory(@PathVariable String id,
                                              @NonNull UserPrincipal principal,
