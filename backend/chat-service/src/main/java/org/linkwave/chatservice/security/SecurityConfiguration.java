@@ -35,6 +35,7 @@ public class SecurityConfiguration {
 
                 .authorizeHttpRequests(matcherRegistry -> matcherRegistry
                         .requestMatchers("/api/v*/chats/**").hasRole("USER")
+                        .requestMatchers("/api/v*/moderation/**").hasRole("USER")
                         .anyRequest().permitAll())
 
                 .with(jwtAuthConfigurer, configurer -> configurer

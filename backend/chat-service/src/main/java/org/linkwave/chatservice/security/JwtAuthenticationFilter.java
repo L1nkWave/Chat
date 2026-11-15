@@ -22,11 +22,14 @@ import java.io.IOException;
 import java.time.Instant;
 
 import static jakarta.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
 
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final RequestMatcher requestMatcher = PathPatternRequestMatcher.withDefaults().matcher("/api/v*/chats/**");
+    private final RequestMatcher requestMatcher = new OrRequestMatcher(
+            PathPatternRequestMatcher.withDefaults().matcher("/api/v*/chats/**"),
+            PathPatternRequestMatcher.withDefaults().matcher("/api/v*/moderation/**"));
     private final AuthenticationConverter authenticationConverter;
     private final ObjectMapper objectMapper;
 

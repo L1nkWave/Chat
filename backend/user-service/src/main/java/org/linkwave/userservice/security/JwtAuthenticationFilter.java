@@ -25,6 +25,7 @@ import java.util.List;
 import static jakarta.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
 import static org.springframework.http.HttpMethod.PATCH;
 import static org.springframework.http.HttpMethod.POST;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
 
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -35,7 +36,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             PathPatternRequestMatcher.withDefaults().matcher(POST, "/api/v1/users/{id}/online")
     );
 
-    private final RequestMatcher requestMatcher = PathPatternRequestMatcher.withDefaults().matcher("/api/v*/users/**");
+    private final RequestMatcher requestMatcher = new OrRequestMatcher(
+            PathPatternRequestMatcher.withDefaults().matcher("/api/v*/users/**"),
+            PathPatternRequestMatcher.withDefaults().matcher("/api/v*/admin/**"));
     private final AuthenticationConverter authenticationConverter;
     private final ObjectMapper objectMapper;
 

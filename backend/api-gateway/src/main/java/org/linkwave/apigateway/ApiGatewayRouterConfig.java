@@ -53,6 +53,15 @@ public class ApiGatewayRouterConfig {
                         .not(fn -> fn.path("/api/v1/users/{id}/online"))
                         .filters(f -> f.filter(authHeaderGatewayFilter))
                         .uri(USER_SERVICE.getUrl()))
+                // Quản trị (duyệt báo cáo, khóa tài khoản, nhật ký, vai trò): cần đăng nhập, quyền kiểm tra trong service
+                .route(r -> r
+                        .path("/api/v1/admin/**")
+                        .filters(f -> f.filter(authHeaderGatewayFilter))
+                        .uri(USER_SERVICE.getUrl()))
+                .route(r -> r
+                        .path("/api/v1/moderation/**")
+                        .filters(f -> f.filter(authHeaderGatewayFilter))
+                        .uri(CHAT_SERVICE.getUrl()))
                 .route(r -> r
                         .path("/api/v1/chats/**")
                         .filters(f -> f.filter(authHeaderGatewayFilter))
