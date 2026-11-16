@@ -37,7 +37,11 @@ public class ApiGatewayRouterConfig {
                         .path(
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/logout",
-                                "/api/v1/auth/refresh-tokens")
+                                "/api/v1/auth/refresh-tokens",
+                                "/api/v1/auth/2fa/setup",
+                                "/api/v1/auth/2fa/confirm",
+                                "/api/v1/auth/2fa/verify",
+                                "/api/v1/auth/2fa/disable")
                         .and()
                         .method(POST, GET, OPTIONS)
                         .uri(AUTH_SERVICE.getUrl())

@@ -20,6 +20,8 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.access.ExceptionTranslationFilter;
 import org.springframework.stereotype.Component;
+import org.linkwave.auth.security.totp.ChallengeService;
+import org.linkwave.auth.service.TwoFactorService;
 
 @Slf4j
 @Component
@@ -29,6 +31,8 @@ public class JwtAuthFiltersConfigurer extends AbstractHttpConfigurer<JwtAuthFilt
     private final ObjectMapper objectMapper;
     private final DeactivatedTokenRepository tokenRepository;
     private final UserDetailsService userDetailsService;
+    private final TwoFactorService twoFactorService;
+    private final ChallengeService challengeService;
 
     private AuthenticationManager authenticationManager;
     private JwtRefreshSerializer jwtRefreshSerializer;
@@ -45,8 +49,8 @@ public class JwtAuthFiltersConfigurer extends AbstractHttpConfigurer<JwtAuthFilt
         // setup filters
         final var jwtTokensInitializerFilter = new JwtTokensInitializerFilter(
                 objectMapper, authenticationManager,
-                jwtRefreshSerializer, jwtAccessSerializer
-        );
+                jwtRefreshSerializer, jwtAccessSerializer,
+                twoFactorService, challengeService);
 
         final var jwtTokensRefreshFilter = new JwtTokensRefreshFilter(
                 jwtRefreshSerializer, jwtAccessSerializer, jwtRefreshParser,

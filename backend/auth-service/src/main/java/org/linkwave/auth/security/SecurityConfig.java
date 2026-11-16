@@ -68,6 +68,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(c -> c
                         .requestMatchers(GET, "/actuator/health").permitAll()
                         .requestMatchers(GET, "/api/v1/auth/validate-token").permitAll()
+                        .requestMatchers("/api/v1/auth/2fa/**").permitAll()
                         .anyRequest().denyAll())
 
                 .apply(jwtAuthFiltersConfigurer)

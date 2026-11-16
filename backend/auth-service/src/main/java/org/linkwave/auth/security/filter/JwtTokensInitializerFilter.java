@@ -37,6 +37,10 @@ import java.time.Duration;
 import static jakarta.servlet.http.HttpServletResponse.SC_OK;
 import static org.linkwave.auth.security.utils.Cookies.createRefreshCookie;
 import static org.springframework.http.HttpHeaders.SET_COOKIE;
+import org.linkwave.auth.security.DefaultUserDetails;
+import org.linkwave.auth.security.totp.ChallengeService;
+import org.linkwave.auth.service.TwoFactorService;
+import java.util.Map;
 
 public class JwtTokensInitializerFilter extends OncePerRequestFilter {
 
@@ -50,6 +54,8 @@ public class JwtTokensInitializerFilter extends OncePerRequestFilter {
     private final AuthenticationManager authenticationManager;
     private final JwtRefreshSerializer jwtRefreshSerializer;
     private final JwtAccessSerializer jwtAccessSerializer;
+    private final TwoFactorService twoFactorService;
+    private final ChallengeService challengeService;
     private final AuthenticationEntryPoint authenticationEntryPoint;
     private final ObjectMapper objectMapper;
 
@@ -57,13 +63,17 @@ public class JwtTokensInitializerFilter extends OncePerRequestFilter {
     public JwtTokensInitializerFilter(ObjectMapper objectMapper,
                                       AuthenticationManager authenticationManager,
                                       JwtRefreshSerializer jwtRefreshSerializer,
-                                      JwtAccessSerializer jwtAccessSerializer) {
+                                      JwtAccessSerializer jwtAccessSerializer,
+                                      TwoFactorService twoFactorService,
+                                      ChallengeService challengeService) {
         this.objectMapper = objectMapper;
         this.authenticationConverter = new CredentialsAuthenticationConverter(objectMapper);
         this.authenticationEntryPoint = new UnAuthorizedAuthenticationEntryPoint(objectMapper);
         this.authenticationManager = authenticationManager;
         this.jwtRefreshSerializer = jwtRefreshSerializer;
         this.jwtAccessSerializer = jwtAccessSerializer;
+        this.twoFactorService = twoFactorService;
+        this.challengeService = challengeService;
     }
 
     @Override
@@ -107,6 +117,18 @@ public class JwtTokensInitializerFilter extends OncePerRequestFilter {
                     request, response,
                     new BadCredentialsException("Incorrect username or password")
             );
+            return;
+        }
+
+        // ADMIN/ROOT đã bật 2FA: chưa cấp token, chỉ trả về challenge ngắn hạn
+        if (authentication.getPrincipal() instanceof DefaultUserDetails user
+                && twoFactorService.isRequired(user.getId(), user.getAuthorities())) {
+            log.debug("-> doFilterInternal(): two-factor required");
+            response.setStatus(SC_OK);
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            objectMapper.writeValue(response.getOutputStream(), Map.of(
+                    "twoFactorRequired", true,
+                    "challenge", challengeService.issue(user.getId())));
             return;
         }
 
