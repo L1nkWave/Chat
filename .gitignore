@@ -7,3 +7,5 @@
 **/src/main/resources/keys/*.pem
 **/src/test/resources/keys/*.pem
 backend/*/storage/
+backend/test-chats.ps1
+frontend/scripts/mock-server.mjs
