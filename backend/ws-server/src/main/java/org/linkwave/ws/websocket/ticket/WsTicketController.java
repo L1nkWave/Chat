@@ -1,7 +1,9 @@
 package org.linkwave.ws.websocket.ticket;
 
 import lombok.RequiredArgsConstructor;
+import org.linkwave.shared.auth.Token;
 import org.linkwave.shared.auth.TokenParser;
+import org.linkwave.ws.lock.AccountLockService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,11 +22,12 @@ public class WsTicketController {
 
     private final TokenParser tokenParser;
     private final WsTicketService ticketService;
+    private final AccountLockService accountLockService;
 
     /**
      * Issues a single-use WebSocket ticket for the authenticated user.
      * The access token is validated here as well, so this endpoint is safe even when
-     * it is reached without the gateway.
+     * it is reached without the gateway. Tài khoản đang bị khóa không nhận vé mới.
      */
     @PostMapping
     public ResponseEntity<WsTicketResponse> issue(
@@ -35,8 +38,12 @@ public class WsTicketController {
         }
 
         final String token = authorization.substring(BEARER_PREFIX.length());
-        if (tokenParser.isInvalid(token)) {
+        final Token parsed = tokenParser.parse(token);
+        if (parsed == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid access token");
+        }
+        if (accountLockService.isLocked(parsed.userId())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Tài khoản đã bị khóa");
         }
 
         final String ticket = ticketService.issue(token);

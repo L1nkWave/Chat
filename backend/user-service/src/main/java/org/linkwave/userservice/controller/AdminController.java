@@ -20,7 +20,9 @@ import org.linkwave.userservice.repository.RoleCatalogRepository;
 import org.linkwave.userservice.repository.ScopedRoleRepository;
 import org.linkwave.userservice.repository.UserRepository;
 import org.linkwave.userservice.service.AccessPolicyService;
+import org.linkwave.userservice.service.AccountSessionService;
 import org.linkwave.userservice.service.AuditService;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -48,6 +50,7 @@ public class AdminController {
     private final RoleCatalogRepository roleRepository;
     private final PermissionRepository permissionRepository;
     private final ScopedRoleRepository scopedRoleRepository;
+    private final AccountSessionService accountSessions;
 
     public record CreateRoleRequest(
             @NotBlank @Pattern(regexp = "[A-Z][A-Z0-9_]{2,31}", message = "mã vai trò chỉ gồm chữ hoa, số, gạch dưới")
@@ -66,7 +69,7 @@ public class AdminController {
     @GetMapping("/audit")
     public List<AuditLogEntity> audit(@RequestParam(defaultValue = "0") int page,
                                       @RequestParam(defaultValue = "20") int size) {
-        access.require(currentUserId(), "audit.view", SCHOOL, null);
+        access.require(currentAdminId(), "audit.view", SCHOOL, null);
         return audit.list(page, size);
     }
 
@@ -86,7 +89,7 @@ public class AdminController {
     @PostMapping("/roles")
     @ResponseStatus(CREATED)
     public void createRole(@RequestBody @Valid CreateRoleRequest body, HttpServletRequest request) {
-        final Long actor = currentUserId();
+        final Long actor = currentAdminId();
         requireRoot(actor);
 
         final String name = "ROLE_" + body.code();
@@ -110,7 +113,7 @@ public class AdminController {
     @PostMapping("/users/{id}/roles")
     @ResponseStatus(CREATED)
     public void grantRole(@PathVariable Long id, @RequestBody @Valid GrantRoleRequest body, HttpServletRequest request) {
-        final Long actor = currentUserId();
+        final Long actor = currentAdminId();
         requireRoot(actor);
 
         if ((body.scopeType() == SCHOOL) != (body.scopeId() == null)) {
@@ -136,7 +139,7 @@ public class AdminController {
     @DeleteMapping("/roles/grants/{grantId}")
     @ResponseStatus(NO_CONTENT)
     public void revokeRole(@PathVariable Long grantId, HttpServletRequest request) {
-        final Long actor = currentUserId();
+        final Long actor = currentAdminId();
         requireRoot(actor);
 
         final ScopedRoleEntity grant = scopedRoleRepository.findById(grantId)
@@ -150,7 +153,7 @@ public class AdminController {
     }
 
     private void setBlocked(Long targetId, boolean blocked, String action, HttpServletRequest request) {
-        final Long actor = currentUserId();
+        final Long actor = currentAdminId();
         access.require(actor, "user.lock", SCHOOL, null);
         if (actor.equals(targetId)) {
             throw new UnacceptableRequestDataException("Không thể tự khóa hoặc mở khóa chính mình");
@@ -160,6 +163,8 @@ public class AdminController {
         final UserEntity user = findUser(targetId);
         user.setBlocked(blocked);
         userRepository.save(user);
+        // Đóng ngay các kết nối WebSocket đang mở của tài khoản (hoặc mở lại khi mở khóa)
+        accountSessions.setLocked(targetId, blocked);
         audit.record(actor, action, "USER", String.valueOf(targetId), null, ip(request));
     }
 
@@ -174,8 +179,17 @@ public class AdminController {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng"));
     }
 
-    private Long currentUserId() {
-        return ((DefaultUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).id();
+    /** Lấy ID người gọi. ADMIN/ROOT phải có cờ MFA_VERIFIED (đã bật và xác thực 2FA). */
+    private Long currentAdminId() {
+        final var authentication = SecurityContextHolder.getContext().getAuthentication();
+        final var authorities = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
+        final boolean privileged = authorities.contains("ROLE_ADMIN") || authorities.contains("ROLE_ROOT");
+        if (privileged && !authorities.contains("MFA_VERIFIED")) {
+            throw new ResponseStatusException(FORBIDDEN, "Cần bật và xác thực hai lớp trước khi dùng trang quản trị");
+        }
+        return ((DefaultUserDetails) authentication.getPrincipal()).id();
     }
 
     private String ip(HttpServletRequest request) {

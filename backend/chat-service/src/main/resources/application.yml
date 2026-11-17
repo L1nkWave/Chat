@@ -38,3 +38,8 @@ logging:
   level:
     org.linkwave.chatservice: DEBUG
     org.springframework.data.mongodb.core.MongoTemplate: DEBUG
+
+bot:
+  user-id: 10
+internal:
+  service-key: ${INTERNAL_SERVICE_KEY}

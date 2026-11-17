@@ -8,6 +8,8 @@ import org.linkwave.ws.repository.ChatRepository;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Set;
 
 import static org.springframework.http.HttpStatus.CREATED;
@@ -116,5 +118,30 @@ public class WSChatsController {
                 .getAuthentication()
                 .getPrincipal();
     }
+
+
+    // chat-service gọi khi tin bị gỡ: phát REMOVE tới mọi thành viên đang online
+    @PostMapping("/{chatId}/message-removed")
+    @ResponseStatus(NO_CONTENT)
+    public void notifyMessageRemoved(@PathVariable String chatId,
+                                     @RequestBody MessageRemovedNotification notification) {
+        final var message = OutcomeMessage.builder()
+                .action(Action.REMOVE)
+                .id(notification.messageId())
+                .chatId(chatId)
+                .senderId(notification.senderId())
+                .timestamp(Instant.now().truncatedTo(ChronoUnit.MILLIS))
+                .build();
+        messageDelegate.handleMessage(objectMapper.writeValueAsString(message));
+    }
+
+    // chat-service gọi khi tạo chat với bot cho người được cảnh báo: chỉ đăng ký nhận realtime
+    @PostMapping("/{chatId}/members/{memberId}")
+    @ResponseStatus(NO_CONTENT)
+    public void addMember(@PathVariable String chatId, @PathVariable Long memberId) {
+        chatRepository.addMember(memberId, chatId);
+    }
+
+    public record MessageRemovedNotification(String messageId, Long senderId) {}
 
 }

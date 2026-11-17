@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.chatservice.api.users.AccessDto;
 import org.linkwave.chatservice.api.users.UserServiceClient;
+import org.linkwave.chatservice.api.ws.WSServiceClient;
 import org.linkwave.chatservice.bot.BotService;
 import org.linkwave.chatservice.chat.ChatService;
 import org.linkwave.chatservice.common.BadRequestDataException;
@@ -19,6 +20,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
@@ -36,6 +39,7 @@ public class ReportService {
     private final ChatService chatService;
     private final UserServiceClient userServiceClient;
     private final BotService botService;
+    private final WSServiceClient wsServiceClient;
 
     /** Mọi thành viên đoạn chat đều được báo cáo tin của người khác, kể cả khi người gửi là admin hoặc giảng viên. */
     public void report(RequestInitiator reporter, String messageId, ReportRequest request) {
@@ -91,13 +95,18 @@ public class ReportService {
         }
 
         switch (request.decision()) {
-            case HIDE -> messageRepository.findById(report.getMessageId()).ifPresent(message -> {
-                message.setRemovedAt(Instant.now());
-                if (message instanceof TextMessage textMessage) {
-                    textMessage.setText(null);
-                }
-                messageRepository.save(message);
-            });
+            case HIDE -> {
+                messageRepository.findById(report.getMessageId()).ifPresent(message -> {
+                    message.setRemovedAt(Instant.now());
+                    if (message instanceof TextMessage textMessage) {
+                        textMessage.setText(null);
+                    }
+                    messageRepository.save(message);
+                });
+                notifyRemoved(admin, report);
+                // Gỡ nội dung luôn kèm cảnh báo gửi tới tác giả
+                botService.warnAuthor(report.getAuthorId(), admin.bearer(), warningText(report, request.note()));
+            }
             case WARN -> botService.warnAuthor(report.getAuthorId(), admin.bearer(), warningText(report, request.note()));
             case DISMISS -> { }
         }
@@ -120,7 +129,7 @@ public class ReportService {
 
     private String warningText(MessageReport report, String note) {
         final StringBuilder sb = new StringBuilder("Cảnh báo từ quản trị: tin nhắn của bạn lúc ")
-                .append(report.getMessageCreatedAt())
+                .append(formatTime(report.getMessageCreatedAt()))
                 .append(" đã vi phạm quy định cộng đồng và được xử lý.");
         if (report.getMessageText() != null) {
             final String quoted = report.getMessageText().length() > 200
@@ -134,4 +143,21 @@ public class ReportService {
         return sb.toString();
     }
 
+
+    private void notifyRemoved(RequestInitiator admin, MessageReport report) {
+        try {
+            wsServiceClient.notifyMessageRemoved(admin.bearer(), report.getChatId(),
+                    new WSServiceClient.MessageRemovedNotification(report.getMessageId(), report.getAuthorId()));
+        } catch (RuntimeException e) {
+            log.warn("cannot push removal of message {}: {}", report.getMessageId(), e.getMessage());
+        }
+    }
+
+
+    private static final DateTimeFormatter WARNING_TIME =
+            DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm").withZone(ZoneId.of("Asia/Ho_Chi_Minh"));
+
+    private static String formatTime(Instant instant) {
+        return instant == null ? "không rõ thời điểm" : WARNING_TIME.format(instant);
+    }
 }

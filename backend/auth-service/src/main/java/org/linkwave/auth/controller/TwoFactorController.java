@@ -99,7 +99,8 @@ public class TwoFactorController {
         }
 
         final var authentication = new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities());
-        final Token refreshToken = refreshTokenFactory.build(authentication);
+        final Token refreshToken = org.linkwave.auth.security.utils.TokenAuthorities.withMfa(
+                refreshTokenFactory.build(authentication), true);
         final Token accessToken = accessTokenFactory.build(refreshToken);
         final ResponseCookie cookie = createRefreshCookie(
                 refreshSerializer.serialize(refreshToken),

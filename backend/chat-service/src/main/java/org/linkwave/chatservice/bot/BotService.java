@@ -42,7 +42,7 @@ public class BotService {
     private final WSServiceClient wsClient;
 
     /** ID tài khoản bot trong bảng users. 0 nghĩa là tắt bot. */
-    @Value("${BOT_USER_ID:0}")
+    @Value("${bot.user-id:0}")
     private Long botUserId;
 
     /** Lệnh và vai trò được phép. Tập rỗng nghĩa là mọi tài khoản đều dùng được. */
@@ -149,18 +149,23 @@ public class BotService {
             if (botUserId == null || botUserId == 0L || authorId == null) {
                 return;
             }
-            final String chatId;
-            try {
-                chatId = chatService.findChat(authorId, botUserId).getId();
-            } catch (ChatNotFoundException e) {
-                log.warn("cannot warn author {}: no bot chat yet", authorId);
-                return;
-            }
+            final String chatId = findOrCreateBotChat(authorId, bearer);
             final MessageDto sent = messageService.saveTextMessage(botUserId, chatId, new NewTextMessage(text));
             wsClient.notifyBotMessage(bearer, new BotMessageNotification(
                     sent.getId(), chatId, botUserId, BOT_NAME, text, Instant.now().truncatedTo(ChronoUnit.MILLIS)));
         } catch (RuntimeException e) {
             log.warn("bot failed to warn author {}: {}", authorId, e.getMessage());
+        }
+    }
+
+    /** Chưa có chat với bot thì tạo, rồi đăng ký người đó nhận realtime. */
+    private String findOrCreateBotChat(Long userId, String bearer) {
+        try {
+            return chatService.findChat(userId, botUserId).getId();
+        } catch (ChatNotFoundException e) {
+            final String chatId = chatService.createBotChat(userId, botUserId).getId();
+            wsClient.addMember(bearer, chatId, userId);
+            return chatId;
         }
     }
 

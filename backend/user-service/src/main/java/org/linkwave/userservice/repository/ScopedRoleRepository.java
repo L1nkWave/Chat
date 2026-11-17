@@ -19,4 +19,14 @@ public interface ScopedRoleRepository extends JpaRepository<ScopedRoleEntity, Lo
             """)
     List<ScopedRoleEntity> findActiveByUserId(@Param("userId") Long userId);
 
+    // Mọi lần cấp theo phạm vi còn hiệu lực, dùng cho màn hình tổng quan vai trò
+    @Query("""
+            select s from ScopedRoleEntity s
+            join fetch s.role r
+            join fetch s.user u
+            left join fetch r.permissions
+            where s.revokedAt is null
+            """)
+    List<ScopedRoleEntity> findAllActive();
+
 }

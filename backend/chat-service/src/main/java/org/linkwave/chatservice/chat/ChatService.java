@@ -219,4 +219,8 @@ public interface ChatService {
      * @param chatId group chat identification for remove avatar
      */
     void deleteGroupChatAvatar(String chatId);
+
+    /** Tạo chat 1-1 với bot cho người dùng. Không đăng ký realtime, không kiểm tra người gọi. */
+    Chat createBotChat(Long userId, Long botId);
+
 }

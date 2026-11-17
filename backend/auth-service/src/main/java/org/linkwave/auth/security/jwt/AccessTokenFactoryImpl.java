@@ -11,7 +11,8 @@ import static org.linkwave.auth.security.utils.TokenAuthorities.AUTHORITY_PREFIX
 
 public class AccessTokenFactoryImpl implements AccessTokenFactory {
 
-    private final Duration duration = Duration.ofMinutes(10);
+    // Ngắn để tài khoản bị khóa tối đa 5 phút vẫn còn gọi được API (khi ws-server không kịp ngắt phiên)
+    private final Duration duration = Duration.ofMinutes(5);
 
     @Override
     public Token build(@NonNull Token refreshToken) {

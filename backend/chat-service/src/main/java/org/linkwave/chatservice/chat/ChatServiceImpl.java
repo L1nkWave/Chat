@@ -774,4 +774,22 @@ public class ChatServiceImpl implements ChatService {
         updateChat(chat);
     }
 
+
+    @Override
+    public Chat createBotChat(Long userId, Long botId) {
+        return txnTemplate.execute(txnStatus -> {
+            final Instant now = Instant.now();
+            userService.createUserIfNeed(userId);
+            userService.createUserIfNeed(botId);
+            final List<ChatMember> members = List.of(
+                    new ChatMember(userId, ADMIN, now),
+                    new ChatMember(botId, ADMIN, now)
+            );
+            return chatRepository.save(Chat.builder()
+                    .members(members)
+                    .createdAt(now)
+                    .build());
+        });
+    }
+
 }

@@ -51,4 +51,23 @@ public interface WSServiceClient {
             @RequestBody BotMessageNotification notification
     );
 
+
+    // Phát realtime khi tin bị gỡ (qua báo cáo), để mọi thành viên thấy ngay
+    @PostMapping("/{chatId}/message-removed")
+    void notifyMessageRemoved(
+            @RequestHeader(AUTHORIZATION) String authHeader,
+            @PathVariable String chatId,
+            @RequestBody MessageRemovedNotification notification
+    );
+
+    record MessageRemovedNotification(String messageId, Long senderId) {}
+
+    // Đăng ký một thành viên nhận realtime cho đoạn chat, không phát tin nào
+    @PostMapping("/{chatId}/members/{memberId}")
+    void addMember(
+            @RequestHeader(AUTHORIZATION) String authHeader,
+            @PathVariable String chatId,
+            @PathVariable Long memberId
+    );
+
 }

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 import static org.linkwave.chatservice.common.RequestUtils.requestInitiator;
+import static org.linkwave.chatservice.common.RequestUtils.requireMfaIfPrivileged;
 import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.NO_CONTENT;
 
@@ -31,6 +32,7 @@ public class ReportController {
     public List<MessageReport> listOpen(@RequestParam(defaultValue = "0") int page,
                                         @RequestParam(defaultValue = "20") int size,
                                         @NonNull HttpServletRequest request) {
+        requireMfaIfPrivileged();
         return reportService.listOpen(requestInitiator(request), page, size);
     }
 
@@ -39,6 +41,7 @@ public class ReportController {
     public void resolve(@PathVariable String reportId,
                         @RequestBody @Valid ResolveRequest body,
                         @NonNull HttpServletRequest request) {
+        requireMfaIfPrivileged();
         reportService.resolve(requestInitiator(request), reportId, body);
     }
 

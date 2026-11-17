@@ -46,3 +46,7 @@ files:
 
 app:
   registration-enabled: ${REGISTRATION_ENABLED:false}
+
+# Khóa dùng chung với ws-server (biến môi trường INTERNAL_SERVICE_KEY, tối thiểu 32 ký tự)
+internal:
+  service-key: ${INTERNAL_SERVICE_KEY}

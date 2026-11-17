@@ -101,8 +101,15 @@ public class JwtTokensRefreshFilter extends OncePerRequestFilter {
             // find user by username
             final var userDetails = userDetailsService.loadUserByUsername(token.username());
 
+            // tài khoản bị khóa hoặc xóa thì không gia hạn phiên nữa
+            if (!userDetails.isEnabled()) {
+                throw new CredentialsExpiredException("Tài khoản đã bị khóa hoặc đã bị xóa");
+            }
+
             // create a new pair of tokens
-            final Token newRefreshToken = refreshTokenFactory.refreshWith(token, userDetails.getAuthorities());
+            final Token newRefreshToken = org.linkwave.auth.security.utils.TokenAuthorities.withMfa(
+                    refreshTokenFactory.refreshWith(token, userDetails.getAuthorities()),
+                    token.authorities().contains(org.linkwave.auth.security.utils.TokenAuthorities.MFA_VERIFIED));
             final Token accessToken = accessTokenFactory.build(newRefreshToken);
             final String serializedRefreshToken = jwtRefreshSerializer.serialize(newRefreshToken);
 

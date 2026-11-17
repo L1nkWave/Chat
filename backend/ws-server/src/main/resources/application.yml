@@ -34,6 +34,10 @@ ws:
       send-time-limit: 2000
       buffer-size-limit: 10240
 
+# Khóa dùng chung giữa ws-server và user-service (biến môi trường INTERNAL_SERVICE_KEY, tối thiểu 32 ký tự)
+internal:
+  service-key: ${INTERNAL_SERVICE_KEY}
+
 logging:
   level:
     org.linkwave.ws: DEBUG

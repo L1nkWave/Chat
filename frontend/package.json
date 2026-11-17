@@ -15,12 +15,14 @@
     "@fontsource/noto-serif": "^5",
     "next": "^16",
     "next-themes": "^0",
+    "qrcode": "^1.5.4",
     "react": "^19",
     "react-dom": "^19"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^22",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
