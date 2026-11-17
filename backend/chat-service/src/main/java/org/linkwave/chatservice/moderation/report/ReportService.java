@@ -24,6 +24,12 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
@@ -40,6 +46,7 @@ public class ReportService {
     private final UserServiceClient userServiceClient;
     private final BotService botService;
     private final WSServiceClient wsServiceClient;
+    private final MongoTemplate mongoTemplate;
 
     /** Mọi thành viên đoạn chat đều được báo cáo tin của người khác, kể cả khi người gửi là admin hoặc giảng viên. */
     public void report(RequestInitiator reporter, String messageId, ReportRequest request) {
@@ -78,12 +85,79 @@ public class ReportService {
         log.info("report: reporter={} message={} category={}", reporterId, messageId, request.category());
     }
 
-    public List<MessageReport> listOpen(RequestInitiator viewer, int page, int size) {
+    static final int MAX_PAGE_SIZE = 100;
+    private static final ZoneId VN = ZoneId.of("Asia/Ho_Chi_Minh");
+
+    /** Tìm báo cáo theo bộ lọc, phân trang, mới nhất trước. Cần moderation.view. */
+    public ReportPage search(RequestInitiator viewer, ReportFilter filter, int page, int size) {
         requirePermission(viewer, VIEW_PERMISSION);
-        final Page<MessageReport> result = reportRepository.findByStatus(
-                ReportStatus.OPEN, PageRequest.of(page, Math.min(size, 100), Sort.by("reportedAt")));
-        log.info("moderation: viewer={} listed open reports page={}", viewer.userId(), page);
-        return result.getContent();
+        final int safePage = Math.max(page, 0);
+        final int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+        if (filter.from() != null && filter.to() != null && filter.from().isAfter(filter.to())) {
+            throw new BadRequestDataException("Ngày bắt đầu không được sau ngày kết thúc");
+        }
+
+        final List<Criteria> parts = new ArrayList<>();
+        final ReportStatus status = parseStatus(filter.status());
+        if (status != null) {
+            parts.add(Criteria.where("status").is(status));
+        }
+        if (filter.category() != null && !filter.category().isBlank()) {
+            parts.add(Criteria.where("category").is(parseCategory(filter.category())));
+        }
+        if (filter.authorId() != null) {
+            parts.add(Criteria.where("authorId").is(filter.authorId()));
+        }
+        if (filter.reporterId() != null) {
+            parts.add(Criteria.where("reporterId").is(filter.reporterId()));
+        }
+        if (filter.from() != null || filter.to() != null) {
+            final Criteria time = Criteria.where("reportedAt");
+            if (filter.from() != null) {
+                time.gte(filter.from().atStartOfDay(VN).toInstant());
+            }
+            if (filter.to() != null) {
+                time.lt(filter.to().plusDays(1).atStartOfDay(VN).toInstant());
+            }
+            parts.add(time);
+        }
+        if (filter.q() != null && !filter.q().isBlank()) {
+            // Pattern.quote: ký tự đặc biệt trong từ khóa được coi là chữ thường
+            parts.add(Criteria.where("messageText").regex(Pattern.quote(filter.q().trim()), "i"));
+        }
+
+        final Query query = parts.isEmpty()
+                ? new Query()
+                : new Query(new Criteria().andOperator(parts.toArray(new Criteria[0])));
+        final long total = mongoTemplate.count(query, MessageReport.class);
+        final List<MessageReport> items = mongoTemplate.find(
+                query.with(PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "reportedAt"))),
+                MessageReport.class);
+        log.info("moderation: viewer={} searched reports status={} page={} total={}",
+                viewer.userId(), filter.status(), safePage, total);
+        return new ReportPage(items, total, safePage, safeSize);
+    }
+
+    private static ReportStatus parseStatus(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return ReportStatus.OPEN;
+        }
+        if (raw.equalsIgnoreCase("ALL")) {
+            return null;
+        }
+        try {
+            return ReportStatus.valueOf(raw.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestDataException("Trạng thái không hợp lệ: " + raw);
+        }
+    }
+
+    private static ReportCategory parseCategory(String raw) {
+        try {
+            return ReportCategory.valueOf(raw.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestDataException("Loại báo cáo không hợp lệ: " + raw);
+        }
     }
 
     public void resolve(RequestInitiator admin, String reportId, ResolveRequest request) {

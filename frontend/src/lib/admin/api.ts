@@ -17,6 +17,9 @@ export type ModerationReport = {
     messageCreatedAt: string | null;
     reportedAt: string;
     status: "OPEN" | "RESOLVED";
+    decision?: ResolveDecision | null;
+    resolutionNote?: string | null;
+    resolvedAt?: string | null;
 };
 
 export type AuditEntry = {
@@ -47,8 +50,35 @@ export function adminErrorMessage(err: unknown): string {
 }
 
 // Báo cáo tin nhắn (chat-service)
-export function listOpenReports(page: number, size: number): Promise<ModerationReport[]> {
-    return apiFetch<ModerationReport[]>(`/api/v1/moderation/reports?page=${page}&size=${size}`);
+export type ReportStatusFilter = "OPEN" | "RESOLVED" | "ALL";
+
+export type ReportFilter = {
+    status: ReportStatusFilter;
+    category: ReportCategory | "";
+    authorId: number | null;
+    reporterId: number | null;
+    /** yyyy-mm-dd, chuỗi rỗng nghĩa là không lọc */
+    from: string;
+    to: string;
+    q: string;
+};
+
+export type ReportPage = {
+    items: ModerationReport[];
+    total: number;
+    page: number;
+    size: number;
+};
+
+export function searchReports(filter: ReportFilter, page: number, size: number): Promise<ReportPage> {
+    const params = new URLSearchParams({ status: filter.status, page: String(page), size: String(size) });
+    if (filter.category) params.set("category", filter.category);
+    if (filter.authorId != null) params.set("authorId", String(filter.authorId));
+    if (filter.reporterId != null) params.set("reporterId", String(filter.reporterId));
+    if (filter.from) params.set("from", filter.from);
+    if (filter.to) params.set("to", filter.to);
+    if (filter.q.trim()) params.set("q", filter.q.trim());
+    return apiFetch<ReportPage>(`/api/v1/moderation/reports?${params.toString()}`);
 }
 
 export function resolveReport(reportId: string, decision: ResolveDecision, note?: string): Promise<void> {

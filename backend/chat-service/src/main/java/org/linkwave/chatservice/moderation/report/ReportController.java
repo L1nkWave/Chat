@@ -12,6 +12,7 @@ import static org.linkwave.chatservice.common.RequestUtils.requestInitiator;
 import static org.linkwave.chatservice.common.RequestUtils.requireMfaIfPrivileged;
 import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.NO_CONTENT;
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -29,11 +30,19 @@ public class ReportController {
     }
 
     @GetMapping("/moderation/reports")
-    public List<MessageReport> listOpen(@RequestParam(defaultValue = "0") int page,
-                                        @RequestParam(defaultValue = "20") int size,
-                                        @NonNull HttpServletRequest request) {
+    public ReportPage search(@RequestParam(defaultValue = "OPEN") String status,
+                             @RequestParam(required = false) String category,
+                             @RequestParam(required = false) Long authorId,
+                             @RequestParam(required = false) Long reporterId,
+                             @RequestParam(required = false) LocalDate from,
+                             @RequestParam(required = false) LocalDate to,
+                             @RequestParam(required = false) String q,
+                             @RequestParam(defaultValue = "0") int page,
+                             @RequestParam(defaultValue = "20") int size,
+                             @NonNull HttpServletRequest request) {
         requireMfaIfPrivileged();
-        return reportService.listOpen(requestInitiator(request), page, size);
+        return reportService.search(requestInitiator(request),
+                new ReportFilter(status, category, authorId, reporterId, from, to, q), page, size);
     }
 
     @PostMapping("/moderation/reports/{reportId}/resolve")
