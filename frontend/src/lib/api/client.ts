@@ -1,4 +1,4 @@
-import { getAccessToken, setAccessToken } from "@/lib/auth/session";
+import { getAccessToken, setAccessToken, setPasswordChangeRequired } from "@/lib/auth/session";
 
 export class ApiError extends Error {
     readonly status: number;
@@ -34,8 +34,9 @@ export async function refreshAccessToken(): Promise<boolean> {
                     setAccessToken(null);
                     return false;
                 }
-                const body = (await res.json()) as { accessToken: string };
+                const body = (await res.json()) as { accessToken: string; passwordChangeRequired?: boolean };
                 setAccessToken(body.accessToken);
+                setPasswordChangeRequired(body.passwordChangeRequired === true);
                 return true;
             } catch {
                 setAccessToken(null);

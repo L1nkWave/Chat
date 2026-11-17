@@ -1,9 +1,10 @@
 import { ApiError, apiFetch } from "@/lib/api/client";
-import { setAccessToken } from "@/lib/auth/session";
+import { setAccessToken, setPasswordChangeRequired } from "@/lib/auth/session";
 
 type TokensResponse = {
     refreshExpiration: string;
     accessToken: string;
+    passwordChangeRequired?: boolean;
 };
 
 type LoginResponse = Partial<TokensResponse> & {
@@ -40,6 +41,7 @@ export async function login(username: string, password: string): Promise<LoginRe
         throw new Error("Phản hồi đăng nhập không hợp lệ");
     }
     setAccessToken(body.accessToken);
+    setPasswordChangeRequired(body.passwordChangeRequired === true);
     return { kind: "signedIn" };
 }
 
@@ -52,6 +54,7 @@ export async function verifyTwoFactor(challenge: string, code: string): Promise<
         skipRefresh: true,
     });
     setAccessToken(body.accessToken);
+    setPasswordChangeRequired(body.passwordChangeRequired === true);
 }
 
 /** Tạo bí mật mới. Cần access token của ADMIN/ROOT. */
@@ -101,6 +104,16 @@ export async function register(input: RegisterInput): Promise<void> {
         skipAuth: true,
         skipRefresh: true,
     });
+}
+
+/** Đổi mật khẩu. Máy chủ thu hồi mọi phiên và xóa cookie refresh, nên người dùng phải đăng nhập lại. */
+export async function changePassword(oldPassword: string, newPassword: string): Promise<void> {
+    await apiFetch<void>("/api/v1/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify({ oldPassword, newPassword }),
+    });
+    setAccessToken(null);
+    setPasswordChangeRequired(false);
 }
 
 export async function logout(): Promise<void> {

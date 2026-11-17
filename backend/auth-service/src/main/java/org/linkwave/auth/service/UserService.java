@@ -48,7 +48,7 @@ public class UserService {
     @Transactional
     public void logoutAllDevices(Long userId) {
         final User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
-        user.setTokensValidAfter(Instant.now().truncatedTo(ChronoUnit.SECONDS));
+        user.setTokensValidAfter(revocationMark());
     }
 
     @Transactional(readOnly = true)
@@ -85,7 +85,12 @@ public class UserService {
 
         user.setPassword(passwordEncoder.encode(newRawPassword));
         user.setMustChangePassword(false);
-        user.setTokensValidAfter(Instant.now().truncatedTo(ChronoUnit.SECONDS));
+        user.setTokensValidAfter(revocationMark());
+    }
+
+    /** Mốc thu hồi làm tròn lên một giây: iat chỉ có độ chính xác đến giây nên refresh token cấp trong cùng giây trước đó vẫn bị thu hồi. */
+    private static Instant revocationMark() {
+        return Instant.now().truncatedTo(ChronoUnit.SECONDS).plusSeconds(1);
     }
 
     private static void validateNewPassword(String username, String newPassword) {

@@ -22,17 +22,6 @@ export type ModerationReport = {
     resolvedAt?: string | null;
 };
 
-export type AuditEntry = {
-    id: number;
-    actorId: number;
-    action: string;
-    targetType: string | null;
-    targetId: string | null;
-    detail: string | null;
-    ip: string | null;
-    createdAt: string;
-};
-
 export type AccessInfo = {
     userId: number;
     level: number;
@@ -93,11 +82,6 @@ export function getUsersByIds(ids: number[]): Promise<UserInfo[]> {
     if (ids.length === 0) return Promise.resolve([]);
     const query = [...new Set(ids)].map((id) => `usersIds=${id}`).join("&");
     return apiFetch<UserInfo[]>(`/api/v1/users/batch?${query}`);
-}
-
-// Nhật ký hệ thống (user-service)
-export function listAudit(page: number, size: number): Promise<AuditEntry[]> {
-    return apiFetch<AuditEntry[]>(`/api/v1/admin/audit?page=${page}&size=${size}`);
 }
 
 export function getAccess(userId: number): Promise<AccessInfo> {

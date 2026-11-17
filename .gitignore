@@ -9,3 +9,7 @@
 backend/*/storage/
 backend/test-chats.ps1
 frontend/scripts/mock-server.mjs
+
+*.txt
+login.json
+register.json

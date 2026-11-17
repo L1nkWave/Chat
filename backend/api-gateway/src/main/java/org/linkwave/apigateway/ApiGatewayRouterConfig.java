@@ -38,6 +38,7 @@ public class ApiGatewayRouterConfig {
                                 "/api/v1/auth/login",
                                 "/api/v1/auth/logout",
                                 "/api/v1/auth/logout-all",
+                                "/api/v1/auth/change-password",
                                 "/api/v1/auth/refresh-tokens",
                                 "/api/v1/auth/2fa/setup",
                                 "/api/v1/auth/2fa/confirm",

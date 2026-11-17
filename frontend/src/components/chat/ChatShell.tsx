@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Logo } from "@/components/brand/Logo";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { ApiError, apiFetch, refreshAccessToken } from "@/lib/api/client";
+import { isPasswordChangeRequired } from "@/lib/auth/session";
 import { logout } from "@/lib/auth/auth-api";
 import { setAccessToken } from "@/lib/auth/session";
 import { chatApi, errorMessage } from "@/lib/chat/api";
@@ -194,8 +195,15 @@ export function ChatShell() {
         let cancelled = false;
         void refreshAccessToken().then((ok) => {
             if (cancelled) return;
-            if (ok) setReady(true);
-            else router.replace("/login");
+            if (!ok) {
+                router.replace("/login");
+                return;
+            }
+            if (isPasswordChangeRequired()) {
+                router.replace("/change-password");
+                return;
+            }
+            setReady(true);
         });
         return () => {
             cancelled = true;
