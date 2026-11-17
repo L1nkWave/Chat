@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 
+import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.LinkedList;
 import java.util.List;
@@ -40,6 +41,9 @@ public class User {
     @ColumnDefault("false")
     @Column(nullable = false)
     private boolean isOnline;
+
+    /** Mốc đăng xuất tất cả thiết bị: refresh token được cấp trước mốc này sẽ bị từ chối */
+    private Instant tokensValidAfter;
 
     @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE default now()")
     @Builder.Default

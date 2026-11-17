@@ -3,6 +3,7 @@ package org.linkwave.auth.security;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.auth.service.UserService;
+import org.linkwave.auth.repository.UserRepository;
 import org.linkwave.shared.auth.JwtAccessParser;
 import org.linkwave.shared.auth.JwtAccessSerializer;
 import org.linkwave.auth.security.jwt.JwtRefreshParser;
@@ -90,8 +91,11 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationManager authenticationManager(@NonNull AuthenticationConfiguration configuration,
-                                                       LoginAttemptService loginAttemptService) throws Exception {
-        return new ThrottledAuthenticationManager(configuration.getAuthenticationManager(), loginAttemptService);
+                                                       LoginAttemptService loginAttemptService,
+                                                       UserRepository userRepository,
+                                                       PasswordEncoder passwordEncoder) throws Exception {
+        return new ThrottledAuthenticationManager(configuration.getAuthenticationManager(),
+                loginAttemptService, userRepository, passwordEncoder);
     }
 
     @Bean

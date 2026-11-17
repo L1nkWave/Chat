@@ -11,6 +11,7 @@ import org.linkwave.auth.dto.TokensDto;
 import org.linkwave.auth.entity.DeactivatedToken;
 import org.linkwave.auth.repository.DeactivatedTokenRepository;
 import org.linkwave.auth.security.jwt.*;
+import org.linkwave.auth.service.UserService;
 import org.linkwave.shared.auth.JwtAccessSerializer;
 import org.linkwave.shared.dto.ApiError;
 import org.springframework.http.HttpMethod;
@@ -49,16 +50,18 @@ public class JwtTokensRefreshFilter extends OncePerRequestFilter {
     private final DeactivatedTokenRepository tokenRepository;
     private final ObjectMapper objectMapper;
     private final UserDetailsService userDetailsService;
+    private final UserService userService;
 
     public JwtTokensRefreshFilter(JwtRefreshSerializer jwtRefreshSerializer, JwtAccessSerializer jwtAccessSerializer,
                                   JwtRefreshParser jwtRefreshParser, DeactivatedTokenRepository tokenRepository,
-                                  ObjectMapper objectMapper, UserDetailsService userDetailsService) {
+                                  ObjectMapper objectMapper, UserDetailsService userDetailsService, UserService userService) {
         this.jwtRefreshSerializer = jwtRefreshSerializer;
         this.jwtAccessSerializer = jwtAccessSerializer;
         this.jwtRefreshParser = jwtRefreshParser;
         this.tokenRepository = tokenRepository;
         this.objectMapper = objectMapper;
         this.userDetailsService = userDetailsService;
+        this.userService = userService;
     }
 
     @Override
@@ -104,6 +107,11 @@ public class JwtTokensRefreshFilter extends OncePerRequestFilter {
             // tài khoản bị khóa hoặc xóa thì không gia hạn phiên nữa
             if (!userDetails.isEnabled()) {
                 throw new CredentialsExpiredException("Tài khoản đã bị khóa hoặc đã bị xóa");
+            }
+
+            // đã đăng xuất tất cả thiết bị sau khi token này được cấp thì từ chối
+            if (userService.isRevokedSince(token.userId(), token.createdAt())) {
+                throw new CredentialsExpiredException("Phiên đăng nhập đã bị thu hồi");
             }
 
             // create a new pair of tokens

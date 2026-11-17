@@ -22,11 +22,11 @@ function waitForMongoDB(timeout) {
   }
 }
 
-// Initialize replica set
+// Initialize replica set: member phải là tên service để các container khác kết nối được
 rs.initiate({
   _id: "rs0",
   members: [
-    { _id: 0, host: "localhost:27017" }
+    { _id: 0, host: "chat-db:27017" }
   ]
 });
 

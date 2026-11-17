@@ -2,7 +2,7 @@
 **/.idea
 **/.vscode
 **/*.iml
-**/storage
+*/storage
 .git
 .env
 .env.*

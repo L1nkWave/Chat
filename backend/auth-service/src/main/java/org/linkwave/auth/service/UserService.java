@@ -13,7 +13,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -41,6 +43,22 @@ public class UserService {
         user.setUsername(null);
         user.setOnline(false);
         user.setLastSeen(ZonedDateTime.now());
+    }
+
+    @Transactional
+    public void logoutAllDevices(Long userId) {
+        final User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+        user.setTokensValidAfter(Instant.now().truncatedTo(ChronoUnit.SECONDS));
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isRevokedSince(Long userId, Instant issuedAt) {
+        final User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            return true;
+        }
+        final Instant validAfter = user.getTokensValidAfter();
+        return validAfter != null && issuedAt.isBefore(validAfter);
     }
 
 }

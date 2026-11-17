@@ -1,17 +1,23 @@
 package org.linkwave.auth.security;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Locale;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Đếm số lần đăng nhập sai theo tên đăng nhập, lưu trong bộ nhớ.
+ * Đếm số lần đăng nhập sai theo tên đăng nhập, lưu trong Redis.
  * Sai MAX_FAILURES lần trong vòng WINDOW thì tạm khóa đăng nhập LOCK_DURATION.
- * Vì lưu trong bộ nhớ nên chỉ áp dụng đúng khi chạy một bản auth-service.
+ * Trạng thái nằm trong Redis nên vẫn còn hiệu lực khi auth-service khởi động lại
+ * và áp dụng đúng khi chạy nhiều bản auth-service.
+ *
+ * Nếu Redis không truy cập được thì bỏ qua việc giới hạn (fail-open) và ghi log,
+ * để lỗi Redis không chặn toàn bộ đăng nhập.
  */
+@Slf4j
 @Component
 public class LoginAttemptService {
 
@@ -19,52 +25,61 @@ public class LoginAttemptService {
     static final Duration WINDOW = Duration.ofMinutes(15);
     static final Duration LOCK_DURATION = Duration.ofMinutes(15);
 
-    private final ConcurrentHashMap<String, Attempts> attempts = new ConcurrentHashMap<>();
+    private static final String FAIL_PREFIX = "auth:login:fail:";
+    private static final String LOCK_PREFIX = "auth:login:lock:";
+
+    private final StringRedisTemplate redis;
+
+    public LoginAttemptService(StringRedisTemplate redis) {
+        this.redis = redis;
+    }
 
     /** Thời gian còn lại của lần khóa, Duration.ZERO nếu không bị khóa. */
     public Duration lockedFor(String username) {
-        final String key = key(username);
-        final Attempts current = attempts.get(key);
-        if (current == null || current.lockedUntil == null) {
+        try {
+            final Long ttl = redis.getExpire(LOCK_PREFIX + key(username));
+            if (ttl == null || ttl <= 0) {
+                return Duration.ZERO;
+            }
+            return Duration.ofSeconds(ttl);
+        } catch (DataAccessException e) {
+            log.error("-> lockedFor(): không truy cập được Redis, bỏ qua giới hạn đăng nhập: {}", e.getMessage());
             return Duration.ZERO;
         }
-        final Duration remaining = Duration.between(Instant.now(), current.lockedUntil);
-        if (remaining.isZero() || remaining.isNegative()) {
-            attempts.remove(key, current);
-            return Duration.ZERO;
-        }
-        return remaining;
     }
 
     public void recordFailure(String username) {
-        attempts.compute(key(username), (k, current) -> {
-            final Instant now = Instant.now();
-            final Attempts attempt = (current == null || current.windowStart.plus(WINDOW).isBefore(now))
-                    ? new Attempts(now)
-                    : current;
-            attempt.failures++;
-            if (attempt.failures >= MAX_FAILURES) {
-                attempt.lockedUntil = now.plus(LOCK_DURATION);
+        final String user = key(username);
+        try {
+            final Long failures = redis.opsForValue().increment(FAIL_PREFIX + user);
+            if (failures == null) {
+                return;
             }
-            return attempt;
-        });
+            if (failures == 1L) {
+                // Bắt đầu cửa sổ đếm: sau WINDOW thì bộ đếm tự hết hạn
+                redis.expire(FAIL_PREFIX + user, WINDOW);
+            }
+            if (failures >= MAX_FAILURES) {
+                redis.opsForValue().set(LOCK_PREFIX + user, "1", LOCK_DURATION);
+                redis.delete(FAIL_PREFIX + user);
+                log.warn("-> recordFailure(): tài khoản {} bị khóa tạm {} phút", user, LOCK_DURATION.toMinutes());
+            }
+        } catch (DataAccessException e) {
+            log.error("-> recordFailure(): không truy cập được Redis, không ghi nhận lần sai: {}", e.getMessage());
+        }
     }
 
     public void reset(String username) {
-        attempts.remove(key(username));
+        final String user = key(username);
+        try {
+            redis.delete(FAIL_PREFIX + user);
+            redis.delete(LOCK_PREFIX + user);
+        } catch (DataAccessException e) {
+            log.error("-> reset(): không truy cập được Redis: {}", e.getMessage());
+        }
     }
 
     private static String key(String username) {
         return username == null ? "" : username.trim().toLowerCase(Locale.ROOT);
-    }
-
-    private static final class Attempts {
-        private final Instant windowStart;
-        private int failures;
-        private Instant lockedUntil;
-
-        private Attempts(Instant windowStart) {
-            this.windowStart = windowStart;
-        }
     }
 }

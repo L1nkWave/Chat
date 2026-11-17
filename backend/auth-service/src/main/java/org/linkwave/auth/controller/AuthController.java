@@ -41,7 +41,7 @@ public class AuthController {
             final var token = accessParser.parse(authHeader.substring(7));
             if (token == null || tokenRepository.existsById(token.id())) {
                 return ResponseEntity.status(UNAUTHORIZED)
-                        .body(apiError.message("Invalid access token").build());
+                        .body(apiError.status(UNAUTHORIZED.value()).message("Invalid access token").build());
             }
 
             return noContent().build();

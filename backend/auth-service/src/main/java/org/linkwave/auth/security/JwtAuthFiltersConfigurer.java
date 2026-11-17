@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.auth.repository.DeactivatedTokenRepository;
 import org.linkwave.auth.security.filter.JwtDeleteUserFilter;
+import org.linkwave.auth.security.filter.JwtLogoutAllFilter;
 import org.linkwave.auth.security.filter.JwtLogoutFilter;
 import org.linkwave.auth.security.filter.JwtTokensInitializerFilter;
 import org.linkwave.auth.security.filter.JwtTokensRefreshFilter;
@@ -54,10 +55,11 @@ public class JwtAuthFiltersConfigurer extends AbstractHttpConfigurer<JwtAuthFilt
 
         final var jwtTokensRefreshFilter = new JwtTokensRefreshFilter(
                 jwtRefreshSerializer, jwtAccessSerializer, jwtRefreshParser,
-                tokenRepository, objectMapper, userDetailsService
+                tokenRepository, objectMapper, userDetailsService, userService
         );
 
         final var jwtLogoutFilter = new JwtLogoutFilter(objectMapper, jwtAccessParser, tokenRepository);
+        final var jwtLogoutAllFilter = new JwtLogoutAllFilter(objectMapper, jwtAccessParser, tokenRepository, userService);
 
         final var jwtDeleteUserFilter = new JwtDeleteUserFilter(objectMapper, jwtAccessParser, userService);
 
@@ -65,6 +67,7 @@ public class JwtAuthFiltersConfigurer extends AbstractHttpConfigurer<JwtAuthFilt
         builder.addFilterBefore(jwtTokensInitializerFilter, ExceptionTranslationFilter.class);
         builder.addFilterBefore(jwtTokensRefreshFilter, ExceptionTranslationFilter.class);
         builder.addFilterBefore(jwtLogoutFilter, ExceptionTranslationFilter.class);
+        builder.addFilterBefore(jwtLogoutAllFilter, ExceptionTranslationFilter.class);
         builder.addFilterBefore(jwtDeleteUserFilter, ExceptionTranslationFilter.class);
     }
 

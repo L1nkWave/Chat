@@ -1,9 +1,12 @@
-version: '3.9'
 services:
 
   discovery-service:
     container_name: "discovery-service"
-    build: discovery-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: discovery-service
     ports:
       - "8761:8761"
     healthcheck:
@@ -28,12 +31,17 @@ services:
       POSTGRES_USER: $DB_USER
       POSTGRES_PASSWORD: $USERS_DB_PASSWORD
     volumes:
+      - users-db-data:/var/lib/postgresql/data
       - ./user-service/src/main/resources/docker-init/users_db.sql:/docker-entrypoint-initdb.d/user_db.sql
     restart: unless-stopped
 
   user-service:
     container_name: "user-service"
-    build: user-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: user-service
     ports:
       - "8082:8082"
     depends_on:
@@ -55,16 +63,24 @@ services:
         "spring.jpa.properties.hibernate.show_sql": true,
         "spring.jpa.hibernate.ddl-auto": "update",
         "eureka.client.service-url.defaultZone": "$DISCOVERY_URL",
+        "eureka.instance.prefer-ip-address": false,
+        "eureka.instance.hostname": "user-service",
         "files.storage-folder": "/media"
       }'
 
   auth-service:
     container_name: "auth-service"
-    build: auth-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: auth-service
     ports:
       - "8081:8081"
     depends_on:
       user-service:
+        condition: service_healthy
+      redis-sessions:
         condition: service_healthy
     healthcheck:
       test: [ "CMD", "wget", "-qO-", "http://localhost:8081/actuator/health" ]
@@ -78,7 +94,11 @@ services:
         "spring.datasource.username": "$DB_USER",
         "spring.datasource.password": "$USERS_DB_PASSWORD",
         "spring.jpa.hibernate.ddl-auto": "update",
-        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL"
+        "spring.data.redis.host": "redis-sessions",
+        "spring.data.redis.port": 6379,
+        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL",
+        "eureka.instance.prefer-ip-address": false,
+        "eureka.instance.hostname": "auth-service"
       }'
 
   chat-db:
@@ -96,22 +116,41 @@ services:
       timeout: 5s
       retries: 3
     volumes:
-      - ./chat-service/src/main/resources/docker-init/mongo_rs_init.js:/docker-entrypoint-initdb.d/mongo_rs_init.js
+      - chat-db-data:/data/db
+
+  mongo-init:
+    container_name: "mongo-init"
+    image: mongo:7.0
+    depends_on:
+      chat-db:
+        condition: service_healthy
+    restart: "no"
+    command: >
+      mongosh --host chat-db --port 27017 --quiet --eval
+      "try { rs.status(); print('rs0 da ton tai') } catch (e) { printjson(rs.initiate({_id:'rs0', members:[{_id:0, host:'chat-db:27017'}]})) }"
 
   chat-service:
     container_name: 'chat-service'
-    build: chat-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: chat-service
     ports:
       - "8083:8083"
     depends_on:
       chat-db:
         condition: service_healthy
+      mongo-init:
+        condition: service_completed_successfully
     env_file: .env
     environment:
       SPRING_APPLICATION_JSON: '{
         "eureka.client.service-url.defaultZone": "$DISCOVERY_URL",
+        "eureka.instance.prefer-ip-address": false,
+        "eureka.instance.hostname": "chat-service",
         "files.storage-folder": "/media",
-        "spring.data.mongodb.uri": "$CHAT_DB_URL"
+        "spring.mongodb.uri": "$CHAT_DB_URL"
       }'
 
   redis-sessions:
@@ -119,9 +158,6 @@ services:
     image: redis:7.2.4-alpine
     ports:
       - "16379:6379"
-    depends_on:
-      auth-service:
-        condition: service_healthy
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
@@ -134,7 +170,11 @@ services:
 
   ws-server-1:
     container_name: "ws-server"
-    build: ws-server
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: ws-server
     ports:
       - "9090:9090"
     depends_on:
@@ -143,14 +183,20 @@ services:
     env_file: .env
     environment:
       SPRING_APPLICATION_JSON: '{
-        "spring.data.redis.host": "host.docker.internal",
-        "spring.data.redis.port": 16379,
-        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL"
+        "spring.data.redis.host": "redis-sessions",
+        "spring.data.redis.port": 6379,
+        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL",
+        "eureka.instance.prefer-ip-address": false,
+        "eureka.instance.hostname": "ws-server"
       }'
 
   ws-server-2:
     container_name: "ws-server-2"
-    build: ws-server
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: ws-server
     ports:
       - "9091:9091"
     depends_on:
@@ -162,14 +208,20 @@ services:
         "server.port": 9091,
         "server.id": "E2",
         "server.instances.list": "E1",
-        "spring.data.redis.host": "host.docker.internal",
-        "spring.data.redis.port": 16379,
-        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL"
+        "spring.data.redis.host": "redis-sessions",
+        "spring.data.redis.port": 6379,
+        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL",
+        "eureka.instance.prefer-ip-address": false,
+        "eureka.instance.hostname": "ws-server-2"
       }'
 
   api-gateway:
     container_name: "api-gateway"
-    build: api-gateway
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODULE: api-gateway
     ports:
       - "8080:8080"
     depends_on:
@@ -179,5 +231,11 @@ services:
     environment:
       SPRING_APPLICATION_JSON: '{
         "eureka.client.service-url.defaultZone": "$DISCOVERY_URL",
+        "eureka.instance.prefer-ip-address": false,
+        "eureka.instance.hostname": "api-gateway",
         "spring.cloud.gateway.globalcors.cors-configurations.[/**].allowedOrigins": "$ORIGINS"
       }'
+
+volumes:
+  users-db-data:
+  chat-db-data:

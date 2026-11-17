@@ -1,6 +1,13 @@
 package org.linkwave.userservice.security;
 
 import tools.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.linkwave.shared.dto.ApiError;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import java.io.IOException;
+import java.time.Instant;
 import org.linkwave.shared.auth.BearerAuthenticationConverter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,6 +54,14 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/v*/users/**").hasRole("USER")
                         .anyRequest().authenticated())
 
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint((request, response, ex) -> writeError(
+                                objectMapper, request, response, HttpStatus.UNAUTHORIZED,
+                                "Thiếu hoặc sai access token"))
+                        .accessDeniedHandler((request, response, ex) -> writeError(
+                                objectMapper, request, response, HttpStatus.FORBIDDEN,
+                                "Không có quyền truy cập")))
+
                 .apply(jwtAuthConfigurer)
                 .setAuthenticationConverter(authenticationConverter)
                 .setObjectMapper(objectMapper);
@@ -62,6 +77,14 @@ public class SecurityConfiguration {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    private static void writeError(ObjectMapper objectMapper, HttpServletRequest request,
+                                   HttpServletResponse response, HttpStatus status, String message) throws IOException {
+        response.setStatus(status.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        objectMapper.writeValue(response.getOutputStream(), new ApiError(
+                request.getRequestURI(), message, status.value(), Instant.now()));
     }
 
 }

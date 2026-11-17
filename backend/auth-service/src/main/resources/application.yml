@@ -19,6 +19,12 @@ spring:
   application:
     name: 'auth-service'
 
+  data:
+    redis:
+      host: 'localhost'
+      port: 16379
+      timeout: 1s
+
   datasource:
     url: 'jdbc:postgresql://localhost:15432/lw-users'
     username: 'postgres'
