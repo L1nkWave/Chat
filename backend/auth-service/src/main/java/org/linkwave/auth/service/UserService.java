@@ -61,4 +61,43 @@ public class UserService {
         return validAfter != null && issuedAt.isBefore(validAfter);
     }
 
+    @Transactional(readOnly = true)
+    public boolean requiresPasswordChange(Long userId) {
+        return userRepository.findById(userId).map(User::isMustChangePassword).orElse(false);
+    }
+
+    /**
+     * Đổi mật khẩu: kiểm tra chính sách mật khẩu mới, xác nhận mật khẩu cũ, rồi ghi mật khẩu mới.
+     * Mọi phiên cũ bị thu hồi (qua mốc tokensValidAfter), người dùng phải đăng nhập lại.
+     */
+    @Transactional
+    public void changePassword(Long userId, String oldRawPassword, String newRawPassword) {
+        final User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+
+        validateNewPassword(user.getUsername(), newRawPassword);
+
+        if (!passwordEncoder.matches(oldRawPassword, user.getPassword())) {
+            throw new BadCredentialsException("Mật khẩu cũ không đúng");
+        }
+        if (passwordEncoder.matches(newRawPassword, user.getPassword())) {
+            throw new IllegalArgumentException("Mật khẩu mới phải khác mật khẩu cũ");
+        }
+
+        user.setPassword(passwordEncoder.encode(newRawPassword));
+        user.setMustChangePassword(false);
+        user.setTokensValidAfter(Instant.now().truncatedTo(ChronoUnit.SECONDS));
+    }
+
+    private static void validateNewPassword(String username, String newPassword) {
+        if (newPassword.length() < 8 || newPassword.length() > 64) {
+            throw new IllegalArgumentException("Mật khẩu mới phải có từ 8 đến 64 ký tự");
+        }
+        if (!newPassword.matches(".*[A-Za-z].*") || !newPassword.matches(".*\\d.*")) {
+            throw new IllegalArgumentException("Mật khẩu mới phải có cả chữ và số");
+        }
+        if (username != null && newPassword.equalsIgnoreCase(username)) {
+            throw new IllegalArgumentException("Mật khẩu mới không được trùng tên đăng nhập");
+        }
+    }
+
 }

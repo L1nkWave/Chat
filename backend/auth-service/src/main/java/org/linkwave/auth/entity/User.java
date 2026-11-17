@@ -45,6 +45,11 @@ public class User {
     /** Mốc đăng xuất tất cả thiết bị: refresh token được cấp trước mốc này sẽ bị từ chối */
     private Instant tokensValidAfter;
 
+    /** Tài khoản do trường cấp hoặc được reset: phải đổi mật khẩu ở lần đăng nhập tiếp theo */
+    @ColumnDefault("false")
+    @Column(nullable = false)
+    private boolean mustChangePassword;
+
     @Column(nullable = false, columnDefinition = "TIMESTAMP WITH TIME ZONE default now()")
     @Builder.Default
     private ZonedDateTime lastSeen = now().plusSeconds(1L);

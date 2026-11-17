@@ -131,7 +131,8 @@ public class JwtTokensRefreshFilter extends OncePerRequestFilter {
             response.setStatus(SC_OK);
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
-            final var tokensDto = new TokensDto(newRefreshToken.expireAt(), jwtAccessSerializer.serialize(accessToken));
+            final var tokensDto = new TokensDto(newRefreshToken.expireAt(), jwtAccessSerializer.serialize(accessToken),
+                    userService.requiresPasswordChange(token.userId()));
             objectMapper.writeValue(response.getOutputStream(), tokensDto);
 
         } catch (CredentialsExpiredException | AccessDeniedException |

@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.linkwave.auth.dto.TokensDto;
+import org.linkwave.auth.entity.User;
 import org.linkwave.auth.repository.DeactivatedTokenRepository;
 import org.linkwave.auth.repository.UserRepository;
 import org.linkwave.auth.security.DefaultUserDetails;
@@ -108,7 +109,8 @@ public class TwoFactorController {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                .body(new TokensDto(refreshToken.expireAt(), accessSerializer.serialize(accessToken)));
+                .body(new TokensDto(refreshToken.expireAt(), accessSerializer.serialize(accessToken),
+                        userRepository.findById(userId).map(User::isMustChangePassword).orElse(false)));
     }
 
     private Token requirePrivilegedToken(HttpServletRequest request) {

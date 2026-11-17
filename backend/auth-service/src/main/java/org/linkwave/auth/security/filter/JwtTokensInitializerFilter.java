@@ -42,6 +42,7 @@ import static org.springframework.http.HttpHeaders.SET_COOKIE;
 import org.linkwave.auth.security.DefaultUserDetails;
 import org.linkwave.auth.security.totp.ChallengeService;
 import org.linkwave.auth.service.TwoFactorService;
+import org.linkwave.auth.service.UserService;
 import java.util.Map;
 
 public class JwtTokensInitializerFilter extends OncePerRequestFilter {
@@ -60,6 +61,7 @@ public class JwtTokensInitializerFilter extends OncePerRequestFilter {
     private final ChallengeService challengeService;
     private final AuthenticationEntryPoint authenticationEntryPoint;
     private final ObjectMapper objectMapper;
+    private final UserService userService;
 
 
     public JwtTokensInitializerFilter(ObjectMapper objectMapper,
@@ -67,7 +69,8 @@ public class JwtTokensInitializerFilter extends OncePerRequestFilter {
                                       JwtRefreshSerializer jwtRefreshSerializer,
                                       JwtAccessSerializer jwtAccessSerializer,
                                       TwoFactorService twoFactorService,
-                                      ChallengeService challengeService) {
+                                      ChallengeService challengeService,
+                                      UserService userService) {
         this.objectMapper = objectMapper;
         this.authenticationConverter = new CredentialsAuthenticationConverter(objectMapper);
         this.authenticationEntryPoint = new UnAuthorizedAuthenticationEntryPoint(objectMapper);
@@ -76,6 +79,7 @@ public class JwtTokensInitializerFilter extends OncePerRequestFilter {
         this.jwtAccessSerializer = jwtAccessSerializer;
         this.twoFactorService = twoFactorService;
         this.challengeService = challengeService;
+        this.userService = userService;
     }
 
     @Override
@@ -164,7 +168,8 @@ public class JwtTokensInitializerFilter extends OncePerRequestFilter {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
         @Cleanup final var outputStream = response.getOutputStream();
-        final var tokensDto = new TokensDto(refreshToken.expireAt(), jwtAccessSerializer.serialize(accessToken));
+        final var tokensDto = new TokensDto(refreshToken.expireAt(), jwtAccessSerializer.serialize(accessToken),
+                userService.requiresPasswordChange(refreshToken.userId()));
         objectMapper.writeValue(outputStream, tokensDto);
         outputStream.flush();
     }

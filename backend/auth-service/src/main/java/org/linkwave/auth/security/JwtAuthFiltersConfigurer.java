@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.linkwave.auth.repository.DeactivatedTokenRepository;
 import org.linkwave.auth.security.filter.JwtDeleteUserFilter;
+import org.linkwave.auth.security.filter.JwtChangePasswordFilter;
 import org.linkwave.auth.security.filter.JwtLogoutAllFilter;
 import org.linkwave.auth.security.filter.JwtLogoutFilter;
 import org.linkwave.auth.security.filter.JwtTokensInitializerFilter;
@@ -34,6 +35,7 @@ public class JwtAuthFiltersConfigurer extends AbstractHttpConfigurer<JwtAuthFilt
     private final UserDetailsService userDetailsService;
     private final TwoFactorService twoFactorService;
     private final ChallengeService challengeService;
+    private final LoginAttemptService loginAttemptService;
 
     private AuthenticationManager authenticationManager;
     private JwtRefreshSerializer jwtRefreshSerializer;
@@ -51,7 +53,7 @@ public class JwtAuthFiltersConfigurer extends AbstractHttpConfigurer<JwtAuthFilt
         final var jwtTokensInitializerFilter = new JwtTokensInitializerFilter(
                 objectMapper, authenticationManager,
                 jwtRefreshSerializer, jwtAccessSerializer,
-                twoFactorService, challengeService);
+                twoFactorService, challengeService, userService);
 
         final var jwtTokensRefreshFilter = new JwtTokensRefreshFilter(
                 jwtRefreshSerializer, jwtAccessSerializer, jwtRefreshParser,
@@ -61,6 +63,9 @@ public class JwtAuthFiltersConfigurer extends AbstractHttpConfigurer<JwtAuthFilt
         final var jwtLogoutFilter = new JwtLogoutFilter(objectMapper, jwtAccessParser, tokenRepository);
         final var jwtLogoutAllFilter = new JwtLogoutAllFilter(objectMapper, jwtAccessParser, tokenRepository, userService);
 
+        final var jwtChangePasswordFilter = new JwtChangePasswordFilter(
+                objectMapper, jwtAccessParser, tokenRepository, userService, loginAttemptService);
+
         final var jwtDeleteUserFilter = new JwtDeleteUserFilter(objectMapper, jwtAccessParser, userService);
 
         // add filters to filter chain
@@ -68,6 +73,7 @@ public class JwtAuthFiltersConfigurer extends AbstractHttpConfigurer<JwtAuthFilt
         builder.addFilterBefore(jwtTokensRefreshFilter, ExceptionTranslationFilter.class);
         builder.addFilterBefore(jwtLogoutFilter, ExceptionTranslationFilter.class);
         builder.addFilterBefore(jwtLogoutAllFilter, ExceptionTranslationFilter.class);
+        builder.addFilterBefore(jwtChangePasswordFilter, ExceptionTranslationFilter.class);
         builder.addFilterBefore(jwtDeleteUserFilter, ExceptionTranslationFilter.class);
     }
 
