@@ -6,9 +6,11 @@ import org.linkwave.userservice.entity.RoleEntity;
 import org.linkwave.userservice.entity.ScopeType;
 import org.linkwave.userservice.entity.UserEntity;
 import org.linkwave.userservice.exception.ResourceNotFoundException;
+import org.linkwave.userservice.repository.AuditLogRepository;
 import org.linkwave.userservice.repository.ScopedRoleRepository;
 import org.linkwave.userservice.repository.UserRepository;
 import org.linkwave.userservice.service.AccessPolicyService;
+import org.linkwave.userservice.service.TwoFactorStatusService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Locale;
@@ -37,10 +40,15 @@ public class AdminUserController {
 
     private static final ScopeType SCHOOL = ScopeType.SCHOOL;
     private static final Set<String> STATUSES = Set.of("ALL", "LOCKED", "ACTIVE");
+    private static final int RECENT_AUDIT_SIZE = 10;
+    private static final ZonedDateTime EARLIEST = ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, ZoneId.of("Asia/Ho_Chi_Minh"));
+    private static final ZonedDateTime LATEST = ZonedDateTime.of(9999, 12, 31, 0, 0, 0, 0, ZoneId.of("Asia/Ho_Chi_Minh"));
 
     private final AccessPolicyService access;
     private final UserRepository userRepository;
     private final ScopedRoleRepository scopedRoleRepository;
+    private final TwoFactorStatusService twoFactorStatus;
+    private final AuditLogRepository auditRepository;
 
     /** Một dòng trong danh sách */
     public record UserRow(Long id, String username, String name, boolean locked,
@@ -54,11 +62,17 @@ public class AdminUserController {
                                   ZonedDateTime grantedAt, Long grantedBy) {
     }
 
-    /** Hồ sơ đầy đủ. schoolPermissions là quyền thực tế ở phạm vi toàn trường. */
+    /**
+     * Hồ sơ đầy đủ. schoolPermissions là quyền thực tế ở phạm vi toàn trường.
+     * twoFactorEnabled là null nếu không đọc được trạng thái 2FA.
+     * recentAudit là các hoạt động gần nhất có đối tượng là người dùng này.
+     */
     public record UserDetailView(Long id, String username, String name, String bio, boolean locked,
                                  ZonedDateTime createdAt, ZonedDateTime lastSeen,
                                  List<String> roles, List<ScopedGrantView> scopedRoles,
-                                 List<String> schoolPermissions) {
+                                 List<String> schoolPermissions,
+                                 Boolean twoFactorEnabled,
+                                 List<AdminAuditController.AuditRow> recentAudit) {
     }
 
     @GetMapping
@@ -108,6 +122,25 @@ public class AdminUserController {
 
         final List<String> permissions = access.permissionsFor(id, SCHOOL, null).stream().sorted().toList();
 
+        final List<AdminAuditController.AuditRow> recentAudit = auditRepository.search(
+                        "",
+                        0L,
+                        String.valueOf(id),
+                        EARLIEST,
+                        LATEST,
+                        PageRequest.of(0, RECENT_AUDIT_SIZE, Sort.by(Sort.Direction.DESC, "createdAt")))
+                .getContent().stream()
+                .map(entry -> new AdminAuditController.AuditRow(
+                        entry.getId(),
+                        entry.getActorId(),
+                        entry.getAction(),
+                        entry.getTargetType(),
+                        entry.getTargetId(),
+                        entry.getDetail(),
+                        entry.getIp(),
+                        entry.getCreatedAt()))
+                .toList();
+
         return new UserDetailView(
                 user.getId(),
                 user.getUsername(),
@@ -118,7 +151,9 @@ public class AdminUserController {
                 user.getLastSeen(),
                 user.getRoles().stream().map(RoleEntity::getName).sorted().toList(),
                 grants,
-                permissions);
+                permissions,
+                twoFactorStatus.isEnabled(id),
+                recentAudit);
     }
 
     private static UserRow toRow(UserEntity user) {

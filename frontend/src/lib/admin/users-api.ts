@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api/client";
+import type { AuditRow } from "@/lib/admin/audit-api";
 
 export type UserStatusFilter = "ALL" | "LOCKED" | "ACTIVE";
 
@@ -39,6 +40,10 @@ export type UserDetail = {
     roles: string[];
     scopedRoles: ScopedGrant[];
     schoolPermissions: string[];
+    /** null nếu máy chủ không đọc được trạng thái 2FA */
+    twoFactorEnabled: boolean | null;
+    /** Hoạt động gần nhất có đối tượng là người dùng này */
+    recentAudit: AuditRow[];
 };
 
 // Tìm theo tên hoặc tên đăng nhập; role là tên đầy đủ (ví dụ ROLE_STUDENT), "" là tất cả
@@ -61,4 +66,27 @@ export function searchUsers(params: {
 
 export function getUserDetail(userId: number): Promise<UserDetail> {
     return apiFetch<UserDetail>(`/api/v1/admin/users/${userId}`);
+}
+
+// Sửa họ tên và tiểu sử. Cần quyền xem người dùng và cấp cao hơn người được sửa.
+export function updateUserProfile(userId: number, name: string, bio: string): Promise<void> {
+    return apiFetch<void>(`/api/v1/admin/users/${userId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ name, bio }),
+    });
+}
+
+// Đặt mật khẩu tạm. Mật khẩu chỉ trả về một lần.
+export function resetUserPassword(userId: number): Promise<{ temporaryPassword: string }> {
+    return apiFetch<{ temporaryPassword: string }>(`/api/v1/admin/users/${userId}/reset-password`, {
+        method: "POST",
+    });
+}
+
+// Chỉ ROOT. Đặt vai trò toàn trường: ROLE_STUDENT, ROLE_LECTURER hoặc ROLE_ADMIN.
+export function setUserGlobalRole(userId: number, role: string): Promise<void> {
+    return apiFetch<void>(`/api/v1/admin/users/${userId}/global-role`, {
+        method: "PUT",
+        body: JSON.stringify({ role }),
+    });
 }

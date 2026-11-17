@@ -13,3 +13,4 @@ frontend/scripts/mock-server.mjs
 *.txt
 login.json
 register.json
+cp.json

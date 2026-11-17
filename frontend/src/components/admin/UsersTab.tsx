@@ -4,7 +4,13 @@ import { useEffect, useState } from "react";
 
 import { Notice } from "@/components/ui/Notice";
 import { adminErrorMessage, setUserLocked } from "@/lib/admin/api";
-import { getUserDetail, searchUsers } from "@/lib/admin/users-api";
+import {
+    getUserDetail,
+    resetUserPassword,
+    searchUsers,
+    setUserGlobalRole,
+    updateUserProfile,
+} from "@/lib/admin/users-api";
 import type { UserDetail, UserPage, UserStatusFilter } from "@/lib/admin/users-api";
 import { formatChatTime } from "@/lib/chat/time";
 import { BTN_GHOST, BTN_PRIMARY, CARD, INPUT, LABEL, PERMISSION_OPTIONS } from "./shared";
@@ -28,15 +34,32 @@ const PERMISSION_LABEL: Record<string, string> = Object.fromEntries(
     PERMISSION_OPTIONS.map((item) => [item.code, item.label]),
 );
 
+const AUDIT_LABEL: Record<string, string> = {
+    USER_LOCK: "Khóa tài khoản",
+    USER_UNLOCK: "Mở khóa tài khoản",
+    ROLE_GRANT: "Cấp vai trò",
+    ROLE_REVOKE: "Thu hồi vai trò",
+    USER_EDIT: "Sửa thông tin",
+    PASSWORD_RESET: "Đặt lại mật khẩu",
+    ROLE_SET: "Đổi vai trò toàn trường",
+};
+
 const SCOPE_LABEL: Record<"SCHOOL" | "FACULTY" | "CLASS", string> = {
     SCHOOL: "Toàn trường",
     FACULTY: "Khoa",
     CLASS: "Lớp",
 };
 
+const GLOBAL_ROLE_OPTIONS: { value: string; label: string }[] = [
+    { value: "ROLE_STUDENT", label: "Sinh viên" },
+    { value: "ROLE_LECTURER", label: "Giảng viên" },
+    { value: "ROLE_ADMIN", label: "Quản trị viên" },
+];
+
 type Feedback = { text: string; tone: "info" | "error" };
 
-export function UsersTab() {
+/** isRoot chỉ để hiện mục đổi vai trò; máy chủ vẫn kiểm tra lại. */
+export function UsersTab({ isRoot }: { isRoot: boolean }) {
     const [q, setQ] = useState("");
     const [role, setRole] = useState("");
     const [status, setStatus] = useState<UserStatusFilter>("ALL");
@@ -52,6 +75,13 @@ export function UsersTab() {
 
     const [busy, setBusy] = useState(false);
     const [notice, setNotice] = useState<Feedback | null>(null);
+
+    const [editing, setEditing] = useState(false);
+    const [editName, setEditName] = useState("");
+    const [editBio, setEditBio] = useState("");
+    const [roleChoice, setRoleChoice] = useState("");
+    const [tempPassword, setTempPassword] = useState<string | null>(null);
+    const [copied, setCopied] = useState(false);
 
     // Tìm sau khi người dùng ngừng gõ một lúc
     useEffect(() => {
@@ -123,6 +153,97 @@ export function UsersTab() {
             setBusy(false);
         }
     }
+
+    function selectUser(id: number) {
+        setSelectedId(id);
+        setEditing(false);
+        setTempPassword(null);
+        setCopied(false);
+        setRoleChoice("");
+        setNotice(null);
+    }
+
+    function startEdit() {
+        if (!detail) return;
+        setEditName(detail.name);
+        setEditBio(detail.bio ?? "");
+        setEditing(true);
+    }
+
+    async function saveProfile() {
+        if (!detail) return;
+        if (!editName.trim()) {
+            setNotice({ text: "Họ tên không được để trống.", tone: "error" });
+            return;
+        }
+        setBusy(true);
+        setNotice(null);
+        try {
+            await updateUserProfile(detail.id, editName.trim(), editBio.trim());
+            setEditing(false);
+            setNotice({ text: `Đã cập nhật thông tin của ${detail.username}.`, tone: "info" });
+            setReloadKey((key) => key + 1);
+        } catch (err) {
+            setNotice({ text: adminErrorMessage(err), tone: "error" });
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function resetPassword() {
+        if (!detail) return;
+        const message =
+            `Đặt lại mật khẩu của ${detail.username}? Mọi phiên đăng nhập hiện có sẽ bị đăng xuất ` +
+            "và người dùng phải đổi mật khẩu khi đăng nhập lại.";
+        if (!window.confirm(message)) return;
+        setBusy(true);
+        setNotice(null);
+        setTempPassword(null);
+        try {
+            const data = await resetUserPassword(detail.id);
+            setTempPassword(data.temporaryPassword);
+            setCopied(false);
+            setReloadKey((key) => key + 1);
+        } catch (err) {
+            setNotice({ text: adminErrorMessage(err), tone: "error" });
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function copyTempPassword() {
+        if (!tempPassword) return;
+        try {
+            await navigator.clipboard.writeText(tempPassword);
+            setCopied(true);
+        } catch {
+            setNotice({ text: "Không sao chép được. Hãy chọn và sao chép thủ công.", tone: "error" });
+        }
+    }
+
+    async function saveGlobalRole() {
+        if (!detail || !roleChoice) return;
+        const label = ROLE_LABEL[roleChoice] ?? roleChoice;
+        const message =
+            `Đặt vai trò toàn trường của ${detail.username} thành ${label}? ` +
+            "Người dùng sẽ bị đăng xuất và nhận quyền mới khi đăng nhập lại.";
+        if (!window.confirm(message)) return;
+        setBusy(true);
+        setNotice(null);
+        try {
+            await setUserGlobalRole(detail.id, roleChoice);
+            setNotice({ text: `Đã đổi vai trò của ${detail.username} thành ${label}.`, tone: "info" });
+            setRoleChoice("");
+            setReloadKey((key) => key + 1);
+        } catch (err) {
+            setNotice({ text: adminErrorMessage(err), tone: "error" });
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    const currentGlobalRole =
+        detail?.roles.find((item) => GLOBAL_ROLE_OPTIONS.some((option) => option.value === item)) ?? "";
 
     const totalPages = result ? Math.max(1, Math.ceil(result.total / PAGE_SIZE)) : 1;
 
@@ -198,7 +319,7 @@ export function UsersTab() {
                                 <li key={user.id}>
                                     <button
                                         type="button"
-                                        onClick={() => setSelectedId(user.id)}
+                                        onClick={() => selectUser(user.id)}
                                         aria-current={active ? "true" : undefined}
                                         className={`flex w-full flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-left transition-colors ${
                                             active ? "border-primary bg-tint" : "border-line bg-surface hover:bg-tint"
@@ -274,6 +395,14 @@ export function UsersTab() {
                                 <dd>{formatChatTime(detail.createdAt)}</dd>
                                 <dt className="text-muted">Truy cập gần nhất</dt>
                                 <dd>{formatChatTime(detail.lastSeen)}</dd>
+                                <dt className="text-muted">Xác thực hai lớp</dt>
+                                <dd>
+                                    {detail.twoFactorEnabled === null
+                                        ? "Không xác định"
+                                        : detail.twoFactorEnabled
+                                            ? "Đã bật"
+                                            : "Chưa bật"}
+                                </dd>
                             </dl>
 
                             {detail.bio ? <p className="text-sm leading-relaxed">{detail.bio}</p> : null}
@@ -318,7 +447,119 @@ export function UsersTab() {
                                 )}
                             </div>
 
+                            <div className="flex flex-col gap-1">
+                                <span className={LABEL}>Hoạt động gần đây</span>
+                                {detail.recentAudit.length > 0 ? (
+                                    <ul className="flex flex-col divide-y divide-line text-sm">
+                                        {detail.recentAudit.map((entry) => (
+                                            <li key={entry.id} className="flex flex-col py-2">
+                                                <span>{AUDIT_LABEL[entry.action] ?? entry.action}</span>
+                                                <span className="text-xs text-muted">
+                                                    {formatChatTime(entry.createdAt)} · bởi #{entry.actorId}
+                                                </span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-sm text-muted">Chưa có hoạt động nào.</p>
+                                )}
+                            </div>
+
+                            {editing ? (
+                                <div className="flex flex-col gap-3 border-t border-line pt-3">
+                                    <div className="flex flex-col gap-1">
+                                        <label htmlFor="edit-name" className={LABEL}>
+                                            Họ tên
+                                        </label>
+                                        <input
+                                            id="edit-name"
+                                            value={editName}
+                                            maxLength={64}
+                                            onChange={(event) => setEditName(event.target.value)}
+                                            className={INPUT}
+                                        />
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <label htmlFor="edit-bio" className={LABEL}>
+                                            Tiểu sử
+                                        </label>
+                                        <textarea
+                                            id="edit-bio"
+                                            value={editBio}
+                                            maxLength={255}
+                                            rows={3}
+                                            onChange={(event) => setEditBio(event.target.value)}
+                                            className="min-w-0 w-full rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-primary"
+                                        />
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button type="button" disabled={busy} onClick={saveProfile} className={BTN_PRIMARY}>
+                                            Lưu thông tin
+                                        </button>
+                                        <button type="button" disabled={busy} onClick={() => setEditing(false)} className={BTN_GHOST}>
+                                            Hủy
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : null}
+
+                            {isRoot && !detail.roles.includes("ROLE_ROOT") ? (
+                                <div className="flex flex-col gap-2 border-t border-line pt-3">
+                                    <span className={LABEL}>Đặt vai trò toàn trường</span>
+                                    <div className="flex gap-2">
+                                        <select
+                                            aria-label="Vai trò toàn trường"
+                                            value={roleChoice || currentGlobalRole}
+                                            disabled={busy}
+                                            onChange={(event) => setRoleChoice(event.target.value)}
+                                            className={INPUT}
+                                        >
+                                            {currentGlobalRole === "" ? <option value="">Chưa có</option> : null}
+                                            {GLOBAL_ROLE_OPTIONS.map((item) => (
+                                                <option key={item.value} value={item.value}>
+                                                    {item.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <button
+                                            type="button"
+                                            disabled={busy || !roleChoice || roleChoice === currentGlobalRole}
+                                            onClick={saveGlobalRole}
+                                            className={BTN_PRIMARY}
+                                        >
+                                            Lưu
+                                        </button>
+                                    </div>
+                                    <p className="text-xs text-muted">
+                                        Đổi vai trò sẽ đăng xuất người dùng để họ nhận quyền mới khi đăng nhập lại.
+                                    </p>
+                                </div>
+                            ) : null}
+
+                            {tempPassword ? (
+                                <div className="flex flex-col gap-2 rounded-md border border-line bg-tint p-3">
+                                    <span className={LABEL}>Mật khẩu tạm</span>
+                                    <code className="break-all font-mono text-base">{tempPassword}</code>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button type="button" onClick={copyTempPassword} className={BTN_GHOST}>
+                                            {copied ? "Đã sao chép" : "Sao chép"}
+                                        </button>
+                                    </div>
+                                    <p className="text-xs text-muted">
+                                        Chỉ hiển thị một lần. Gửi cho người dùng qua kênh an toàn; họ phải đổi mật khẩu khi đăng nhập.
+                                    </p>
+                                </div>
+                            ) : null}
+
                             <div className="flex flex-wrap gap-2 pt-1">
+                                {!editing ? (
+                                    <button type="button" disabled={busy} onClick={startEdit} className={BTN_GHOST}>
+                                        Sửa thông tin
+                                    </button>
+                                ) : null}
+                                <button type="button" disabled={busy} onClick={resetPassword} className={BTN_GHOST}>
+                                    Đặt lại mật khẩu
+                                </button>
                                 {detail.locked ? (
                                     <button type="button" disabled={busy} onClick={() => toggleLock(false)} className={BTN_PRIMARY}>
                                         Mở khóa

@@ -1,10 +1,12 @@
 package org.linkwave.userservice.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 
+import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -63,6 +65,16 @@ public class UserEntity {
     private boolean isOnline;
 
     private String bio;
+
+    /** Cột dùng chung với auth-service: refresh token cấp trước mốc này bị từ chối (đăng xuất, đổi mật khẩu, đổi vai trò) */
+    @JsonIgnore
+    private Instant tokensValidAfter;
+
+    /** Cột dùng chung với auth-service: phải đổi mật khẩu ở lần đăng nhập tiếp theo (sau khi admin reset) */
+    @JsonIgnore
+    @ColumnDefault("false")
+    @Column(nullable = false)
+    private boolean mustChangePassword;
 
     @ManyToMany
     @JoinTable(

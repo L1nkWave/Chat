@@ -8,6 +8,9 @@ import { adminErrorMessage, createRole, grantRole, revokeGrant } from "@/lib/adm
 import type { ScopeType } from "@/lib/admin/api";
 import { BTN_GHOST, BTN_PRIMARY, CARD, INPUT, LABEL, PERMISSION_OPTIONS } from "./shared";
 import { RoleOverview } from "./RoleOverview";
+import { EntityPicker } from "./EntityPicker";
+import type { PickerOption } from "./EntityPicker";
+import { searchClasses, searchFaculties, searchPeople } from "./pickers";
 
 const CODE_PATTERN = /^[A-Z][A-Z0-9_]{2,31}$/;
 
@@ -21,10 +24,10 @@ export function RolesTab() {
     const [code, setCode] = useState("");
     const [selected, setSelected] = useState<string[]>([]);
 
-    const [userId, setUserId] = useState("");
+    const [user, setUser] = useState<PickerOption | null>(null);
     const [role, setRole] = useState("");
     const [scope, setScope] = useState<ScopeType>("SCHOOL");
-    const [scopeId, setScopeId] = useState("");
+    const [scopeTarget, setScopeTarget] = useState<PickerOption | null>(null);
 
     const [grantId, setGrantId] = useState("");
 
@@ -82,11 +85,11 @@ export function RolesTab() {
 
     async function submitGrant(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        const id = parsePositive(userId);
-        if (id === null) {
-            setNotice({ text: "Mã người dùng phải là số nguyên dương.", tone: "error" });
+        if (!user) {
+            setNotice({ text: "Chọn người dùng cần cấp quyền.", tone: "error" });
             return;
         }
+        const id = user.id;
         const roleName = role.trim();
         if (!roleName) {
             setNotice({ text: "Nhập tên vai trò đầy đủ, ví dụ ROLE_ADMIN.", tone: "error" });
@@ -94,11 +97,11 @@ export function RolesTab() {
         }
         let scopeValue: number | null = null;
         if (scope !== "SCHOOL") {
-            scopeValue = parsePositive(scopeId);
-            if (scopeValue === null) {
-                setNotice({ text: "Phạm vi khoa hoặc lớp cần có mã số.", tone: "error" });
+            if (!scopeTarget) {
+                setNotice({ text: scope === "FACULTY" ? "Chọn khoa cần cấp quyền." : "Chọn lớp cần cấp quyền.", tone: "error" });
                 return;
             }
+            scopeValue = scopeTarget.id;
         }
         const ok = await run(
             () => grantRole(id, roleName, scope, scopeValue),
@@ -106,7 +109,7 @@ export function RolesTab() {
         );
         if (ok) {
             setRole("");
-            setScopeId("");
+            setScopeTarget(null);
         }
     }
 
@@ -170,15 +173,13 @@ export function RolesTab() {
 
             <form onSubmit={submitGrant} className={CARD}>
                 <h3 className="text-sm font-semibold">Cấp vai trò cho người dùng</h3>
-                <label htmlFor="grant-user" className={LABEL}>
-                    Mã người dùng
-                </label>
-                <input
+                <EntityPicker
                     id="grant-user"
-                    inputMode="numeric"
-                    value={userId}
-                    onChange={(event) => setUserId(event.target.value)}
-                    className={INPUT}
+                    label="Người dùng"
+                    placeholder="Nhập tên hoặc tên đăng nhập"
+                    search={searchPeople}
+                    value={user}
+                    onChange={setUser}
                 />
                 <label htmlFor="grant-role" className={LABEL}>
                     Tên vai trò đầy đủ
@@ -197,26 +198,35 @@ export function RolesTab() {
                 <select
                     id="grant-scope"
                     value={scope}
-                    onChange={(event) => setScope(event.target.value as ScopeType)}
+                    onChange={(event) => {
+                        setScope(event.target.value as ScopeType);
+                        setScopeTarget(null);
+                    }}
                     className={INPUT}
                 >
                     <option value="SCHOOL">Toàn trường</option>
                     <option value="FACULTY">Khoa</option>
                     <option value="CLASS">Lớp</option>
                 </select>
-                {scope !== "SCHOOL" ? (
-                    <>
-                        <label htmlFor="grant-scope-id" className={LABEL}>
-                            Mã {scope === "FACULTY" ? "khoa" : "lớp"}
-                        </label>
-                        <input
-                            id="grant-scope-id"
-                            inputMode="numeric"
-                            value={scopeId}
-                            onChange={(event) => setScopeId(event.target.value)}
-                            className={INPUT}
-                        />
-                    </>
+                {scope === "FACULTY" ? (
+                    <EntityPicker
+                        id="grant-scope-target"
+                        label="Khoa"
+                        placeholder="Nhập tên hoặc mã khoa"
+                        search={searchFaculties}
+                        value={scopeTarget}
+                        onChange={setScopeTarget}
+                    />
+                ) : null}
+                {scope === "CLASS" ? (
+                    <EntityPicker
+                        id="grant-scope-target"
+                        label="Lớp"
+                        placeholder="Nhập tên hoặc mã lớp"
+                        search={searchClasses}
+                        value={scopeTarget}
+                        onChange={setScopeTarget}
+                    />
                 ) : null}
                 <button type="submit" disabled={busy} className={`${BTN_PRIMARY} self-start`}>
                     Cấp quyền

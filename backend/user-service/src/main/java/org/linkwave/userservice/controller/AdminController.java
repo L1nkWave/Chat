@@ -21,6 +21,7 @@ import org.linkwave.userservice.repository.ScopedRoleRepository;
 import org.linkwave.userservice.repository.UserRepository;
 import org.linkwave.userservice.service.AccessPolicyService;
 import org.linkwave.userservice.service.AccountSessionService;
+import org.linkwave.userservice.service.CatalogService;
 import org.linkwave.userservice.service.AuditService;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -51,6 +52,7 @@ public class AdminController {
     private final PermissionRepository permissionRepository;
     private final ScopedRoleRepository scopedRoleRepository;
     private final AccountSessionService accountSessions;
+    private final CatalogService catalog;
 
     public record CreateRoleRequest(
             @NotBlank @Pattern(regexp = "[A-Z][A-Z0-9_]{2,31}", message = "mã vai trò chỉ gồm chữ hoa, số, gạch dưới")
@@ -119,6 +121,7 @@ public class AdminController {
         if ((body.scopeType() == SCHOOL) != (body.scopeId() == null)) {
             throw new UnacceptableRequestDataException("Phạm vi SCHOOL không có mã; FACULTY/CLASS phải có mã");
         }
+        catalog.requireScopeExists(body.scopeType(), body.scopeId());
         final UserEntity user = findUser(id);
         final RoleEntity role = roleRepository.findByName(body.role())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vai trò " + body.role()));

@@ -5,11 +5,12 @@ import { useState } from "react";
 
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { AuditTab } from "./AuditTab";
+import { CatalogTab } from "./CatalogTab";
 import { ReportsTab } from "./ReportsTab";
 import { RolesTab } from "./RolesTab";
 import { UsersTab } from "./UsersTab";
 
-type TabId = "reports" | "users" | "audit" | "roles";
+type TabId = "reports" | "users" | "audit" | "roles" | "catalog";
 
 type AdminConsoleProps = {
     isRoot: boolean;
@@ -22,6 +23,7 @@ export function AdminConsole({ isRoot }: AdminConsoleProps) {
         { id: "reports", label: "Báo cáo" },
         { id: "users", label: "Người dùng" },
         { id: "audit", label: "Nhật ký" },
+        ...(isRoot ? [{ id: "catalog" as const, label: "Khoa & lớp" }] : []),
         ...(isRoot ? [{ id: "roles" as const, label: "Vai trò" }] : []),
     ];
 
@@ -78,9 +80,10 @@ export function AdminConsole({ isRoot }: AdminConsoleProps) {
                 className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-8"
             >
                 {tab === "reports" ? <ReportsTab /> : null}
-                {tab === "users" ? <UsersTab /> : null}
+                {tab === "users" ? <UsersTab isRoot={isRoot} /> : null}
                 {tab === "audit" ? <AuditTab /> : null}
                 {tab === "roles" && isRoot ? <RolesTab /> : null}
+                {tab === "catalog" && isRoot ? <CatalogTab /> : null}
             </main>
         </div>
     );
