@@ -7,6 +7,7 @@ import org.linkwave.userservice.entity.ScopedRoleEntity;
 import org.linkwave.userservice.entity.UserEntity;
 import org.linkwave.userservice.exception.ResourceNotFoundException;
 import org.linkwave.userservice.repository.ScopedRoleRepository;
+import org.linkwave.userservice.repository.SchoolClassRepository;
 import org.linkwave.userservice.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,8 +23,8 @@ import static org.springframework.http.HttpStatus.FORBIDDEN;
  * Kiểm tra quyền theo phạm vi.
  * - Vai trò gán toàn cục (user_roles) có hiệu lực trên toàn trường.
  * - Vai trò gán theo phạm vi (scoped_roles) chỉ có hiệu lực khi phạm vi yêu cầu được bao phủ.
- * Phạm vi SCHOOL bao phủ mọi phạm vi; FACULTY/CLASS chỉ bao phủ đúng mã của nó.
- * TODO (P5): khi có bảng lớp thuộc khoa, FACULTY phải bao phủ các CLASS trong khoa đó.
+ * Phạm vi SCHOOL bao phủ mọi phạm vi; CLASS chỉ bao phủ đúng lớp đó;
+ * FACULTY bao phủ đúng khoa đó và mọi lớp thuộc khoa.
  */
 @Service
 @RequiredArgsConstructor
@@ -31,6 +32,7 @@ public class AccessPolicyService {
 
     private final UserRepository userRepository;
     private final ScopedRoleRepository scopedRoleRepository;
+    private final SchoolClassRepository classRepository;
 
     @Transactional(readOnly = true)
     public Set<String> permissionsFor(Long userId, ScopeType scopeType, Long scopeId) {
@@ -98,7 +100,16 @@ public class AccessPolicyService {
         if (grant.getScopeType() == ScopeType.SCHOOL) {
             return true;
         }
-        return grant.getScopeType() == scopeType && Objects.equals(grant.getScopeId(), scopeId);
+        if (grant.getScopeType() == scopeType && Objects.equals(grant.getScopeId(), scopeId)) {
+            return true;
+        }
+        // FACULTY bao phủ mọi lớp thuộc khoa đó
+        return grant.getScopeType() == ScopeType.FACULTY
+                && scopeType == ScopeType.CLASS
+                && scopeId != null
+                && classRepository.findById(scopeId)
+                .map(schoolClass -> Objects.equals(schoolClass.getFaculty().getId(), grant.getScopeId()))
+                .orElse(false);
     }
 
 }
