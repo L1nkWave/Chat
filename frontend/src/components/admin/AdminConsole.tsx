@@ -6,11 +6,12 @@ import { useState } from "react";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { AcademicTab } from "./AcademicTab";
 import { AuditTab } from "./AuditTab";
+import { PermissionsTab } from "./PermissionsTab";
 import { ReportsTab } from "./ReportsTab";
 import { RolesTab } from "./RolesTab";
 import { UsersTab } from "./UsersTab";
 
-type TabId = "reports" | "users" | "audit" | "academic" | "roles";
+type TabId = "reports" | "users" | "academic" | "roles" | "permissions" | "audit";
 
 type AdminConsoleProps = {
     isRoot: boolean;
@@ -19,21 +20,27 @@ type AdminConsoleProps = {
 export function AdminConsole({ isRoot }: AdminConsoleProps) {
     const [tab, setTab] = useState<TabId>("reports");
 
+    // Nhóm chính: mọi quản trị viên. Nhóm phân quyền: chỉ ROOT. Nhật ký luôn ở cuối.
     const tabs: { id: TabId; label: string }[] = [
         { id: "reports", label: "Báo cáo" },
         { id: "users", label: "Người dùng" },
-        { id: "audit", label: "Nhật ký" },
         { id: "academic", label: "Học vụ" },
-        ...(isRoot ? [{ id: "roles" as const, label: "Vai trò" }] : []),
+        ...(isRoot
+            ? [
+                { id: "roles" as const, label: "Vai trò" },
+                { id: "permissions" as const, label: "Phân quyền" },
+            ]
+            : []),
+        { id: "audit", label: "Nhật ký" },
     ];
 
     return (
         <div className="flex min-h-dvh flex-col bg-paper text-ink">
             <header className="border-b border-line bg-surface">
-                <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-3 px-4 pt-5 sm:px-8">
+                <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 pt-5 sm:px-8">
                     <div className="flex flex-col">
                         <h1 className="font-serif text-xl font-semibold">Quản trị</h1>
-                        <p className="text-xs text-muted">{isRoot ? "Đăng nhập với quyền ROOT" : "Đăng nhập với quyền ADMIN"}</p>
+                        <p className="text-xs text-muted">{isRoot ? "Đăng nhập với quyền quản trị cao nhất" : "Đăng nhập với quyền quản trị viên"}</p>
                     </div>
                     <div className="flex items-center gap-2">
                         <nav aria-label="Liên kết nhanh" className="flex items-center gap-4 text-sm">
@@ -48,7 +55,11 @@ export function AdminConsole({ isRoot }: AdminConsoleProps) {
                     </div>
                 </div>
 
-                <div role="tablist" aria-label="Mục quản trị" className="mx-auto flex w-full max-w-5xl gap-1 overflow-x-auto px-4 pt-4 sm:px-8">
+                <div
+                    role="tablist"
+                    aria-label="Mục quản trị"
+                    className="mx-auto flex w-full max-w-6xl gap-1 overflow-x-auto px-4 pt-4 sm:px-8"
+                >
                     {tabs.map((item) => {
                         const active = tab === item.id;
                         return (
@@ -77,13 +88,14 @@ export function AdminConsole({ isRoot }: AdminConsoleProps) {
                 role="tabpanel"
                 id={`panel-${tab}`}
                 aria-labelledby={`tab-${tab}`}
-                className="mx-auto w-full max-w-5xl flex-1 px-4 py-6 sm:px-8"
+                className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-8"
             >
                 {tab === "reports" ? <ReportsTab /> : null}
                 {tab === "users" ? <UsersTab isRoot={isRoot} /> : null}
-                {tab === "audit" ? <AuditTab /> : null}
                 {tab === "academic" ? <AcademicTab /> : null}
                 {tab === "roles" && isRoot ? <RolesTab /> : null}
+                {tab === "permissions" && isRoot ? <PermissionsTab /> : null}
+                {tab === "audit" ? <AuditTab /> : null}
             </main>
         </div>
     );

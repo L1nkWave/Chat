@@ -1,81 +1,72 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { ImportCard, LECTURER_CARD, STUDENT_CARD } from "./AcademicTab";
-import { ManualEntryForm } from "./ManualEntryForm";
+import { UserCreateForm } from "./UserCreateForm";
+import { draftToPayload, emptyDraft, UserProfileFields } from "./UserProfileFields";
+import type { ProfileDraft } from "./UserProfileFields";
+import { ROLE_LABEL, SCOPE_LABEL, GENDER_LABEL, STATUS_LABEL, actionLabel } from "./labels";
+import { EntityPicker } from "./EntityPicker";
+import type { PickerOption } from "./EntityPicker";
+import { searchFaculties } from "./pickers";
 
 import { Notice } from "@/components/ui/Notice";
 import { adminErrorMessage, setUserLocked } from "@/lib/admin/api";
+import { listClasses } from "@/lib/admin/catalog-api";
 import {
     getUserDetail,
     resetUserPassword,
-    revealUserCccd,
+    revealUserSensitive,
     searchUsers,
     setUserGlobalRole,
     updateUserProfile,
 } from "@/lib/admin/users-api";
-import type { UserDetail, UserPage, UserStatusFilter } from "@/lib/admin/users-api";
+import type { SensitiveView, UserDetail, UserPage, UserStatusFilter } from "@/lib/admin/users-api";
 import { formatChatTime } from "@/lib/chat/time";
-import { BTN_GHOST, BTN_PRIMARY, CARD, INPUT, LABEL, PERMISSION_OPTIONS } from "./shared";
+import { BTN_GHOST, BTN_PRIMARY, CARD, INPUT, LABEL, permissionLabel } from "./shared";
 
 const PAGE_SIZE = 20;
 const SEARCH_DELAY_MS = 300;
 
 const ROLE_OPTIONS: { value: string; label: string }[] = [
     { value: "", label: "Tất cả vai trò" },
-    { value: "ROLE_STUDENT", label: "Sinh viên" },
-    { value: "ROLE_LECTURER", label: "Giảng viên" },
-    { value: "ROLE_ADMIN", label: "Quản trị viên" },
-    { value: "ROLE_ROOT", label: "Quản trị cao nhất" },
+    { value: "ROLE_STUDENT", label: ROLE_LABEL.ROLE_STUDENT },
+    { value: "ROLE_LECTURER", label: ROLE_LABEL.ROLE_LECTURER },
+    { value: "ROLE_ADMIN", label: ROLE_LABEL.ROLE_ADMIN },
+    { value: "ROLE_ROOT", label: ROLE_LABEL.ROLE_ROOT },
 ];
-
-const ROLE_LABEL: Record<string, string> = Object.fromEntries(
-    ROLE_OPTIONS.filter((item) => item.value).map((item) => [item.value, item.label]),
-);
-
-const PERMISSION_LABEL: Record<string, string> = Object.fromEntries(
-    PERMISSION_OPTIONS.map((item) => [item.code, item.label]),
-);
-
-const AUDIT_LABEL: Record<string, string> = {
-    USER_LOCK: "Khóa tài khoản",
-    USER_UNLOCK: "Mở khóa tài khoản",
-    ROLE_GRANT: "Cấp vai trò",
-    ROLE_REVOKE: "Thu hồi vai trò",
-    USER_EDIT: "Sửa thông tin",
-    PASSWORD_RESET: "Đặt lại mật khẩu",
-    ROLE_SET: "Đổi vai trò toàn trường",
-    CCCD_REVEAL: "Xem CCCD đầy đủ",
-};
-
-const SCOPE_LABEL: Record<"SCHOOL" | "FACULTY" | "CLASS", string> = {
-    SCHOOL: "Toàn trường",
-    FACULTY: "Khoa",
-    CLASS: "Lớp",
-};
 
 const GLOBAL_ROLE_OPTIONS: { value: string; label: string }[] = [
-    { value: "ROLE_STUDENT", label: "Sinh viên" },
-    { value: "ROLE_LECTURER", label: "Giảng viên" },
-    { value: "ROLE_ADMIN", label: "Quản trị viên" },
+    { value: "ROLE_STUDENT", label: ROLE_LABEL.ROLE_STUDENT },
+    { value: "ROLE_LECTURER", label: ROLE_LABEL.ROLE_LECTURER },
+    { value: "ROLE_ADMIN", label: ROLE_LABEL.ROLE_ADMIN },
 ];
+
+const EDITABLE_ROLES = ["ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN"];
 
 type Feedback = { text: string; tone: "info" | "error" };
 
-/** isRoot chỉ để hiện mục đổi vai trò; máy chủ vẫn kiểm tra lại. */
+/** Mã lớp nằm ở đầu chuỗi gợi ý (code · khoa · niên khóa) */
+function codeFromHint(option: PickerOption | null): string {
+    return option?.hint ? (option.hint.split(" · ")[0] ?? "") : "";
+}
+
+/** isRoot chỉ để hiện mục đổi vai trò và tạo quản trị viên; máy chủ vẫn kiểm tra lại. */
 export function UsersTab({ isRoot }: { isRoot: boolean }) {
     const [q, setQ] = useState("");
     const [role, setRole] = useState("");
     const [status, setStatus] = useState<UserStatusFilter>("ALL");
-    const [faculty, setFaculty] = useState("");
-    const [classCode, setClassCode] = useState("");
+    const [facultyOption, setFacultyOption] = useState<PickerOption | null>(null);
+    const [classOption, setClassOption] = useState<PickerOption | null>(null);
     const [subject, setSubject] = useState("");
     const [page, setPage] = useState(0);
 
     const [result, setResult] = useState<UserPage | null>(null);
     const [loading, setLoading] = useState(true);
     const [reloadKey, setReloadKey] = useState(0);
+
+    const [creating, setCreating] = useState(false);
 
     const [selectedId, setSelectedId] = useState<number | null>(null);
     const [detail, setDetail] = useState<UserDetail | null>(null);
@@ -87,10 +78,29 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
     const [editing, setEditing] = useState(false);
     const [editName, setEditName] = useState("");
     const [editBio, setEditBio] = useState("");
+    const [draft, setDraft] = useState<ProfileDraft>(emptyDraft());
+
     const [roleChoice, setRoleChoice] = useState("");
     const [tempPassword, setTempPassword] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
-    const [cccdShown, setCccdShown] = useState<string | null>(null);
+    const [revealed, setRevealed] = useState<SensitiveView | null>(null);
+
+    const facultyCode = facultyOption?.hint ?? "";
+    const classCode = codeFromHint(classOption);
+    const facultyId = facultyOption?.id ?? null;
+
+    // Lớp trong bộ lọc: nếu đã chọn khoa thì chỉ hiện lớp của khoa đó
+    const searchClassesInFaculty = useCallback(
+        async (query: string): Promise<PickerOption[]> => {
+            const items = await listClasses(query, facultyId);
+            return items.map((item) => ({
+                id: item.id,
+                label: item.name,
+                hint: [item.code, item.facultyName, item.cohort].filter(Boolean).join(" · "),
+            }));
+        },
+        [facultyId],
+    );
 
     // Tìm sau khi người dùng ngừng gõ một lúc
     useEffect(() => {
@@ -101,8 +111,8 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                 q: q.trim(),
                 role,
                 status,
-                faculty: faculty.trim(),
-                classCode: classCode.trim(),
+                faculty: facultyCode,
+                classCode,
                 subject: subject.trim(),
                 page,
                 size: PAGE_SIZE,
@@ -121,7 +131,7 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
             alive = false;
             window.clearTimeout(timer);
         };
-    }, [q, role, status, faculty, classCode, subject, page, reloadKey]);
+    }, [q, role, status, facultyCode, classCode, subject, page, reloadKey]);
 
     useEffect(() => {
         if (selectedId === null) return;
@@ -178,22 +188,21 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
         setTempPassword(null);
         setCopied(false);
         setRoleChoice("");
-        setCccdShown(null);
+        setRevealed(null);
         setNotice(null);
     }
 
-    async function toggleCccd() {
+    async function toggleReveal() {
         if (!detail) return;
-        if (cccdShown !== null) {
-            setCccdShown(null);
+        if (revealed !== null) {
+            setRevealed(null);
             return;
         }
-        if (!window.confirm("Hiện đầy đủ số CCCD? Thao tác này được ghi vào nhật ký.")) return;
+        if (!window.confirm("Hiện đầy đủ CCCD, dân tộc và tôn giáo? Thao tác này được ghi vào nhật ký.")) return;
         setBusy(true);
         setNotice(null);
         try {
-            const data = await revealUserCccd(detail.id);
-            setCccdShown(data.cccd);
+            setRevealed(await revealUserSensitive(detail.id));
         } catch (err) {
             setNotice({ text: adminErrorMessage(err), tone: "error" });
         } finally {
@@ -205,6 +214,18 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
         if (!detail) return;
         setEditName(detail.name);
         setEditBio(detail.bio ?? "");
+        setDraft({
+            gender: detail.profile.gender ?? "",
+            birthDate: detail.profile.birthDate ?? "",
+            status: detail.profile.status ?? "",
+            phone: detail.profile.phone ?? "",
+            birthplace: detail.profile.birthplace ?? "",
+            nationality: detail.profile.nationality ?? "Việt Nam",
+            address: detail.profile.address ?? "",
+            cccd: null,
+            ethnicity: null,
+            religion: null,
+        });
         setEditing(true);
     }
 
@@ -214,11 +235,20 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
             setNotice({ text: "Họ tên không được để trống.", tone: "error" });
             return;
         }
+        if (draft.cccd !== null && draft.cccd.length > 0 && draft.cccd.length !== 12) {
+            setNotice({ text: "CCCD phải gồm đúng 12 chữ số.", tone: "error" });
+            return;
+        }
         setBusy(true);
         setNotice(null);
         try {
-            await updateUserProfile(detail.id, editName.trim(), editBio.trim());
+            await updateUserProfile(detail.id, {
+                name: editName.trim(),
+                bio: editBio.trim() === "" ? null : editBio.trim(),
+                ...draftToPayload(draft),
+            });
             setEditing(false);
+            setRevealed(null);
             setNotice({ text: `Đã cập nhật thông tin của ${detail.username}.`, tone: "info" });
             setReloadKey((key) => key + 1);
         } catch (err) {
@@ -282,15 +312,25 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
 
     const currentGlobalRole =
         detail?.roles.find((item) => GLOBAL_ROLE_OPTIONS.some((option) => option.value === item)) ?? "";
-
+    const editableRole = detail?.roles.find((item) => EDITABLE_ROLES.includes(item)) ?? "";
     const totalPages = result ? Math.max(1, Math.ceil(result.total / PAGE_SIZE)) : 1;
 
     return (
         <section aria-label="Quản lý người dùng" className="flex flex-col gap-4">
             <div className="flex flex-col gap-3">
-                <h2 className="font-serif text-lg font-semibold">Người dùng</h2>
-                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_200px_180px]">
-                    <div className="flex flex-col gap-1">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h2 className="font-serif text-lg font-semibold">Người dùng</h2>
+                    <button
+                        type="button"
+                        onClick={() => setCreating((open) => !open)}
+                        className={creating ? BTN_GHOST : BTN_PRIMARY}
+                    >
+                        {creating ? "Đóng" : "Thêm người dùng"}
+                    </button>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+                    <div className="flex flex-col gap-1 lg:col-span-2">
                         <label htmlFor="user-search" className={LABEL}>
                             Tìm theo tên hoặc tên đăng nhập
                         </label>
@@ -335,23 +375,26 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                         </select>
                     </div>
                     <div className="flex flex-col gap-1">
-                        <label htmlFor="user-faculty" className={LABEL}>Khoa (mã)</label>
-                        <input
-                            id="user-faculty"
-                            value={faculty}
-                            onChange={(event) => changeFilter(setFaculty, event.target.value)}
-                            placeholder="Ví dụ: CNTT"
-                            className={INPUT}
+                        <EntityPicker
+                            id="filter-faculty"
+                            label="Khoa"
+                            placeholder="Nhập tên hoặc mã khoa"
+                            search={searchFaculties}
+                            value={facultyOption}
+                            onChange={(option) => {
+                                changeFilter(setFacultyOption, option);
+                                setClassOption(null);
+                            }}
                         />
                     </div>
                     <div className="flex flex-col gap-1">
-                        <label htmlFor="user-class" className={LABEL}>Lớp (mã)</label>
-                        <input
-                            id="user-class"
-                            value={classCode}
-                            onChange={(event) => changeFilter(setClassCode, event.target.value)}
-                            placeholder="Ví dụ: DCT1222"
-                            className={INPUT}
+                        <EntityPicker
+                            id="filter-class"
+                            label="Lớp"
+                            placeholder="Nhập tên hoặc mã lớp"
+                            search={searchClassesInFaculty}
+                            value={classOption}
+                            onChange={(option) => changeFilter(setClassOption, option)}
                         />
                     </div>
                     <div className="flex flex-col gap-1">
@@ -367,6 +410,13 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                 </div>
             </div>
 
+            {creating ? (
+                <UserCreateForm
+                    isRoot={isRoot}
+                    onCreated={() => setReloadKey((key) => key + 1)}
+                />
+            ) : null}
+
             {notice ? <Notice text={notice.text} tone={notice.tone} onClose={() => setNotice(null)} /> : null}
 
             <details className={CARD}>
@@ -374,28 +424,6 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                 <div className="mt-3 grid gap-4 lg:grid-cols-2">
                     <ImportCard spec={STUDENT_CARD} />
                     <ImportCard spec={LECTURER_CARD} />
-                </div>
-                <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                    <ManualEntryForm
-                        kind="students"
-                        title="Sinh viên"
-                        hint="Lớp phải có ở mục Khoa & lớp. Tạo tài khoản mới với mật khẩu tạm; nếu MSSV đã có thì cập nhật hồ sơ."
-                        fields={[
-                            { name: "MSSV" },
-                            { name: "Họ tên" },
-                            { name: "Lớp", placeholder: "Ví dụ: DCT1222" },
-                            { name: "CCCD", optional: true, placeholder: "12 chữ số" },
-                        ]}
-                    />
-                    <ManualEntryForm
-                        kind="lecturers"
-                        title="Giảng viên"
-                        hint="Mã GV là tên đăng nhập. Mật khẩu mặc định Dhsg@123, bắt buộc đổi ở lần đăng nhập đầu."
-                        fields={[
-                            { name: "Mã GV" },
-                            { name: "Họ tên" },
-                        ]}
-                    />
                 </div>
             </details>
 
@@ -470,7 +498,7 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                     </div>
                 </div>
 
-                <aside className="w-full lg:w-[380px] lg:shrink-0">
+                <aside className="w-full lg:w-[420px] lg:shrink-0">
                     {selectedId === null ? (
                         <div className={CARD}>
                             <p className="text-sm text-muted">Chọn một người dùng để xem hồ sơ.</p>
@@ -487,7 +515,7 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                             </div>
 
                             <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
-                                <dt className="text-muted">Trạng thái</dt>
+                                <dt className="text-muted">Trạng thái tài khoản</dt>
                                 <dd>{detail.locked ? "Đang bị khóa" : "Đang hoạt động"}</dd>
                                 <dt className="text-muted">Tạo lúc</dt>
                                 <dd>{formatChatTime(detail.createdAt)}</dd>
@@ -509,23 +537,52 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                                         <dd>{detail.classCode ?? "Chưa có"}</dd>
                                     </>
                                 ) : null}
-                                {detail.cccdMasked ? (
-                                    <>
-                                        <dt className="text-muted">CCCD</dt>
-                                        <dd className="flex flex-wrap items-center gap-2 font-mono">
-                                            <span>{cccdShown ?? detail.cccdMasked}</span>
-                                            <button
-                                                type="button"
-                                                disabled={busy}
-                                                onClick={toggleCccd}
-                                                className="font-sans text-xs text-primary underline-offset-4 hover:underline disabled:opacity-40"
-                                            >
-                                                {cccdShown !== null ? "Ẩn" : "Hiện đầy đủ"}
-                                            </button>
-                                        </dd>
-                                    </>
-                                ) : null}
+                                <dt className="text-muted">Giới tính</dt>
+                                <dd>{detail.profile.gender ? GENDER_LABEL[detail.profile.gender] : "Chưa có"}</dd>
+                                <dt className="text-muted">Ngày sinh</dt>
+                                <dd>{detail.profile.birthDate ?? "Chưa có"}</dd>
+                                <dt className="text-muted">
+                                    {detail.roles.includes("ROLE_STUDENT") ? "Tình trạng học tập" : "Tình trạng làm việc"}
+                                </dt>
+                                <dd>{detail.profile.status ? STATUS_LABEL[detail.profile.status] : "Chưa có"}</dd>
+                                <dt className="text-muted">Số điện thoại</dt>
+                                <dd>{detail.profile.phone ?? "Chưa có"}</dd>
+                                <dt className="text-muted">Nơi sinh</dt>
+                                <dd>{detail.profile.birthplace ?? "Chưa có"}</dd>
+                                <dt className="text-muted">Quốc tịch</dt>
+                                <dd>{detail.profile.nationality ?? "Chưa có"}</dd>
+                                <dt className="text-muted">Địa chỉ</dt>
+                                <dd>{detail.profile.address ?? "Chưa có"}</dd>
+                                <dt className="text-muted">CCCD</dt>
+                                <dd className="font-mono">
+                                    {revealed ? revealed.cccd ?? "Chưa có" : detail.profile.cccdMasked ?? "Chưa có"}
+                                </dd>
+                                <dt className="text-muted">Dân tộc</dt>
+                                <dd>
+                                    {revealed
+                                        ? revealed.ethnicity ?? "Chưa có"
+                                        : detail.profile.hasEthnicity
+                                            ? "Đã lưu (ẩn)"
+                                            : "Chưa có"}
+                                </dd>
+                                <dt className="text-muted">Tôn giáo</dt>
+                                <dd>
+                                    {revealed
+                                        ? revealed.religion ?? "Chưa có"
+                                        : detail.profile.hasReligion
+                                            ? "Đã lưu (ẩn)"
+                                            : "Chưa có"}
+                                </dd>
                             </dl>
+
+                            <button
+                                type="button"
+                                disabled={busy}
+                                onClick={toggleReveal}
+                                className={`${BTN_GHOST} self-start`}
+                            >
+                                {revealed !== null ? "Ẩn thông tin nhạy cảm" : "Hiện thông tin nhạy cảm"}
+                            </button>
 
                             {detail.bio ? <p className="text-sm leading-relaxed">{detail.bio}</p> : null}
 
@@ -562,7 +619,7 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                                 <span className={LABEL}>Quyền thực tế (toàn trường)</span>
                                 {detail.schoolPermissions.length > 0 ? (
                                     <p className="text-sm">
-                                        {detail.schoolPermissions.map((code) => PERMISSION_LABEL[code] ?? code).join(", ")}
+                                        {detail.schoolPermissions.map((code) => permissionLabel(code)).join(", ")}
                                     </p>
                                 ) : (
                                     <p className="text-sm text-muted">Không có quyền nào.</p>
@@ -575,7 +632,7 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                                     <ul className="flex flex-col divide-y divide-line text-sm">
                                         {detail.recentAudit.map((entry) => (
                                             <li key={entry.id} className="flex flex-col py-2">
-                                                <span>{AUDIT_LABEL[entry.action] ?? entry.action}</span>
+                                                <span>{actionLabel(entry.action)}</span>
                                                 <span className="text-xs text-muted">
                                                     {formatChatTime(entry.createdAt)} · bởi #{entry.actorId}
                                                 </span>
@@ -590,9 +647,7 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                             {editing ? (
                                 <div className="flex flex-col gap-3 border-t border-line pt-3">
                                     <div className="flex flex-col gap-1">
-                                        <label htmlFor="edit-name" className={LABEL}>
-                                            Họ tên
-                                        </label>
+                                        <label htmlFor="edit-name" className={LABEL}>Họ tên</label>
                                         <input
                                             id="edit-name"
                                             value={editName}
@@ -602,18 +657,32 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                                         />
                                     </div>
                                     <div className="flex flex-col gap-1">
-                                        <label htmlFor="edit-bio" className={LABEL}>
-                                            Tiểu sử
-                                        </label>
+                                        <label htmlFor="edit-bio" className={LABEL}>Tiểu sử</label>
                                         <textarea
                                             id="edit-bio"
                                             value={editBio}
                                             maxLength={255}
-                                            rows={3}
+                                            rows={2}
                                             onChange={(event) => setEditBio(event.target.value)}
                                             className="min-w-0 w-full rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-primary"
                                         />
                                     </div>
+                                    {editableRole ? (
+                                        <UserProfileFields
+                                            role={editableRole}
+                                            value={draft}
+                                            onChange={setDraft}
+                                            disabled={busy}
+                                            existing={{
+                                                cccd: detail.profile.cccdMasked !== null,
+                                                ethnicity: detail.profile.hasEthnicity,
+                                                religion: detail.profile.hasReligion,
+                                            }}
+                                        />
+                                    ) : null}
+                                    <p className="text-xs text-muted">
+                                        Trường CCCD, dân tộc, tôn giáo: để trống nếu không đổi. Bấm Xóa để xóa giá trị đã lưu.
+                                    </p>
                                     <div className="flex flex-wrap gap-2">
                                         <button type="button" disabled={busy} onClick={saveProfile} className={BTN_PRIMARY}>
                                             Lưu thông tin

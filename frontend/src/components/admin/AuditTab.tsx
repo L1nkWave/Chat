@@ -2,34 +2,25 @@
 
 import { useEffect, useState } from "react";
 
+import { EntityPicker } from "./EntityPicker";
+import type { PickerOption } from "./EntityPicker";
+import { actionLabel, AUDIT_ACTION_OPTIONS } from "./labels";
+import { searchPeople } from "./pickers";
+import { BTN_GHOST, INPUT, LABEL } from "./shared";
+
 import { Notice } from "@/components/ui/Notice";
-import { adminErrorMessage } from "@/lib/admin/api";
+import { adminErrorMessage, getUsersByIds } from "@/lib/admin/api";
 import { searchAudit } from "@/lib/admin/audit-api";
 import type { AuditPage } from "@/lib/admin/audit-api";
 import { formatChatTime } from "@/lib/chat/time";
-import { BTN_GHOST, INPUT, LABEL } from "./shared";
 
 const PAGE_SIZE = 20;
 const SEARCH_DELAY_MS = 300;
-
-const ACTION_OPTIONS: { value: string; label: string }[] = [
-    { value: "", label: "Tất cả hành động" },
-    { value: "USER_LOCK", label: "Khóa tài khoản" },
-    { value: "USER_UNLOCK", label: "Mở khóa tài khoản" },
-    { value: "ROLE_CREATE", label: "Tạo vai trò" },
-    { value: "ROLE_GRANT", label: "Cấp vai trò" },
-    { value: "ROLE_REVOKE", label: "Thu hồi vai trò" },
-];
-
-const ACTION_LABEL: Record<string, string> = Object.fromEntries(
-    ACTION_OPTIONS.filter((item) => item.value).map((item) => [item.value, item.label]),
-);
-
 const DIGITS = /^\d*$/;
 
 export function AuditTab() {
     const [action, setAction] = useState("");
-    const [actorId, setActorId] = useState("");
+    const [actor, setActor] = useState<PickerOption | null>(null);
     const [targetId, setTargetId] = useState("");
     const [from, setFrom] = useState("");
     const [to, setTo] = useState("");
@@ -38,10 +29,14 @@ export function AuditTab() {
     const [result, setResult] = useState<AuditPage | null>(null);
     const [loading, setLoading] = useState(true);
     const [notice, setNotice] = useState<string | null>(null);
+    /** Tên tài khoản theo mã, để hiện bên cạnh mã người thực hiện và đối tượng */
+    const [names, setNames] = useState<Record<number, string>>({});
+
+    const actorId = actor ? String(actor.id) : "";
 
     useEffect(() => {
-        if (!DIGITS.test(actorId) || !DIGITS.test(targetId)) {
-            setNotice("Mã người thực hiện và mã đối tượng chỉ gồm chữ số.");
+        if (!DIGITS.test(targetId)) {
+            setNotice("Mã đối tượng chỉ gồm chữ số.");
             setLoading(false);
             return;
         }
@@ -72,14 +67,44 @@ export function AuditTab() {
         };
     }, [action, actorId, targetId, from, to, page]);
 
-    function changeFilter(setter: (value: string) => void, value: string) {
+    // Lấy tên cho các mã có trong trang hiện tại
+    useEffect(() => {
+        if (!result) return;
+        const ids = new Set<number>();
+        for (const entry of result.items) {
+            ids.add(entry.actorId);
+            if (entry.targetType === "USER" && entry.targetId && DIGITS.test(entry.targetId) && entry.targetId !== "") {
+                ids.add(Number(entry.targetId));
+            }
+        }
+        const missing = [...ids].filter((id) => !(id in names));
+        if (missing.length === 0) return;
+        let alive = true;
+        getUsersByIds(missing)
+            .then((users) => {
+                if (!alive) return;
+                setNames((prev) => {
+                    const next = { ...prev };
+                    for (const user of users) next[user.id] = `${user.name} (@${user.username})`;
+                    return next;
+                });
+            })
+            .catch(() => {
+                // Không lấy được tên thì vẫn hiện mã; không làm gián đoạn màn hình
+            });
+        return () => {
+            alive = false;
+        };
+    }, [result, names]);
+
+    function changeFilter<T>(setter: (value: T) => void, value: T) {
         setter(value);
         setPage(0);
     }
 
     function clearFilters() {
         setAction("");
-        setActorId("");
+        setActor(null);
         setTargetId("");
         setFrom("");
         setTo("");
@@ -87,14 +112,14 @@ export function AuditTab() {
     }
 
     const totalPages = result ? Math.max(1, Math.ceil(result.total / PAGE_SIZE)) : 1;
-    const hasFilter = Boolean(action || actorId || targetId || from || to);
+    const hasFilter = Boolean(action || actor || targetId || from || to);
 
     return (
         <section aria-label="Nhật ký hệ thống" className="flex flex-col gap-4">
             <div className="flex flex-col gap-3">
                 <h2 className="font-serif text-lg font-semibold">Nhật ký hệ thống</h2>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                    <div className="flex flex-col gap-1">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+                    <div className="flex flex-col gap-1 lg:col-span-2">
                         <label htmlFor="audit-action" className={LABEL}>
                             Hành động
                         </label>
@@ -104,23 +129,21 @@ export function AuditTab() {
                             onChange={(event) => changeFilter(setAction, event.target.value)}
                             className={INPUT}
                         >
-                            {ACTION_OPTIONS.map((item) => (
+                            {AUDIT_ACTION_OPTIONS.map((item) => (
                                 <option key={item.value} value={item.value}>
                                     {item.label}
                                 </option>
                             ))}
                         </select>
                     </div>
-                    <div className="flex flex-col gap-1">
-                        <label htmlFor="audit-actor" className={LABEL}>
-                            Người thực hiện (mã)
-                        </label>
-                        <input
+                    <div className="flex flex-col gap-1 lg:col-span-2">
+                        <EntityPicker
                             id="audit-actor"
-                            inputMode="numeric"
-                            value={actorId}
-                            onChange={(event) => changeFilter(setActorId, event.target.value.trim())}
-                            className={INPUT}
+                            label="Người thực hiện (tìm theo tên)"
+                            placeholder="Nhập tên hoặc tên đăng nhập"
+                            search={searchPeople}
+                            value={actor}
+                            onChange={(option) => changeFilter(setActor, option)}
                         />
                     </div>
                     <div className="flex flex-col gap-1">
@@ -185,18 +208,19 @@ export function AuditTab() {
                     <li key={entry.id} className="flex flex-col gap-1 px-4 py-3 text-sm">
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
                             <span>{formatChatTime(entry.createdAt)}</span>
-                            <span>Người thực hiện #{entry.actorId}</span>
+                            <span>
+                                Người thực hiện: {names[entry.actorId] ?? `mã #${entry.actorId}`}
+                            </span>
                             {entry.ip ? <span>IP {entry.ip}</span> : null}
                         </div>
                         <p className="break-words">
-                            <span className="font-semibold text-primary">
-                                {ACTION_LABEL[entry.action] ?? entry.action}
-                            </span>
-                            <span className="ml-2 font-mono text-[12px] text-muted">{entry.action}</span>
+                            <span className="font-semibold text-primary">{actionLabel(entry.action)}</span>
                             {entry.targetType ? (
                                 <span className="text-muted">
                                     {" · "}
-                                    {entry.targetType} {entry.targetId ?? ""}
+                                    {entry.targetType === "USER" && entry.targetId && names[Number(entry.targetId)]
+                                        ? `Người dùng: ${names[Number(entry.targetId)]}`
+                                        : `${entry.targetType} ${entry.targetId ?? ""}`}
                                 </span>
                             ) : null}
                         </p>

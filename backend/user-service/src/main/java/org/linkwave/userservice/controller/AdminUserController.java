@@ -3,6 +3,7 @@ package org.linkwave.userservice.controller;
 import lombok.RequiredArgsConstructor;
 import org.linkwave.shared.auth.DefaultUserDetails;
 import org.linkwave.userservice.academic.StudentProfileService;
+import org.linkwave.userservice.academic.UserProfileService;
 import org.linkwave.userservice.entity.RoleEntity;
 import org.linkwave.userservice.entity.ScopeType;
 import org.linkwave.userservice.entity.UserEntity;
@@ -53,6 +54,7 @@ public class AdminUserController {
     private final TwoFactorStatusService twoFactorStatus;
     private final AuditLogRepository auditRepository;
     private final StudentProfileService students;
+    private final UserProfileService profiles;
     private final JdbcTemplate jdbc;
 
     /** Một dòng trong danh sách */
@@ -71,6 +73,8 @@ public class AdminUserController {
      * Hồ sơ đầy đủ. schoolPermissions là quyền thực tế ở phạm vi toàn trường.
      * twoFactorEnabled là null nếu không đọc được trạng thái 2FA.
      * recentAudit là các hoạt động gần nhất có đối tượng là người dùng này.
+     * profile là hồ sơ cá nhân (CCCD đã che, dân tộc và tôn giáo chỉ cho biết có hay không).
+     * cccdMasked giữ để tương thích, bằng profile.cccdMasked.
      */
     public record UserDetailView(Long id, String username, String name, String bio, boolean locked,
                                  ZonedDateTime createdAt, ZonedDateTime lastSeen,
@@ -78,7 +82,8 @@ public class AdminUserController {
                                  List<String> schoolPermissions,
                                  Boolean twoFactorEnabled,
                                  List<AdminAuditController.AuditRow> recentAudit,
-                                 String studentCode, String classCode, String cccdMasked) {
+                                 String studentCode, String classCode, String cccdMasked,
+                                 UserProfileService.ProfileView profile) {
     }
 
     /**
@@ -197,6 +202,7 @@ public class AdminUserController {
                 .toList();
 
         final StudentProfileService.StudentInfo student = students.find(id).orElse(null);
+        final UserProfileService.ProfileView profile = profiles.find(id);
 
         return new UserDetailView(
                 user.getId(),
@@ -213,7 +219,8 @@ public class AdminUserController {
                 recentAudit,
                 student == null ? null : student.studentCode(),
                 student == null ? null : student.classCode(),
-                student == null ? null : student.cccdMasked());
+                profile.cccdMasked(),
+                profile);
     }
 
     private static UserRow toRow(UserEntity user) {

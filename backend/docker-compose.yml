@@ -32,7 +32,7 @@ services:
       POSTGRES_PASSWORD: $USERS_DB_PASSWORD
     volumes:
       - users-db-data:/var/lib/postgresql/data
-      - ./user-service/src/main/resources/docker-init/users_db.sql:/docker-entrypoint-initdb.d/user_db.sql
+      - ./user-service/src/main/resources/docker-init:/docker-entrypoint-initdb.d
     restart: unless-stopped
 
   user-service:

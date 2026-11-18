@@ -38,8 +38,11 @@ public class RoleOverviewController {
     private final RoleCatalogRepository roleRepository;
     private final ScopedRoleRepository scopedRoleRepository;
 
-    /** globalMembers: người được gán vai trò toàn trường; scopedMembers: người có lần cấp theo phạm vi */
-    public record RoleOverview(Integer id, String name, List<String> permissions,
+    /**
+     * name: mã kỹ thuật (ROLE_...). displayName: tên tiếng Việt, có thể null.
+     * globalMembers: người được gán vai trò toàn trường; scopedMembers: người có lần cấp theo phạm vi.
+     */
+    public record RoleOverview(Integer id, String name, String displayName, List<String> permissions,
                                int globalMembers, int scopedMembers) {
     }
 
@@ -64,6 +67,7 @@ public class RoleOverviewController {
                 .map(role -> new RoleOverview(
                         role.getId(),
                         role.getName(),
+                        role.getDisplayName(),
                         role.getPermissions().stream().map(permission -> permission.getCode()).sorted().toList(),
                         (int) role.getUsers().stream().filter(user -> !user.isDeleted()).count(),
                         scopedUsers.getOrDefault(role.getName(), Set.of()).size()))

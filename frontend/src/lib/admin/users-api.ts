@@ -29,6 +29,26 @@ export type ScopedGrant = {
     grantedBy: number | null;
 };
 
+/** Hồ sơ cá nhân hiển thị. CCCD đã che; dân tộc và tôn giáo chỉ cho biết có hay không. */
+export type ProfileView = {
+    gender: string | null;
+    birthDate: string | null;
+    status: string | null;
+    phone: string | null;
+    birthplace: string | null;
+    nationality: string | null;
+    address: string | null;
+    cccdMasked: string | null;
+    hasEthnicity: boolean;
+    hasReligion: boolean;
+};
+
+export type SensitiveView = {
+    cccd: string | null;
+    ethnicity: string | null;
+    religion: string | null;
+};
+
 export type UserDetail = {
     id: number;
     username: string;
@@ -47,8 +67,34 @@ export type UserDetail = {
     /** Chỉ có với sinh viên có hồ sơ học vụ */
     studentCode: string | null;
     classCode: string | null;
-    /** 4 số đầu, phần còn lại là dấu * ; null nếu chưa có CCCD */
     cccdMasked: string | null;
+    profile: ProfileView;
+};
+
+/**
+ * Dữ liệu hồ sơ gửi lên máy chủ.
+ * Trường nhạy cảm (cccd, ethnicity, religion): null nghĩa là không đổi, chuỗi rỗng nghĩa là xóa.
+ * Trường thường: gửi đầy đủ, null hoặc rỗng nghĩa là để trống.
+ */
+export type ProfilePayload = {
+    gender: string | null;
+    birthDate: string | null;
+    status: string | null;
+    phone: string | null;
+    birthplace: string | null;
+    nationality: string | null;
+    address: string | null;
+    cccd: string | null;
+    ethnicity: string | null;
+    religion: string | null;
+};
+
+export type CreateUserPayload = ProfilePayload & {
+    username: string;
+    name: string;
+    role: string;
+    classCode: string | null;
+    status: string;
 };
 
 // Tìm theo tên hoặc tên đăng nhập; role là tên đầy đủ (ví dụ ROLE_STUDENT), "" là tất cả
@@ -80,17 +126,33 @@ export function getUserDetail(userId: number): Promise<UserDetail> {
     return apiFetch<UserDetail>(`/api/v1/admin/users/${userId}`);
 }
 
+// Tạo tài khoản đơn lẻ. Mật khẩu mặc định Dhsg@123, người dùng phải đổi khi đăng nhập lần đầu.
+export function createUser(body: CreateUserPayload): Promise<{ id: number; username: string }> {
+    return apiFetch<{ id: number; username: string }>("/api/v1/admin/users", {
+        method: "POST",
+        body: JSON.stringify(body),
+    });
+}
+
+// Sửa họ tên, tiểu sử và hồ sơ. Cần quyền xem người dùng và cấp cao hơn người được sửa.
+export function updateUserProfile(
+    userId: number,
+    body: ProfilePayload & { name: string; bio: string | null },
+): Promise<void> {
+    return apiFetch<void>(`/api/v1/admin/users/${userId}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+    });
+}
+
 // Hiện đầy đủ CCCD. Mỗi lần gọi được ghi vào nhật ký.
 export function revealUserCccd(userId: number): Promise<{ cccd: string }> {
     return apiFetch<{ cccd: string }>(`/api/v1/admin/users/${userId}/cccd/reveal`, { method: "POST" });
 }
 
-// Sửa họ tên và tiểu sử. Cần quyền xem người dùng và cấp cao hơn người được sửa.
-export function updateUserProfile(userId: number, name: string, bio: string): Promise<void> {
-    return apiFetch<void>(`/api/v1/admin/users/${userId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ name, bio }),
-    });
+// Hiện đầy đủ CCCD, dân tộc, tôn giáo. Mỗi lần gọi được ghi vào nhật ký (chỉ ghi tên trường).
+export function revealUserSensitive(userId: number): Promise<SensitiveView> {
+    return apiFetch<SensitiveView>(`/api/v1/admin/users/${userId}/sensitive/reveal`, { method: "POST" });
 }
 
 // Đặt mật khẩu tạm. Mật khẩu chỉ trả về một lần.

@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.linkwave.shared.auth.DefaultUserDetails;
-import org.linkwave.userservice.academic.StudentProfileService;
+import org.linkwave.userservice.academic.UserProfileService;
 import org.linkwave.userservice.entity.RoleEntity;
 import org.linkwave.userservice.entity.ScopeType;
 import org.linkwave.userservice.entity.UserEntity;
@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +37,8 @@ import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NO_CONTENT;
 
 /**
- * Sửa thông tin người dùng từ màn hình quản trị: họ tên, tiểu sử, đặt lại mật khẩu tạm, đổi vai trò toàn trường.
+ * Sửa thông tin người dùng từ màn hình quản trị: họ tên, tiểu sử, hồ sơ cá nhân,
+ * đặt lại mật khẩu tạm, đổi vai trò toàn trường.
  * Tên đăng nhập không đổi ở đây. Mỗi thao tác kiểm tra quyền, cấp bậc và ghi nhật ký.
  */
 @RestController
@@ -47,23 +49,37 @@ public class AdminUserEditController {
     private static final ScopeType SCHOOL = ScopeType.SCHOOL;
     private static final Set<String> EDITABLE_ROLES = Set.of("ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN");
     private static final String ROLE_ROOT = "ROLE_ROOT";
+
     private final AccessPolicyService access;
     private final AuditService audit;
     private final UserRepository userRepository;
     private final RoleCatalogRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
-    private final StudentProfileService students;
+    private final UserProfileService profiles;
 
+    /**
+     * Sửa họ tên, tiểu sử và hồ sơ cá nhân.
+     * Trường thường: gửi đầy đủ giá trị (rỗng nghĩa là xóa).
+     * Trường nhạy cảm (cccd, ethnicity, religion): gửi null nếu không đổi, chuỗi rỗng nếu muốn xóa.
+     */
     public record UpdateProfileRequest(
             @NotBlank @Size(max = 64) String name,
-            @Size(max = 255) String bio
-    ) {
+            @Size(max = 255) String bio,
+            String gender,
+            LocalDate birthDate,
+            String status,
+            String phone,
+            String birthplace,
+            String nationality,
+            String address,
+            String cccd,
+            String ethnicity,
+            String religion) {
     }
 
     public record SetGlobalRoleRequest(
             @NotBlank @Pattern(regexp = "ROLE_(STUDENT|LECTURER|ADMIN)", message = "vai trò không hợp lệ")
-            String role
-    ) {
+            String role) {
     }
 
     /** Mật khẩu tạm chỉ trả về một lần trong phản hồi này, không được ghi vào nhật ký */
@@ -74,7 +90,7 @@ public class AdminUserEditController {
     public record CccdView(String cccd) {
     }
 
-    /** Sửa họ tên và tiểu sử. Cần user.view và cấp cao hơn người được sửa (hoặc chính mình). */
+    /** Sửa họ tên, tiểu sử và hồ sơ. Cần user.view và cấp cao hơn người được sửa (hoặc chính mình). */
     @PatchMapping("/{id}")
     @ResponseStatus(NO_CONTENT)
     @Transactional
@@ -95,7 +111,20 @@ public class AdminUserEditController {
         user.setName(name);
         user.setBio(bio);
         userRepository.save(user);
-        audit.record(actor, "USER_EDIT", "USER", String.valueOf(id), "name,bio", ip(request));
+
+        profiles.save(id, editableRole(user), new UserProfileService.ProfileInput(
+                body.gender(),
+                body.birthDate(),
+                body.status(),
+                body.phone(),
+                body.birthplace(),
+                body.nationality(),
+                body.address(),
+                body.cccd(),
+                body.ethnicity(),
+                body.religion()));
+
+        audit.record(actor, "USER_EDIT", "USER", String.valueOf(id), "name,bio,profile", ip(request));
     }
 
     /**
@@ -122,19 +151,34 @@ public class AdminUserEditController {
         return new ResetPasswordResponse(temporary);
     }
 
-    /**
-     * Hiện đầy đủ CCCD của sinh viên. Mỗi lần xem đều ghi nhật ký CCCD_REVEAL (không ghi số CCCD vào nhật ký).
-     */
+    /** Hiện đầy đủ CCCD. Mỗi lần xem đều ghi nhật ký CCCD_REVEAL (không ghi số CCCD vào nhật ký). */
     @PostMapping("/{id}/cccd/reveal")
     public CccdView revealCccd(@PathVariable Long id, HttpServletRequest request) {
         final Long actor = currentAdminId();
         access.require(actor, "user.view", SCHOOL, null);
         access.requireCanManage(actor, id);
 
-        final String cccd = students.revealCccd(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Người dùng này chưa có CCCD"));
+        final String cccd = profiles.reveal(id).cccd();
+        if (cccd == null) {
+            throw new ResourceNotFoundException("Người dùng này chưa có CCCD");
+        }
         audit.record(actor, "CCCD_REVEAL", "USER", String.valueOf(id), null, ip(request));
         return new CccdView(cccd);
+    }
+
+    /**
+     * Hiện đầy đủ CCCD, dân tộc và tôn giáo. Mỗi lần xem ghi nhật ký SENSITIVE_REVEAL
+     * (chỉ ghi tên trường, không ghi giá trị).
+     */
+    @PostMapping("/{id}/sensitive/reveal")
+    public UserProfileService.SensitiveView revealSensitive(@PathVariable Long id, HttpServletRequest request) {
+        final Long actor = currentAdminId();
+        access.require(actor, "user.view", SCHOOL, null);
+        access.requireCanManage(actor, id);
+
+        final UserProfileService.SensitiveView view = profiles.reveal(id);
+        audit.record(actor, "SENSITIVE_REVEAL", "USER", String.valueOf(id), "cccd,ethnicity,religion", ip(request));
+        return view;
     }
 
     /**
@@ -176,6 +220,15 @@ public class AdminUserEditController {
 
         audit.record(actor, "ROLE_SET", "USER", String.valueOf(id),
                 (before.isEmpty() ? "-" : before) + " -> " + body.role(), ip(request));
+    }
+
+    /** Vai trò thuộc nhóm có thể chỉnh (sinh viên, giảng viên, quản trị viên), dùng để kiểm tra tình trạng */
+    private static String editableRole(UserEntity user) {
+        return user.getRoles().stream()
+                .map(RoleEntity::getName)
+                .filter(EDITABLE_ROLES::contains)
+                .findFirst()
+                .orElse("");
     }
 
     private void requireRoot(Long actor) {

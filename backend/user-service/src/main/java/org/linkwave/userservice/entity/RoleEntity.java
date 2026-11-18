@@ -26,6 +26,10 @@ public class RoleEntity {
     @Column(unique = true, nullable = false)
     private String name;
 
+    /** Tên tiếng Việt hiển thị cho người dùng quản trị. Có thể để trống; khi trống dùng nhãn mặc định. */
+    @Column(name = "display_name", length = 128)
+    private String displayName;
+
     @JsonIgnore
     @ManyToMany(mappedBy = "roles")
     @Builder.Default
