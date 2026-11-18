@@ -39,6 +39,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.file.Path;
 import java.time.Instant;
+import org.springframework.beans.factory.annotation.Value;
+
 import java.util.*;
 
 import static java.lang.String.format;
@@ -66,6 +68,10 @@ public class ChatServiceImpl implements ChatService {
     private final FileStorageService fileStorageService;
     private final UserService userService;
     private MessageService messageService;
+
+    /** ID tài khoản bot. Chat với bot luôn có sẵn và luôn đứng đầu danh sách. 0 nghĩa là tắt. */
+    @Value("${bot.user-id:0}")
+    private Long botUserId;
 
     @Autowired
     public void setMessageService(@Lazy MessageService messageService) {
@@ -265,10 +271,18 @@ public class ChatServiceImpl implements ChatService {
     @Override
     public Pair<Long, List<ChatDto>> getUserChats(@NonNull RequestInitiator initiator, int offset, int limit) {
 
-        final List<Chat> userChats = chatRepository.getUserChats(initiator.userId(), offset, limit).stream()
-                .filter(chat -> isVisibleFor(chat, initiator.userId()))
-                .toList();
-        final long chatsTotalCount = chatRepository.getUserChatsTotalCount(initiator.userId());
+        final Long userId = initiator.userId();
+        // Trang đầu luôn có chat với bot, đặt đầu danh sách
+        final Chat botChat = offset == 0 ? ensureBotChat(userId) : null;
+
+        final List<Chat> userChats = new ArrayList<>(chatRepository.getUserChats(userId, offset, limit).stream()
+                .filter(chat -> isVisibleFor(chat, userId))
+                .toList());
+        if (botChat != null) {
+            userChats.removeIf(chat -> botChat.getId().equals(chat.getId()));
+            userChats.add(0, botChat);
+        }
+        final long chatsTotalCount = chatRepository.getUserChatsTotalCount(userId);
 
         final Set<Long> usersIds = new HashSet<>();
         final List<ChatDto> selectedChats = userChats
@@ -300,6 +314,18 @@ public class ChatServiceImpl implements ChatService {
         });
 
         return Pair.of(chatsTotalCount, selectedChats);
+    }
+
+    /** Chat với bot: tạo nếu chưa có. Trả về null khi bot tắt hoặc chính người dùng là bot. */
+    private Chat ensureBotChat(Long userId) {
+        if (botUserId == null || botUserId == 0L || userId.equals(botUserId)) {
+            return null;
+        }
+        try {
+            return findChat(userId, botUserId);
+        } catch (ChatNotFoundException e) {
+            return createBotChat(userId, botUserId);
+        }
     }
 
     @NonNull

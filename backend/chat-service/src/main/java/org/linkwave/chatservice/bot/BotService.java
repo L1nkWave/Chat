@@ -40,6 +40,7 @@ public class BotService {
     private final ChatService chatService;
     private final MessageService messageService;
     private final WSServiceClient wsClient;
+    private final AcademicBotHandler academic;
 
     /** ID tài khoản bot trong bảng users. 0 nghĩa là tắt bot. */
     @Value("${bot.user-id:0}")
@@ -65,17 +66,23 @@ public class BotService {
      */
     public void onUserMessage(@NonNull RequestInitiator initiator, String chatId, String text) {
         try {
-            if (botUserId == null || botUserId == 0L) {
+            if (text == null || !text.startsWith("/")) {
                 return;
             }
-            if (initiator.userId().equals(botUserId) || text == null || !text.startsWith("/")) {
+            if (botUserId == null || botUserId == 0L) {
+                log.warn("Lệnh \"{}\" bị bỏ qua: bot.user-id chưa được cấu hình (biến BOT_USER_ID)", text);
+                return;
+            }
+            if (initiator.userId().equals(botUserId)) {
                 return;
             }
             if (!isBotDuoChat(chatId)) {
+                log.warn("Lệnh \"{}\" bị bỏ qua: chat {} không phải chat với bot có id {}. Kiểm tra BOT_USER_ID",
+                        text, chatId, botUserId);
                 return;
             }
 
-            final String reply = answer(text.trim(), currentAuthorities());
+            final String reply = answer(text.trim(), currentAuthorities(), initiator.userId());
             final MessageDto sent = messageService.saveTextMessage(botUserId, chatId, new NewTextMessage(reply));
 
             wsClient.notifyBotMessage(initiator.bearer(), new BotMessageNotification(
@@ -85,7 +92,7 @@ public class BotService {
         }
     }
 
-    String answer(String input, Set<String> authorities) {
+    String answer(String input, Set<String> authorities, Long userId) {
         final String name = input.split("\\s+")[0].toLowerCase(Locale.ROOT);
 
         if (name.equals("/help")) {
@@ -102,8 +109,14 @@ public class BotService {
         if (!allowed(command, authorities)) {
             return "Bạn không có quyền sử dụng lệnh này.";
         }
-        // Dữ liệu thời khóa biểu, lịch thi... chỉ có sau khi import (giai đoạn 3-P5)
-        return "Lệnh " + command.name() + " đang được phát triển. Dữ liệu sẽ có sau khi nhà trường import.";
+        // Dữ liệu lấy theo người gọi (lớp hoặc mã giảng viên), không nhận tham số từ tin nhắn
+        return switch (command.name()) {
+            case "/tkb" -> academic.timetable(userId);
+            case "/lichthi" -> academic.exams(userId);
+            case "/lop" -> academic.classes(userId);
+            case "/lichgac" -> academic.duties(userId);
+            default -> "Lệnh " + command.name() + " đang được phát triển.";
+        };
     }
 
     private String helpText(Set<String> authorities) {

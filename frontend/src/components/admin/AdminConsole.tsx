@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { AcademicTab } from "./AcademicTab";
 import { AuditTab } from "./AuditTab";
 import { CatalogTab } from "./CatalogTab";
 import { ReportsTab } from "./ReportsTab";
 import { RolesTab } from "./RolesTab";
 import { UsersTab } from "./UsersTab";
 
-type TabId = "reports" | "users" | "audit" | "roles" | "catalog";
+type TabId = "reports" | "users" | "audit" | "academic" | "roles" | "catalog";
 
 type AdminConsoleProps = {
     isRoot: boolean;
@@ -23,6 +24,7 @@ export function AdminConsole({ isRoot }: AdminConsoleProps) {
         { id: "reports", label: "Báo cáo" },
         { id: "users", label: "Người dùng" },
         { id: "audit", label: "Nhật ký" },
+        { id: "academic", label: "Học vụ" },
         ...(isRoot ? [{ id: "catalog" as const, label: "Khoa & lớp" }] : []),
         ...(isRoot ? [{ id: "roles" as const, label: "Vai trò" }] : []),
     ];
@@ -82,6 +84,7 @@ export function AdminConsole({ isRoot }: AdminConsoleProps) {
                 {tab === "reports" ? <ReportsTab /> : null}
                 {tab === "users" ? <UsersTab isRoot={isRoot} /> : null}
                 {tab === "audit" ? <AuditTab /> : null}
+                {tab === "academic" ? <AcademicTab /> : null}
                 {tab === "roles" && isRoot ? <RolesTab /> : null}
                 {tab === "catalog" && isRoot ? <CatalogTab /> : null}
             </main>

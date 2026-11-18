@@ -7,6 +7,7 @@ import { adminErrorMessage, setUserLocked } from "@/lib/admin/api";
 import {
     getUserDetail,
     resetUserPassword,
+    revealUserCccd,
     searchUsers,
     setUserGlobalRole,
     updateUserProfile,
@@ -42,6 +43,7 @@ const AUDIT_LABEL: Record<string, string> = {
     USER_EDIT: "Sửa thông tin",
     PASSWORD_RESET: "Đặt lại mật khẩu",
     ROLE_SET: "Đổi vai trò toàn trường",
+    CCCD_REVEAL: "Xem CCCD đầy đủ",
 };
 
 const SCOPE_LABEL: Record<"SCHOOL" | "FACULTY" | "CLASS", string> = {
@@ -82,6 +84,7 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
     const [roleChoice, setRoleChoice] = useState("");
     const [tempPassword, setTempPassword] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
+    const [cccdShown, setCccdShown] = useState<string | null>(null);
 
     // Tìm sau khi người dùng ngừng gõ một lúc
     useEffect(() => {
@@ -160,7 +163,27 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
         setTempPassword(null);
         setCopied(false);
         setRoleChoice("");
+        setCccdShown(null);
         setNotice(null);
+    }
+
+    async function toggleCccd() {
+        if (!detail) return;
+        if (cccdShown !== null) {
+            setCccdShown(null);
+            return;
+        }
+        if (!window.confirm("Hiện đầy đủ số CCCD? Thao tác này được ghi vào nhật ký.")) return;
+        setBusy(true);
+        setNotice(null);
+        try {
+            const data = await revealUserCccd(detail.id);
+            setCccdShown(data.cccd);
+        } catch (err) {
+            setNotice({ text: adminErrorMessage(err), tone: "error" });
+        } finally {
+            setBusy(false);
+        }
     }
 
     function startEdit() {
@@ -403,6 +426,30 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                                             ? "Đã bật"
                                             : "Chưa bật"}
                                 </dd>
+                                {detail.studentCode ? (
+                                    <>
+                                        <dt className="text-muted">Mã sinh viên</dt>
+                                        <dd className="font-mono">{detail.studentCode}</dd>
+                                        <dt className="text-muted">Lớp</dt>
+                                        <dd>{detail.classCode ?? "Chưa có"}</dd>
+                                    </>
+                                ) : null}
+                                {detail.cccdMasked ? (
+                                    <>
+                                        <dt className="text-muted">CCCD</dt>
+                                        <dd className="flex flex-wrap items-center gap-2 font-mono">
+                                            <span>{cccdShown ?? detail.cccdMasked}</span>
+                                            <button
+                                                type="button"
+                                                disabled={busy}
+                                                onClick={toggleCccd}
+                                                className="font-sans text-xs text-primary underline-offset-4 hover:underline disabled:opacity-40"
+                                            >
+                                                {cccdShown !== null ? "Ẩn" : "Hiện đầy đủ"}
+                                            </button>
+                                        </dd>
+                                    </>
+                                ) : null}
                             </dl>
 
                             {detail.bio ? <p className="text-sm leading-relaxed">{detail.bio}</p> : null}

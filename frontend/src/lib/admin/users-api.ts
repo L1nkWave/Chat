@@ -44,6 +44,11 @@ export type UserDetail = {
     twoFactorEnabled: boolean | null;
     /** Hoạt động gần nhất có đối tượng là người dùng này */
     recentAudit: AuditRow[];
+    /** Chỉ có với sinh viên có hồ sơ học vụ */
+    studentCode: string | null;
+    classCode: string | null;
+    /** 4 số đầu, phần còn lại là dấu * ; null nếu chưa có CCCD */
+    cccdMasked: string | null;
 };
 
 // Tìm theo tên hoặc tên đăng nhập; role là tên đầy đủ (ví dụ ROLE_STUDENT), "" là tất cả
@@ -66,6 +71,11 @@ export function searchUsers(params: {
 
 export function getUserDetail(userId: number): Promise<UserDetail> {
     return apiFetch<UserDetail>(`/api/v1/admin/users/${userId}`);
+}
+
+// Hiện đầy đủ CCCD. Mỗi lần gọi được ghi vào nhật ký.
+export function revealUserCccd(userId: number): Promise<{ cccd: string }> {
+    return apiFetch<{ cccd: string }>(`/api/v1/admin/users/${userId}/cccd/reveal`, { method: "POST" });
 }
 
 // Sửa họ tên và tiểu sử. Cần quyền xem người dùng và cấp cao hơn người được sửa.

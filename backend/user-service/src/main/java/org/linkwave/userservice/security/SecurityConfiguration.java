@@ -51,6 +51,8 @@ public class SecurityConfiguration {
                         .requestMatchers(POST, "/api/v1/users/register").permitAll()
                         .requestMatchers(GET, "/actuator/health").permitAll()
                         .requestMatchers("/api/v1/users/{id}/online").permitAll()
+                        // Chỉ chat-service gọi; được bảo vệ bằng header X-Internal-Key trong controller. Gateway không định tuyến đường này.
+                        .requestMatchers("/internal/academic/**").permitAll()
                         .requestMatchers("/api/v*/users/**").hasRole("USER")
                         .anyRequest().authenticated())
 

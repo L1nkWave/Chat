@@ -2,6 +2,7 @@ package org.linkwave.userservice.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.linkwave.shared.auth.DefaultUserDetails;
+import org.linkwave.userservice.academic.StudentProfileService;
 import org.linkwave.userservice.entity.RoleEntity;
 import org.linkwave.userservice.entity.ScopeType;
 import org.linkwave.userservice.entity.UserEntity;
@@ -49,6 +50,7 @@ public class AdminUserController {
     private final ScopedRoleRepository scopedRoleRepository;
     private final TwoFactorStatusService twoFactorStatus;
     private final AuditLogRepository auditRepository;
+    private final StudentProfileService students;
 
     /** Một dòng trong danh sách */
     public record UserRow(Long id, String username, String name, boolean locked,
@@ -72,7 +74,8 @@ public class AdminUserController {
                                  List<String> roles, List<ScopedGrantView> scopedRoles,
                                  List<String> schoolPermissions,
                                  Boolean twoFactorEnabled,
-                                 List<AdminAuditController.AuditRow> recentAudit) {
+                                 List<AdminAuditController.AuditRow> recentAudit,
+                                 String studentCode, String classCode, String cccdMasked) {
     }
 
     @GetMapping
@@ -141,6 +144,8 @@ public class AdminUserController {
                         entry.getCreatedAt()))
                 .toList();
 
+        final StudentProfileService.StudentInfo student = students.find(id).orElse(null);
+
         return new UserDetailView(
                 user.getId(),
                 user.getUsername(),
@@ -153,7 +158,10 @@ public class AdminUserController {
                 grants,
                 permissions,
                 twoFactorStatus.isEnabled(id),
-                recentAudit);
+                recentAudit,
+                student == null ? null : student.studentCode(),
+                student == null ? null : student.classCode(),
+                student == null ? null : student.cccdMasked());
     }
 
     private static UserRow toRow(UserEntity user) {

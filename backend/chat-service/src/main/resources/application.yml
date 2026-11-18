@@ -40,6 +40,7 @@ logging:
     org.springframework.data.mongodb.core.MongoTemplate: DEBUG
 
 bot:
-  user-id: 10
+  # ID của tài khoản sgu_bot trong bảng users (lw-users). Lấy bằng: select id from users where username = 'sgu_bot';
+  user-id: ${BOT_USER_ID:0}
 internal:
   service-key: ${INTERNAL_SERVICE_KEY}

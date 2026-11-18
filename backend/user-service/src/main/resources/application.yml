@@ -46,6 +46,11 @@ files:
 
 app:
   registration-enabled: ${REGISTRATION_ENABLED:false}
+  # Khóa mã hóa CCCD (AES-256) và khóa chỉ mục chống trùng (HMAC). Mỗi khóa 32 byte, mã base64.
+  # Tạo bằng: openssl rand -base64 32. Thiếu khóa thì service không khởi động.
+  cccd:
+    key: ${CCCD_ENCRYPTION_KEY}
+    index-key: ${CCCD_INDEX_KEY}
 
 # Khóa dùng chung với ws-server (biến môi trường INTERNAL_SERVICE_KEY, tối thiểu 32 ký tự)
 internal:

@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.linkwave.shared.auth.DefaultUserDetails;
+import org.linkwave.userservice.academic.StudentProfileService;
 import org.linkwave.userservice.entity.RoleEntity;
 import org.linkwave.userservice.entity.ScopeType;
 import org.linkwave.userservice.entity.UserEntity;
@@ -16,6 +17,7 @@ import org.linkwave.userservice.repository.RoleCatalogRepository;
 import org.linkwave.userservice.repository.UserRepository;
 import org.linkwave.userservice.service.AccessPolicyService;
 import org.linkwave.userservice.service.AuditService;
+import org.linkwave.userservice.service.TemporaryPasswords;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,12 +25,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -47,15 +47,12 @@ public class AdminUserEditController {
     private static final ScopeType SCHOOL = ScopeType.SCHOOL;
     private static final Set<String> EDITABLE_ROLES = Set.of("ROLE_STUDENT", "ROLE_LECTURER", "ROLE_ADMIN");
     private static final String ROLE_ROOT = "ROLE_ROOT";
-    private static final String TEMP_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-    private static final int TEMP_LENGTH = 12;
-
     private final AccessPolicyService access;
     private final AuditService audit;
     private final UserRepository userRepository;
     private final RoleCatalogRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
-    private final SecureRandom random = new SecureRandom();
+    private final StudentProfileService students;
 
     public record UpdateProfileRequest(
             @NotBlank @Size(max = 64) String name,
@@ -71,6 +68,10 @@ public class AdminUserEditController {
 
     /** Mật khẩu tạm chỉ trả về một lần trong phản hồi này, không được ghi vào nhật ký */
     public record ResetPasswordResponse(String temporaryPassword) {
+    }
+
+    /** CCCD đầy đủ, chỉ trả về khi admin bấm "Hiện đầy đủ" */
+    public record CccdView(String cccd) {
     }
 
     /** Sửa họ tên và tiểu sử. Cần user.view và cấp cao hơn người được sửa (hoặc chính mình). */
@@ -112,13 +113,28 @@ public class AdminUserEditController {
         access.requireCanManage(actor, id);
 
         final UserEntity user = findUser(id);
-        final String temporary = generateTemporaryPassword(user.getUsername());
+        final String temporary = TemporaryPasswords.generate(user.getUsername());
         user.setPassword(passwordEncoder.encode(temporary));
         user.setMustChangePassword(true);
         user.setTokensValidAfter(revocationMark());
         userRepository.save(user);
         audit.record(actor, "PASSWORD_RESET", "USER", String.valueOf(id), null, ip(request));
         return new ResetPasswordResponse(temporary);
+    }
+
+    /**
+     * Hiện đầy đủ CCCD của sinh viên. Mỗi lần xem đều ghi nhật ký CCCD_REVEAL (không ghi số CCCD vào nhật ký).
+     */
+    @PostMapping("/{id}/cccd/reveal")
+    public CccdView revealCccd(@PathVariable Long id, HttpServletRequest request) {
+        final Long actor = currentAdminId();
+        access.require(actor, "user.view", SCHOOL, null);
+        access.requireCanManage(actor, id);
+
+        final String cccd = students.revealCccd(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng này chưa có CCCD"));
+        audit.record(actor, "CCCD_REVEAL", "USER", String.valueOf(id), null, ip(request));
+        return new CccdView(cccd);
     }
 
     /**
@@ -177,23 +193,6 @@ public class AdminUserEditController {
     /** Cùng quy ước với auth-service: refresh token được cấp trước mốc này sẽ bị từ chối */
     private static Instant revocationMark() {
         return Instant.now().truncatedTo(ChronoUnit.SECONDS).plusSeconds(1);
-    }
-
-    /** Ít nhất một chữ và một số, tránh ký tự dễ nhầm; không chứa tên đăng nhập */
-    private String generateTemporaryPassword(String username) {
-        final String loweredName = username.toLowerCase(Locale.ROOT);
-        while (true) {
-            final StringBuilder sb = new StringBuilder(TEMP_LENGTH);
-            for (int i = 0; i < TEMP_LENGTH; i++) {
-                sb.append(TEMP_ALPHABET.charAt(random.nextInt(TEMP_ALPHABET.length())));
-            }
-            final String candidate = sb.toString();
-            if (candidate.matches(".*[A-Za-z].*")
-                    && candidate.matches(".*\\d.*")
-                    && !candidate.toLowerCase(Locale.ROOT).contains(loweredName)) {
-                return candidate;
-            }
-        }
     }
 
     /** Lấy ID người gọi. ADMIN/ROOT phải có cờ MFA_VERIFIED (đã bật và xác thực 2FA). */
