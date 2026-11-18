@@ -1,9 +1,13 @@
 package org.linkwave.userservice.academic;
 
 import lombok.RequiredArgsConstructor;
+import org.linkwave.userservice.entity.UserEntity;
 import org.linkwave.userservice.exception.ResourceNotFoundException;
 import org.linkwave.userservice.exception.UnacceptableRequestDataException;
+import org.linkwave.userservice.repository.UserRepository;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,17 +29,22 @@ public class AcademicCatalogService {
     public record FacultyView(long id, String code, String name, long classCount) {
     }
 
+    /** advisorId: giảng viên chủ nhiệm, null nếu chưa gán */
     public record ClassView(long id, String code, String name, long facultyId, String facultyCode,
-                            String cohort, long studentCount) {
+                            String cohort, long studentCount, Long advisorId, String advisorName) {
     }
 
     public record FacultyInput(String code, String name) {
     }
 
-    public record ClassInput(String code, String name, Long facultyId, String cohort) {
+    public record ClassInput(String code, String name, Long facultyId, String cohort, Long advisorId) {
+    }
+
+    public record LecturerOption(long id, String username, String name) {
     }
 
     private final JdbcTemplate jdbc;
+    private final UserRepository userRepository;
 
     public List<FacultyView> faculties() {
         return jdbc.query("""
@@ -51,14 +60,32 @@ public class AcademicCatalogService {
     public List<ClassView> classes() {
         return jdbc.query("""
                 select c.id, c.code, c.name, c.faculty_id, f.code as faculty_code, c.cohort,
-                       (select count(*) from student_profiles p where p.class_code = c.code) as student_count
+                       (select count(*) from student_profiles p where p.class_code = c.code) as student_count,
+                       c.advisor_id, u.name as advisor_name
                 from school_classes c
                 join faculties f on f.id = c.faculty_id
+                left join users u on u.id = c.advisor_id
                 order by c.code
                 """,
                 (rs, n) -> new ClassView(rs.getLong("id"), rs.getString("code"), rs.getString("name"),
                         rs.getLong("faculty_id"), rs.getString("faculty_code"), rs.getString("cohort"),
-                        rs.getLong("student_count")));
+                        rs.getLong("student_count"),
+                        (Long) rs.getObject("advisor_id"), rs.getString("advisor_name")));
+    }
+
+    /** Giảng viên để chọn làm GVCN. Không lọc theo khoa vì hệ thống chưa gắn giảng viên với khoa. */
+    @Transactional(readOnly = true)
+    public List<LecturerOption> lecturers() {
+        return userRepository.searchForAdmin("%", "ROLE_LECTURER", "ALL", PageRequest.of(0, 500, Sort.by("name")))
+                .getContent().stream()
+                .map(user -> new LecturerOption(user.getId(), user.getUsername(), user.getName()))
+                .toList();
+    }
+
+    private boolean isLecturer(Long userId) {
+        return userRepository.findById(userId)
+                .map(user -> user.getRoles().stream().anyMatch(role -> "ROLE_LECTURER".equals(role.getName())))
+                .orElse(false);
     }
 
     @Transactional
@@ -114,11 +141,14 @@ public class AcademicCatalogService {
         if (facultyExists == null || facultyExists == 0) {
             throw new UnacceptableRequestDataException("Khoa đã chọn không tồn tại");
         }
+        if (input.advisorId() != null && !isLecturer(input.advisorId())) {
+            throw new UnacceptableRequestDataException("Giảng viên chủ nhiệm phải là tài khoản giảng viên");
+        }
 
         try {
             if (id == null) {
-                jdbc.update("insert into school_classes (code, name, faculty_id, cohort, created_at) values (?, ?, ?, ?, now())",
-                        code, name, input.facultyId(), cohort);
+                jdbc.update("insert into school_classes (code, name, faculty_id, cohort, advisor_id, created_at) values (?, ?, ?, ?, ?, now())",
+                        code, name, input.facultyId(), cohort, input.advisorId());
                 return;
             }
             final String oldCode = jdbc.query("select code from school_classes where id = ?",
@@ -128,8 +158,8 @@ public class AcademicCatalogService {
             if (!oldCode.equals(code) && studentCount(oldCode) > 0) {
                 throw new UnacceptableRequestDataException("Không đổi mã lớp đã có sinh viên");
             }
-            jdbc.update("update school_classes set code = ?, name = ?, faculty_id = ?, cohort = ? where id = ?",
-                    code, name, input.facultyId(), cohort, id);
+            jdbc.update("update school_classes set code = ?, name = ?, faculty_id = ?, cohort = ?, advisor_id = ? where id = ?",
+                    code, name, input.facultyId(), cohort, input.advisorId(), id);
         } catch (DuplicateKeyException e) {
             throw new UnacceptableRequestDataException("Mã lớp " + code + " đã tồn tại");
         }

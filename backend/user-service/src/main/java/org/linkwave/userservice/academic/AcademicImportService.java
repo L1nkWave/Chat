@@ -73,13 +73,15 @@ public class AcademicImportService {
             on conflict (code) do update set name = excluded.name
             """;
 
+    /** advisor_id: ô GVCN trống trong file thì giữ GVCN cũ */
     private static final String UPSERT_CLASS = """
-            insert into school_classes (code, name, faculty_id, cohort, created_at)
-            values (?, ?, ?, ?, now())
+            insert into school_classes (code, name, faculty_id, cohort, advisor_id, created_at)
+            values (?, ?, ?, ?, ?, now())
             on conflict (code) do update set
                 name = excluded.name,
                 faculty_id = excluded.faculty_id,
-                cohort = excluded.cohort
+                cohort = excluded.cohort,
+                advisor_id = coalesce(excluded.advisor_id, school_classes.advisor_id)
             """;
 
     private static final String UPSERT_SUBJECT = """
@@ -144,6 +146,7 @@ public class AcademicImportService {
     private final RoleCatalogRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final CccdCipher cipher;
+    private final UserProfileService profiles;
 
     @Transactional
     public ImportReport run(Kind kind, InputStream in, boolean dryRun) throws IOException {
@@ -220,7 +223,7 @@ public class AcademicImportService {
 
     // ---------------------------------------------------------------- lớp
 
-    private record ClassRow(int row, String code, String name, long facultyId, String cohort) {
+    private record ClassRow(int row, String code, String name, long facultyId, String cohort, Long advisorId) {
     }
 
     private Outcome classes(Table table, boolean dryRun, List<RowError> errors) {
@@ -236,6 +239,12 @@ public class AcademicImportService {
 
         final List<ClassRow> rows = new ArrayList<>();
         final Set<String> seen = new HashSet<>();
+        // GVCN là mã giảng viên (tên đăng nhập). Không bắt buộc.
+        final Map<String, Long> advisors = usersByUsername(raws.stream()
+                .map(r -> r.get("GVCN"))
+                .filter(code -> !code.isEmpty())
+                .distinct()
+                .toList());
         for (RawRow raw : raws) {
             final int before = errors.size();
             final String code = raw.get("Mã lớp");
@@ -258,8 +267,18 @@ public class AcademicImportService {
             if (cohort != null && cohort.length() > 8) {
                 problem(errors, raw.number(), "Niên khóa quá dài (tối đa 8 ký tự, ví dụ K23)");
             }
+            final String advisorCode = raw.get("GVCN");
+            Long advisorId = null;
+            if (!advisorCode.isEmpty()) {
+                advisorId = advisors.get(advisorCode);
+                if (advisorId == null) {
+                    problem(errors, raw.number(), "GVCN " + advisorCode + " chưa có tài khoản. Nhập file Giảng viên trước");
+                } else if (!isLecturer(advisorId)) {
+                    problem(errors, raw.number(), "GVCN " + advisorCode + " không phải tài khoản giảng viên");
+                }
+            }
             if (errors.size() == before) {
-                rows.add(new ClassRow(raw.number(), code, name, facultyId, cohort));
+                rows.add(new ClassRow(raw.number(), code, name, facultyId, cohort, advisorId));
             }
         }
 
@@ -270,7 +289,7 @@ public class AcademicImportService {
                 .filter(r -> exists("select count(*) from school_classes where code = ?", r.code()))
                 .count();
         jdbc.batchUpdate(UPSERT_CLASS, rows.stream()
-                .map(r -> new Object[]{r.code(), r.name(), r.facultyId(), r.cohort()})
+                .map(r -> new Object[]{r.code(), r.name(), r.facultyId(), r.cohort(), r.advisorId()})
                 .toList());
         return saved(rows.size(), updated);
     }
@@ -315,7 +334,7 @@ public class AcademicImportService {
 
     // ---------------------------------------------------------------- giảng viên
 
-    private record LecturerRow(int row, String code, String name) {
+    private record LecturerRow(int row, String code, String name, UserProfileService.ProfileInput profile) {
     }
 
     private Outcome lecturers(Table table, boolean dryRun, List<RowError> errors) {
@@ -343,8 +362,9 @@ public class AcademicImportService {
             if (name.isEmpty() || name.length() > 64) {
                 problem(errors, raw.number(), "Họ tên trống hoặc dài quá 64 ký tự");
             }
+            final UserProfileService.ProfileInput profile = parseProfile(raw, "ROLE_LECTURER", errors);
             if (errors.size() == before) {
-                rows.add(new LecturerRow(raw.number(), code, name));
+                rows.add(new LecturerRow(raw.number(), code, name, profile));
             }
         }
 
@@ -356,27 +376,29 @@ public class AcademicImportService {
         final List<CreatedAccount> created = new ArrayList<>();
         int updated = 0;
         for (LecturerRow r : rows) {
-            final Long userId = existing.get(r.code());
+            Long userId = existing.get(r.code());
             if (userId == null) {
-                userRepository.save(UserEntity.builder()
+                userId = userRepository.save(UserEntity.builder()
                         .username(r.code())
                         .password(passwordEncoder.encode(DEFAULT_LECTURER_PASSWORD))
                         .name(r.name())
                         .roles(new ArrayList<>(List.of(baseRole, lecturerRole)))
                         .mustChangePassword(true)
-                        .build());
+                        .build()).getId();
                 created.add(new CreatedAccount(r.code(), r.name(), DEFAULT_LECTURER_PASSWORD));
             } else {
                 jdbc.update("update users set name = ? where id = ?", r.name(), userId);
                 updated++;
             }
+            writeProfile(userId, "ROLE_LECTURER", r.profile());
         }
         return new Outcome(rows.size(), rows.size(), created, created.size(), updated);
     }
 
     // ---------------------------------------------------------------- sinh viên
 
-    private record StudentRow(int row, String mssv, String name, String classCode, String cccd) {
+    private record StudentRow(int row, String mssv, String name, String classCode, String cccd,
+                              UserProfileService.ProfileInput profile) {
     }
 
     private Outcome students(Table table, boolean dryRun, List<RowError> errors) {
@@ -419,8 +441,9 @@ public class AcademicImportService {
                     problem(errors, raw.number(), "CCCD bị trùng trong file");
                 }
             }
+            final UserProfileService.ProfileInput profile = parseProfile(raw, "ROLE_STUDENT", errors);
             if (errors.size() == before) {
-                rows.add(new StudentRow(raw.number(), mssv, name, classCode, cccd.isEmpty() ? null : cccd));
+                rows.add(new StudentRow(raw.number(), mssv, name, classCode, cccd.isEmpty() ? null : cccd, profile));
             }
         }
 
@@ -467,6 +490,7 @@ public class AcademicImportService {
             jdbc.update(UPSERT_PROFILE, userId, r.mssv(), r.classCode(),
                     r.cccd() == null ? null : cipher.encrypt(r.cccd()),
                     r.cccd() == null ? null : cipher.index(r.cccd()));
+            writeProfile(userId, "ROLE_STUDENT", r.profile());
         }
         return new Outcome(rows.size(), rows.size(), created, created.size(), updated);
     }
@@ -770,6 +794,111 @@ public class AcademicImportService {
                 .findFirst()
                 .map(other -> "Khoảng ngày trùng với học kỳ " + other + " đã có trong hệ thống")
                 .orElse(null);
+    }
+
+    // ---------------------------------------------------------------- hồ sơ cá nhân (cột tùy chọn)
+
+    private static final Pattern PHONE = Pattern.compile("^(0|\\+84)\\d{9}$");
+
+    /** Nhãn trong file (chữ thường) -> mã lưu trong hệ thống. Chấp nhận cả mã và nhãn tiếng Việt. */
+    private static final Map<String, String> GENDER_LABELS = Map.ofEntries(
+            Map.entry("male", "MALE"), Map.entry("nam", "MALE"),
+            Map.entry("female", "FEMALE"), Map.entry("nữ", "FEMALE"), Map.entry("nu", "FEMALE"),
+            Map.entry("other", "OTHER"), Map.entry("khác", "OTHER"), Map.entry("khac", "OTHER"));
+
+    private static final Map<String, String> STATUS_LABELS = Map.ofEntries(
+            Map.entry("studying", "STUDYING"), Map.entry("đang học", "STUDYING"), Map.entry("dang hoc", "STUDYING"),
+            Map.entry("graduated", "GRADUATED"), Map.entry("tốt nghiệp", "GRADUATED"), Map.entry("đã tốt nghiệp", "GRADUATED"),
+            Map.entry("suspended", "SUSPENDED"), Map.entry("bảo lưu", "SUSPENDED"), Map.entry("bao luu", "SUSPENDED"),
+            Map.entry("dropped_out", "DROPPED_OUT"), Map.entry("thôi học", "DROPPED_OUT"), Map.entry("thoi hoc", "DROPPED_OUT"),
+            Map.entry("working", "WORKING"), Map.entry("đang làm việc", "WORKING"), Map.entry("dang lam viec", "WORKING"),
+            Map.entry("on_leave", "ON_LEAVE"), Map.entry("nghỉ phép", "ON_LEAVE"), Map.entry("nghi phep", "ON_LEAVE"),
+            Map.entry("retired", "RETIRED"), Map.entry("nghỉ hưu", "RETIRED"), Map.entry("nghi huu", "RETIRED"));
+
+    /**
+     * Đọc các cột hồ sơ tùy chọn: Ngày sinh, Giới tính, Tình trạng, SĐT, Nơi sinh, Quốc tịch, Địa chỉ, Dân tộc, Tôn giáo.
+     * Cột không có trong file hoặc ô trống thì để null (giữ giá trị cũ khi ghi).
+     */
+    private UserProfileService.ProfileInput parseProfile(RawRow raw, String role, List<RowError> errors) {
+        final int row = raw.number();
+
+        final String dateText = raw.get("Ngày sinh");
+        LocalDate birthDate = null;
+        if (!dateText.isEmpty()) {
+            birthDate = parseDate(dateText);
+            if (birthDate == null) {
+                problem(errors, row, "Ngày sinh phải dạng dd/mm/yyyy");
+            }
+        }
+
+        final String genderText = raw.get("Giới tính");
+        String gender = null;
+        if (!genderText.isEmpty()) {
+            gender = GENDER_LABELS.get(normalizeLabel(genderText));
+            if (gender == null) {
+                problem(errors, row, "Giới tính phải là Nam, Nữ hoặc Khác");
+            }
+        }
+
+        final String statusText = raw.get("Tình trạng");
+        String status = null;
+        if (!statusText.isEmpty()) {
+            status = STATUS_LABELS.get(normalizeLabel(statusText));
+            if (status == null || !UserProfileService.STATUSES_BY_ROLE.getOrDefault(role, Set.of()).contains(status)) {
+                problem(errors, row, "Tình trạng không phù hợp với vai trò của dòng này");
+            }
+        }
+
+        final String phone = raw.get("SĐT", "Số điện thoại").replaceAll("\\s", "");
+        if (!phone.isEmpty() && !PHONE.matcher(phone).matches()) {
+            problem(errors, row, "Số điện thoại phải gồm 10 chữ số, bắt đầu bằng 0 hoặc +84");
+        }
+
+        final String birthplace = raw.get("Nơi sinh");
+        final String nationality = raw.get("Quốc tịch");
+        final String address = raw.get("Địa chỉ");
+        final String ethnicity = raw.get("Dân tộc");
+        final String religion = raw.get("Tôn giáo");
+        if (birthplace.length() > 255 || address.length() > 255) {
+            problem(errors, row, "Nơi sinh hoặc địa chỉ quá 255 ký tự");
+        }
+        if (nationality.length() > 64 || ethnicity.length() > 64 || religion.length() > 64) {
+            problem(errors, row, "Quốc tịch, dân tộc hoặc tôn giáo quá 64 ký tự");
+        }
+
+        return new UserProfileService.ProfileInput(
+                gender, birthDate, status, blankToNull(phone), blankToNull(birthplace),
+                blankToNull(nationality), blankToNull(address), null,
+                blankToNull(ethnicity), blankToNull(religion));
+    }
+
+    /** Ghi hồ sơ. Ô trống trong file giữ giá trị đang có, không xóa dữ liệu cũ. Không đụng CCCD (đã ghi ở bảng sinh viên). */
+    private void writeProfile(Long userId, String role, UserProfileService.ProfileInput in) {
+        if (in == null) {
+            return;
+        }
+        final boolean empty = in.gender() == null && in.birthDate() == null && in.status() == null
+                && in.phone() == null && in.birthplace() == null && in.nationality() == null
+                && in.address() == null && in.ethnicity() == null && in.religion() == null;
+        if (empty) {
+            return;
+        }
+        final UserProfileService.ProfileView current = profiles.find(userId);
+        profiles.save(userId, role, new UserProfileService.ProfileInput(
+                in.gender() != null ? in.gender() : current.gender(),
+                in.birthDate() != null ? in.birthDate() : current.birthDate(),
+                in.status(),
+                in.phone() != null ? in.phone() : current.phone(),
+                in.birthplace() != null ? in.birthplace() : current.birthplace(),
+                in.nationality() != null ? in.nationality() : current.nationality(),
+                in.address() != null ? in.address() : current.address(),
+                null,
+                in.ethnicity(),
+                in.religion()));
+    }
+
+    private static String normalizeLabel(String text) {
+        return text.trim().toLowerCase(Locale.ROOT).replaceAll("\\s+", " ");
     }
 
     private boolean isLecturer(Long userId) {

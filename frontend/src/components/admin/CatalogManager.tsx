@@ -9,10 +9,11 @@ import {
     deleteFaculty,
     listClasses,
     listFaculties,
+    listLecturers,
     saveClass,
     saveFaculty,
 } from "@/lib/admin/academic-api";
-import type { ClassRow, FacultyRow } from "@/lib/admin/academic-api";
+import type { ClassRow, FacultyRow, LecturerOption } from "@/lib/admin/academic-api";
 import { BTN_GHOST, BTN_PRIMARY, CARD, INPUT, LABEL } from "./shared";
 
 type Feedback = { text: string; tone: "info" | "error" };
@@ -211,12 +212,21 @@ function ClassSection({
     const nameId = useId();
     const facultyId = useId();
     const cohortId = useId();
+    const advisorId = useId();
     const [editing, setEditing] = useState<ClassRow | null>(null);
     const [code, setCode] = useState("");
     const [name, setName] = useState("");
     const [faculty, setFaculty] = useState("");
     const [cohort, setCohort] = useState("");
+    const [advisor, setAdvisor] = useState("");
+    const [lecturers, setLecturers] = useState<LecturerOption[]>([]);
     const [busy, setBusy] = useState(false);
+
+    useEffect(() => {
+        listLecturers()
+            .then(setLecturers)
+            .catch((err) => onNotice({ text: adminErrorMessage(err), tone: "error" }));
+    }, []);
 
     function reset() {
         setEditing(null);
@@ -224,6 +234,7 @@ function ClassSection({
         setName("");
         setFaculty("");
         setCohort("");
+        setAdvisor("");
     }
 
     function edit(row: ClassRow) {
@@ -232,6 +243,7 @@ function ClassSection({
         setName(row.name);
         setFaculty(String(row.facultyId));
         setCohort(row.cohort ?? "");
+        setAdvisor(row.advisorId === null ? "" : String(row.advisorId));
     }
 
     async function submit() {
@@ -246,6 +258,7 @@ function ClassSection({
                 name: name.trim(),
                 facultyId: Number(faculty),
                 cohort: cohort.trim() || null,
+                advisorId: advisor ? Number(advisor) : null,
             });
             onNotice({ text: editing ? `Đã cập nhật lớp ${code.trim()}.` : `Đã thêm lớp ${code.trim()}.`, tone: "info" });
             reset();
@@ -307,6 +320,16 @@ function ClassSection({
                     <label htmlFor={cohortId} className={LABEL}>Niên khóa</label>
                     <input id={cohortId} value={cohort} onChange={(e) => setCohort(e.target.value)} placeholder="Ví dụ: K22" className={INPUT} />
                 </div>
+                <div className="flex flex-col gap-1 sm:col-span-2">
+                    <label htmlFor={advisorId} className={LABEL}>Giảng viên chủ nhiệm</label>
+                    <select id={advisorId} value={advisor} onChange={(e) => setAdvisor(e.target.value)} className={INPUT}>
+                        <option value="">-- Chưa gán --</option>
+                        {lecturers.map((l) => (
+                            <option key={l.id} value={l.id}>{l.username} - {l.name}</option>
+                        ))}
+                    </select>
+                    <span className="text-xs text-muted">Mỗi lớp có tối đa một giảng viên chủ nhiệm.</span>
+                </div>
             </div>
             <div className="flex flex-wrap gap-2">
                 <button type="button" disabled={busy} onClick={submit} className={BTN_PRIMARY}>
@@ -324,6 +347,7 @@ function ClassSection({
                         <th className="py-1 pr-2 font-medium">Mã</th>
                         <th className="py-1 pr-2 font-medium">Tên</th>
                         <th className="py-1 pr-2 font-medium">Khoa</th>
+                        <th className="py-1 pr-2 font-medium">GVCN</th>
                         <th className="py-1 pr-2 font-medium">SV</th>
                         <th className="py-1 font-medium"><span className="sr-only">Thao tác</span></th>
                     </tr>
@@ -334,6 +358,7 @@ function ClassSection({
                             <td className="py-1 pr-2 font-mono">{row.code}</td>
                             <td className="py-1 pr-2">{row.name}</td>
                             <td className="py-1 pr-2 font-mono">{row.facultyCode}</td>
+                            <td className="py-1 pr-2">{row.advisorName ?? "—"}</td>
                             <td className="py-1 pr-2">{row.studentCount}</td>
                             <td className="py-1 whitespace-nowrap">
                                 <button type="button" onClick={() => edit(row)} className={BTN_GHOST}>Sửa</button>{" "}

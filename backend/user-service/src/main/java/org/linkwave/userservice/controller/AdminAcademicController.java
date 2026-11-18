@@ -73,7 +73,9 @@ public class AdminAcademicController {
             @NotBlank @Pattern(regexp = "[A-Za-z0-9._-]{1,32}", message = "mã lớp không hợp lệ") String code,
             @NotBlank @Size(max = 128) String name,
             @NotNull Long facultyId,
-            @Size(max = 8) String cohort
+            @Size(max = 8) String cohort,
+            /** Giảng viên chủ nhiệm, không bắt buộc. Phải là tài khoản giảng viên. */
+            Long advisorId
     ) {
     }
 
@@ -102,6 +104,13 @@ public class AdminAcademicController {
         access.require(actor, "import.run", SCHOOL, null);
         catalog.deleteFaculty(id);
         audit.record(actor, "FACULTY_DELETE", "FACULTY", String.valueOf(id), null, ip(request));
+    }
+
+    /** Danh sách giảng viên để chọn làm GVCN */
+    @GetMapping("/lecturers")
+    public List<AcademicCatalogService.LecturerOption> lecturers() {
+        access.require(currentAdminId(), "import.run", SCHOOL, null);
+        return catalog.lecturers();
     }
 
     @GetMapping("/classes")
@@ -199,7 +208,8 @@ public class AdminAcademicController {
     private void saveClass(Long id, ClassRequest body, HttpServletRequest request) {
         final Long actor = currentAdminId();
         access.require(actor, "import.run", SCHOOL, null);
-        catalog.saveClass(id, new AcademicCatalogService.ClassInput(body.code(), body.name(), body.facultyId(), body.cohort()));
+        catalog.saveClass(id, new AcademicCatalogService.ClassInput(
+                body.code(), body.name(), body.facultyId(), body.cohort(), body.advisorId()));
         audit.record(actor, id == null ? "CLASS_CREATE" : "CLASS_UPDATE", "CLASS", body.code(), null, ip(request));
     }
 

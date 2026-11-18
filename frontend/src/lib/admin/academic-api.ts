@@ -66,11 +66,22 @@ export type ClassRow = {
     facultyCode: string;
     cohort: string | null;
     studentCount: number;
+    /** Giảng viên chủ nhiệm, null nếu chưa gán */
+    advisorId: number | null;
+    advisorName: string | null;
 };
+
+export type LecturerOption = { id: number; username: string; name: string };
 
 export type FacultyPayload = { code: string; name: string };
 
-export type ClassPayload = { code: string; name: string; facultyId: number; cohort: string | null };
+export type ClassPayload = {
+    code: string;
+    name: string;
+    facultyId: number;
+    cohort: string | null;
+    advisorId: number | null;
+};
 
 const ACADEMIC = "/api/v1/admin/academic";
 
@@ -99,6 +110,11 @@ export function saveClass(id: number | null, body: ClassPayload): Promise<void> 
         method: id === null ? "POST" : "PUT",
         body: JSON.stringify(body),
     });
+}
+
+/** Danh sách giảng viên để chọn GVCN */
+export function listLecturers(): Promise<LecturerOption[]> {
+    return apiFetch<LecturerOption[]>(`${ACADEMIC}/lecturers`);
 }
 
 export function deleteClass(id: number): Promise<void> {
