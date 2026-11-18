@@ -56,6 +56,10 @@ export function searchUsers(params: {
     q: string;
     role: string;
     status: UserStatusFilter;
+    /** Mã khoa, mã lớp, mã môn: lọc theo học vụ. Rỗng nghĩa là không lọc. */
+    faculty: string;
+    classCode: string;
+    subject: string;
     page: number;
     size: number;
 }): Promise<UserPage> {
@@ -63,6 +67,9 @@ export function searchUsers(params: {
         q: params.q,
         role: params.role,
         status: params.status,
+        faculty: params.faculty,
+        classCode: params.classCode,
+        subject: params.subject,
         page: String(params.page),
         size: String(params.size),
     });

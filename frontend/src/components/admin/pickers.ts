@@ -5,7 +5,7 @@ import type { PickerOption } from "./EntityPicker";
 // Hàm tìm dùng chung cho EntityPicker. Khai báo ở đây để tham chiếu không đổi giữa các lần render.
 
 export async function searchPeople(query: string): Promise<PickerOption[]> {
-    const page = await searchUsers({ q: query, role: "", status: "ALL", page: 0, size: 20 });
+    const page = await searchUsers({ q: query, role: "", status: "ALL", faculty: "", classCode: "", subject: "", page: 0, size: 20 });
     return page.items.map((user) => ({ id: user.id, label: user.name, hint: `@${user.username}` }));
 }
 

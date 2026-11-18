@@ -8,8 +8,11 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.linkwave.shared.auth.DefaultUserDetails;
+import org.linkwave.userservice.academic.AcademicCatalogService;
 import org.linkwave.userservice.academic.AcademicImportService;
 import org.linkwave.userservice.academic.AcademicImportService.ImportReport;
+import org.linkwave.userservice.academic.AcademicRecordService;
+import org.linkwave.userservice.academic.ManualEntryService;
 import org.linkwave.userservice.academic.AcademicImportService.Kind;
 import org.linkwave.userservice.academic.AcademicImportService.TermInput;
 import org.linkwave.userservice.entity.ScopeType;
@@ -26,7 +29,9 @@ import org.springframework.web.server.ResponseStatusException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 
 import static org.springframework.http.HttpStatus.FORBIDDEN;
@@ -46,6 +51,9 @@ public class AdminAcademicController {
     private final AccessPolicyService access;
     private final AuditService audit;
     private final AcademicImportService importService;
+    private final AcademicCatalogService catalog;
+    private final AcademicRecordService records;
+    private final ManualEntryService manual;
 
     public record TermRequest(
             @NotBlank @Pattern(regexp = "[A-Za-z0-9._-]{1,32}", message = "mã kỳ không hợp lệ") String code,
@@ -53,6 +61,146 @@ public class AdminAcademicController {
             @NotNull LocalDate startDate,
             @NotNull LocalDate endDate
     ) {
+    }
+
+    public record FacultyRequest(
+            @NotBlank @Pattern(regexp = "[A-Za-z0-9._-]{1,16}", message = "mã khoa không hợp lệ") String code,
+            @NotBlank @Size(max = 128) String name
+    ) {
+    }
+
+    public record ClassRequest(
+            @NotBlank @Pattern(regexp = "[A-Za-z0-9._-]{1,32}", message = "mã lớp không hợp lệ") String code,
+            @NotBlank @Size(max = 128) String name,
+            @NotNull Long facultyId,
+            @Size(max = 8) String cohort
+    ) {
+    }
+
+    @GetMapping("/faculties")
+    public List<AcademicCatalogService.FacultyView> faculties() {
+        access.require(currentAdminId(), "import.run", SCHOOL, null);
+        return catalog.faculties();
+    }
+
+    @PostMapping("/faculties")
+    @ResponseStatus(NO_CONTENT)
+    public void createFaculty(@RequestBody @Valid FacultyRequest body, HttpServletRequest request) {
+        saveFaculty(null, body, request);
+    }
+
+    @PutMapping("/faculties/{id}")
+    @ResponseStatus(NO_CONTENT)
+    public void updateFaculty(@PathVariable long id, @RequestBody @Valid FacultyRequest body, HttpServletRequest request) {
+        saveFaculty(id, body, request);
+    }
+
+    @DeleteMapping("/faculties/{id}")
+    @ResponseStatus(NO_CONTENT)
+    public void deleteFaculty(@PathVariable long id, HttpServletRequest request) {
+        final Long actor = currentAdminId();
+        access.require(actor, "import.run", SCHOOL, null);
+        catalog.deleteFaculty(id);
+        audit.record(actor, "FACULTY_DELETE", "FACULTY", String.valueOf(id), null, ip(request));
+    }
+
+    @GetMapping("/classes")
+    public List<AcademicCatalogService.ClassView> classes() {
+        access.require(currentAdminId(), "import.run", SCHOOL, null);
+        return catalog.classes();
+    }
+
+    @PostMapping("/classes")
+    @ResponseStatus(NO_CONTENT)
+    public void createClass(@RequestBody @Valid ClassRequest body, HttpServletRequest request) {
+        saveClass(null, body, request);
+    }
+
+    @PutMapping("/classes/{id}")
+    @ResponseStatus(NO_CONTENT)
+    public void updateClass(@PathVariable long id, @RequestBody @Valid ClassRequest body, HttpServletRequest request) {
+        saveClass(id, body, request);
+    }
+
+    @DeleteMapping("/classes/{id}")
+    @ResponseStatus(NO_CONTENT)
+    public void deleteClass(@PathVariable long id, HttpServletRequest request) {
+        final Long actor = currentAdminId();
+        access.require(actor, "import.run", SCHOOL, null);
+        catalog.deleteClass(id);
+        audit.record(actor, "CLASS_DELETE", "CLASS", String.valueOf(id), null, ip(request));
+    }
+
+    /** Tìm kiếm danh sách môn học, TKB, lịch thi, lịch gác thi, học kỳ. q tìm không phân biệt hoa thường. */
+    @GetMapping("/records/{kind}")
+    public AcademicRecordService.RecordPage records(@PathVariable String kind,
+                                                    @RequestParam(defaultValue = "") String q,
+                                                    @RequestParam(defaultValue = "0") int page,
+                                                    @RequestParam(defaultValue = "20") int size) {
+        access.require(currentAdminId(), "import.run", SCHOOL, null);
+        return records.list(AcademicRecordService.parseKind(kind), q, page, size);
+    }
+
+    @PostMapping("/records/{kind}")
+    @ResponseStatus(NO_CONTENT)
+    public void createRecord(@PathVariable String kind, @RequestBody Map<String, String> body, HttpServletRequest request) {
+        final Long actor = currentAdminId();
+        access.require(actor, "import.run", SCHOOL, null);
+        final AcademicRecordService.Kind parsed = AcademicRecordService.parseKind(kind);
+        if (parsed != AcademicRecordService.Kind.SUBJECTS) {
+            throw new UnacceptableRequestDataException("Mục này chỉ thêm bằng file Excel");
+        }
+        records.createSubject(body.get("code"), body.get("name"));
+        audit.record(actor, "SUBJECT_CREATE", "SUBJECT", body.get("code"), null, ip(request));
+    }
+
+    /** Thêm một dòng bằng form. Khóa của body là tên cột trong file import (ví dụ "MSSV", "Mã GV"). */
+    @PostMapping("/manual/{kind}")
+    @ResponseStatus(NO_CONTENT)
+    public void addManual(@PathVariable String kind, @RequestBody Map<String, String> body, HttpServletRequest request) throws IOException {
+        final Long actor = currentAdminId();
+        access.require(actor, "import.run", SCHOOL, null);
+        final Kind parsed = parseKind(kind);
+        if (!ManualEntryService.supports(parsed)) {
+            throw new UnacceptableRequestDataException("Mục này thêm bằng form riêng hoặc chỉ nhập bằng file Excel");
+        }
+        manual.add(parsed, body);
+        audit.record(actor, "MANUAL_ADD_" + parsed.name(), "IMPORT", parsed.name(), null, ip(request));
+    }
+
+    @PutMapping("/records/{kind}/{key}")
+    @ResponseStatus(NO_CONTENT)
+    public void updateRecord(@PathVariable String kind, @PathVariable String key,
+                             @RequestBody Map<String, String> body, HttpServletRequest request) {
+        final Long actor = currentAdminId();
+        access.require(actor, "import.run", SCHOOL, null);
+        final AcademicRecordService.Kind parsed = AcademicRecordService.parseKind(kind);
+        records.update(parsed, key, body);
+        audit.record(actor, "RECORD_UPDATE", parsed.name(), key, null, ip(request));
+    }
+
+    @DeleteMapping("/records/{kind}/{key}")
+    @ResponseStatus(NO_CONTENT)
+    public void deleteRecord(@PathVariable String kind, @PathVariable String key, HttpServletRequest request) {
+        final Long actor = currentAdminId();
+        access.require(actor, "import.run", SCHOOL, null);
+        final AcademicRecordService.Kind parsed = AcademicRecordService.parseKind(kind);
+        records.delete(parsed, key);
+        audit.record(actor, "RECORD_DELETE", parsed.name(), key, null, ip(request));
+    }
+
+    private void saveFaculty(Long id, FacultyRequest body, HttpServletRequest request) {
+        final Long actor = currentAdminId();
+        access.require(actor, "import.run", SCHOOL, null);
+        catalog.saveFaculty(id, new AcademicCatalogService.FacultyInput(body.code(), body.name()));
+        audit.record(actor, id == null ? "FACULTY_CREATE" : "FACULTY_UPDATE", "FACULTY", body.code(), null, ip(request));
+    }
+
+    private void saveClass(Long id, ClassRequest body, HttpServletRequest request) {
+        final Long actor = currentAdminId();
+        access.require(actor, "import.run", SCHOOL, null);
+        catalog.saveClass(id, new AcademicCatalogService.ClassInput(body.code(), body.name(), body.facultyId(), body.cohort()));
+        audit.record(actor, id == null ? "CLASS_CREATE" : "CLASS_UPDATE", "CLASS", body.code(), null, ip(request));
     }
 
     @PostMapping(value = "/import/{kind}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -97,7 +245,7 @@ public class AdminAcademicController {
         try {
             return Kind.valueOf(kind.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
-            throw new UnacceptableRequestDataException("Loại import không hợp lệ. Dùng: students, timetable, exams, duties, terms");
+            throw new UnacceptableRequestDataException("Loại import không hợp lệ. Dùng: faculties, classes, subjects, lecturers, students, timetable, exams, duties, terms");
         }
     }
 

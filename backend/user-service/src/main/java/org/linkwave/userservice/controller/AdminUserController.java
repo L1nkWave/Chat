@@ -12,6 +12,7 @@ import org.linkwave.userservice.repository.ScopedRoleRepository;
 import org.linkwave.userservice.repository.UserRepository;
 import org.linkwave.userservice.service.AccessPolicyService;
 import org.linkwave.userservice.service.TwoFactorStatusService;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -27,6 +28,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -51,6 +53,7 @@ public class AdminUserController {
     private final TwoFactorStatusService twoFactorStatus;
     private final AuditLogRepository auditRepository;
     private final StudentProfileService students;
+    private final JdbcTemplate jdbc;
 
     /** Một dòng trong danh sách */
     public record UserRow(Long id, String username, String name, boolean locked,
@@ -78,11 +81,18 @@ public class AdminUserController {
                                  String studentCode, String classCode, String cccdMasked) {
     }
 
+    /**
+     * Tìm người dùng. faculty (mã khoa), classCode (mã lớp), subject (mã môn) lọc theo học vụ:
+     * sinh viên theo khoa, lớp, hoặc lớp có môn; giảng viên dạy môn đó (khi không lọc theo khoa hoặc lớp).
+     */
     @GetMapping
     @Transactional(readOnly = true)
     public UserPage search(@RequestParam(defaultValue = "") String q,
                            @RequestParam(defaultValue = "") String role,
                            @RequestParam(defaultValue = "ALL") String status,
+                           @RequestParam(defaultValue = "") String faculty,
+                           @RequestParam(defaultValue = "") String classCode,
+                           @RequestParam(defaultValue = "") String subject,
                            @RequestParam(defaultValue = "0") int page,
                            @RequestParam(defaultValue = "20") int size) {
         requireUserView();
@@ -91,17 +101,59 @@ public class AdminUserController {
         final int safePage = Math.max(page, 0);
         final int safeSize = Math.min(Math.max(size, 1), 100);
         final String pattern = "%" + q.trim().toLowerCase(Locale.ROOT) + "%";
+        final String facultyCode = faculty.trim();
+        final String classValue = classCode.trim();
+        final String subjectCode = subject.trim();
 
-        final Page<UserEntity> result = userRepository.searchForAdmin(
-                pattern,
-                role.trim(),
-                statusValue,
-                PageRequest.of(safePage, safeSize, Sort.by("name")));
+        if (facultyCode.isEmpty() && classValue.isEmpty() && subjectCode.isEmpty()) {
+            final Page<UserEntity> result = userRepository.searchForAdmin(
+                    pattern,
+                    role.trim(),
+                    statusValue,
+                    PageRequest.of(safePage, safeSize, Sort.by("name")));
+            final List<UserRow> items = result.getContent().stream()
+                    .map(AdminUserController::toRow)
+                    .toList();
+            return new UserPage(items, result.getTotalElements(), safePage, safeSize);
+        }
 
-        final List<UserRow> items = result.getContent().stream()
+        // Có lọc học vụ: lấy danh sách khớp học vụ rồi lọc và phân trang trong bộ nhớ (quy mô một trường)
+        final Set<Long> academicIds = academicUserIds(facultyCode, classValue, subjectCode);
+        final List<UserEntity> matched = userRepository.searchForAdmin(
+                        pattern, role.trim(), statusValue, PageRequest.of(0, Integer.MAX_VALUE, Sort.by("name")))
+                .getContent().stream()
+                .filter(user -> academicIds.contains(user.getId()))
+                .toList();
+        final int from = Math.min(safePage * safeSize, matched.size());
+        final int to = Math.min(from + safeSize, matched.size());
+        final List<UserRow> items = matched.subList(from, to).stream()
                 .map(AdminUserController::toRow)
                 .toList();
-        return new UserPage(items, result.getTotalElements(), safePage, safeSize);
+        return new UserPage(items, matched.size(), safePage, safeSize);
+    }
+
+    /** Id người dùng khớp bộ lọc học vụ. Tham số rỗng nghĩa là không lọc theo tiêu chí đó. */
+    private Set<Long> academicUserIds(String facultyCode, String classCode, String subjectCode) {
+        final Set<Long> ids = new HashSet<>();
+        ids.addAll(jdbc.queryForList("""
+                        select p.user_id
+                        from student_profiles p
+                        join school_classes c on c.code = p.class_code
+                        join faculties f on f.id = c.faculty_id
+                        where (? = '' or f.code = ?)
+                          and (? = '' or p.class_code = ?)
+                          and (? = '' or p.class_code in (select class_code from course_sessions where subject_code = ?))
+                        """, Long.class,
+                facultyCode, facultyCode, classCode, classCode, subjectCode, subjectCode));
+
+        // Giảng viên không gắn khoa trong hệ thống, nên chỉ lọc theo môn khi không lọc theo khoa hoặc lớp
+        if (!subjectCode.isEmpty() && facultyCode.isEmpty() && classCode.isEmpty()) {
+            ids.addAll(jdbc.queryForList("""
+                            select u.id from users u
+                            where u.username in (select lecturer_code from course_sessions where subject_code = ?)
+                            """, Long.class, subjectCode));
+        }
+        return ids;
     }
 
     @GetMapping("/{id}")

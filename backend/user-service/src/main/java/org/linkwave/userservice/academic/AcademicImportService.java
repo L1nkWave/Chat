@@ -28,38 +28,65 @@ import java.util.regex.Pattern;
  * Nhập dữ liệu học vụ từ file .xlsx. Quy tắc chung:
  * - Kiểm tra toàn bộ file trước. Chỉ ghi khi không có dòng lỗi nào (nhập tất cả hoặc không nhập gì).
  * - dryRun = true chỉ kiểm tra và báo lỗi, không ghi.
- * - Nhập lại cùng một file không tạo bản ghi trùng (upsert theo khóa tự nhiên).
+ * - Nhập lại cùng một file không tạo bản ghi trùng (upsert theo khóa tự nhiên). Báo số dòng thêm mới và số dòng cập nhật.
+ * - Thứ tự nhập: khoa -> lớp -> môn học -> giảng viên và sinh viên -> thời khóa biểu, lịch thi, lịch gác thi. Học kỳ độc lập.
  */
 @Service
 @RequiredArgsConstructor
 public class AcademicImportService {
 
-    public enum Kind { STUDENTS, TIMETABLE, EXAMS, DUTIES, TERMS }
+    public enum Kind { FACULTIES, CLASSES, SUBJECTS, LECTURERS, STUDENTS, TIMETABLE, EXAMS, DUTIES, TERMS }
+
+    /** Mật khẩu mặc định cho giảng viên. Bắt buộc đổi ở lần đăng nhập đầu. */
+    public static final String DEFAULT_LECTURER_PASSWORD = "Dhsg@123";
 
     public record RowError(int row, String message) {
     }
 
-    /** Tài khoản sinh viên mới tạo. Mật khẩu tạm chỉ có trong phản hồi của lần nhập này. */
+    /** Tài khoản mới tạo. Mật khẩu tạm chỉ có trong phản hồi của lần nhập này. */
     public record CreatedAccount(String username, String name, String temporaryPassword) {
     }
 
+    /** inserted: dòng mới. updated: dòng đã có và được cập nhật. written = inserted + updated khi nhập thật. */
     public record ImportReport(String kind, boolean dryRun, int total, int valid, int written,
+                               int inserted, int updated,
                                List<RowError> errors, List<CreatedAccount> createdAccounts) {
     }
 
     public record TermInput(String code, String name, LocalDate startDate, LocalDate endDate) {
     }
 
-    private record Outcome(int valid, int written, List<CreatedAccount> created) {
+    private record Outcome(int valid, int written, List<CreatedAccount> created, int inserted, int updated) {
     }
 
-    private static final Outcome EMPTY = new Outcome(0, 0, List.of());
+    private static final Outcome EMPTY = new Outcome(0, 0, List.of(), 0, 0);
     private static final int MAX_REPORTED_ERRORS = 200;
     private static final int MAX_PERIOD = 14;
     private static final Pattern CODE = Pattern.compile("[A-Za-z0-9._-]{1,32}");
     private static final Pattern MSSV = Pattern.compile("[A-Za-z0-9]{3,16}");
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("d/M/uuuu");
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("H:mm");
+
+    private static final String UPSERT_FACULTY = """
+            insert into faculties (code, name, created_at)
+            values (?, ?, now())
+            on conflict (code) do update set name = excluded.name
+            """;
+
+    private static final String UPSERT_CLASS = """
+            insert into school_classes (code, name, faculty_id, cohort, created_at)
+            values (?, ?, ?, ?, now())
+            on conflict (code) do update set
+                name = excluded.name,
+                faculty_id = excluded.faculty_id,
+                cohort = excluded.cohort
+            """;
+
+    private static final String UPSERT_SUBJECT = """
+            insert into subjects (code, name, created_at)
+            values (?, ?, now())
+            on conflict (code) do update set name = excluded.name
+            """;
 
     private static final String UPSERT_PROFILE = """
             insert into student_profiles (user_id, student_code, class_code, cccd_enc, cccd_index, updated_at)
@@ -123,6 +150,10 @@ public class AcademicImportService {
         final Table table = SpreadsheetReader.read(in);
         final List<RowError> errors = new ArrayList<>();
         final Outcome outcome = switch (kind) {
+            case FACULTIES -> faculties(table, dryRun, errors);
+            case CLASSES -> classes(table, dryRun, errors);
+            case SUBJECTS -> subjects(table, dryRun, errors);
+            case LECTURERS -> lecturers(table, dryRun, errors);
             case STUDENTS -> students(table, dryRun, errors);
             case TIMETABLE -> timetable(table, dryRun, errors);
             case EXAMS -> exams(table, dryRun, errors);
@@ -130,16 +161,217 @@ public class AcademicImportService {
             case TERMS -> terms(table, dryRun, errors);
         };
         return new ImportReport(kind.name(), dryRun, table.rows().size(), outcome.valid(), outcome.written(),
+                outcome.inserted(), outcome.updated(),
                 errors.stream().limit(MAX_REPORTED_ERRORS).toList(), outcome.created());
     }
 
-    /** Thêm hoặc sửa một học kỳ từ form. Trả lỗi nếu dữ liệu không hợp lệ. */
+    /** Thêm hoặc sửa một học kỳ từ form. Trả lỗi nếu dữ liệu không hợp lệ hoặc khoảng ngày trùng học kỳ khác. */
     public void saveTerm(TermInput term) {
         final String problem = termProblem(term.code(), term.name(), term.startDate(), term.endDate());
         if (problem != null) {
             throw new UnacceptableRequestDataException(problem);
         }
+        final String overlap = overlapInDatabase(term.code(), term.startDate(), term.endDate());
+        if (overlap != null) {
+            throw new UnacceptableRequestDataException(overlap);
+        }
         jdbc.update(UPSERT_TERM, term.code(), term.name().trim(), term.startDate(), term.endDate());
+    }
+
+    // ---------------------------------------------------------------- khoa
+
+    private record FacultyRow(int row, String code, String name) {
+    }
+
+    private Outcome faculties(Table table, boolean dryRun, List<RowError> errors) {
+        if (!hasColumns(table, errors, "Mã khoa", "Tên khoa")) {
+            return EMPTY;
+        }
+        final List<FacultyRow> rows = new ArrayList<>();
+        final Set<String> seen = new HashSet<>();
+        for (RawRow raw : table.rows()) {
+            final int before = errors.size();
+            final String code = raw.get("Mã khoa");
+            final String name = raw.get("Tên khoa");
+            if (!CODE.matcher(code).matches()) {
+                problem(errors, raw.number(), "Mã khoa không hợp lệ (chữ, số, dấu . _ -, tối đa 16 ký tự)");
+            } else if (code.length() > 16) {
+                problem(errors, raw.number(), "Mã khoa quá dài");
+            } else if (!seen.add(code.toUpperCase(Locale.ROOT))) {
+                problem(errors, raw.number(), "Mã khoa " + code + " bị trùng trong file");
+            }
+            if (name.isEmpty() || name.length() > 128) {
+                problem(errors, raw.number(), "Tên khoa trống hoặc dài quá 128 ký tự");
+            }
+            if (errors.size() == before) {
+                rows.add(new FacultyRow(raw.number(), code, name));
+            }
+        }
+
+        if (dryRun || !errors.isEmpty()) {
+            return dry(rows.size());
+        }
+        final int updated = (int) rows.stream()
+                .filter(r -> exists("select count(*) from faculties where code = ?", r.code()))
+                .count();
+        jdbc.batchUpdate(UPSERT_FACULTY, rows.stream().map(r -> new Object[]{r.code(), r.name()}).toList());
+        return saved(rows.size(), updated);
+    }
+
+    // ---------------------------------------------------------------- lớp
+
+    private record ClassRow(int row, String code, String name, long facultyId, String cohort) {
+    }
+
+    private Outcome classes(Table table, boolean dryRun, List<RowError> errors) {
+        if (!hasColumns(table, errors, "Mã lớp", "Tên lớp", "Mã khoa")) {
+            return EMPTY;
+        }
+        final List<RawRow> raws = table.rows();
+        final Map<String, Long> faculties = facultyIdsByCode(raws.stream()
+                .map(r -> r.get("Mã khoa"))
+                .filter(code -> !code.isEmpty())
+                .distinct()
+                .toList());
+
+        final List<ClassRow> rows = new ArrayList<>();
+        final Set<String> seen = new HashSet<>();
+        for (RawRow raw : raws) {
+            final int before = errors.size();
+            final String code = raw.get("Mã lớp");
+            final String name = raw.get("Tên lớp");
+            final String facultyCode = raw.get("Mã khoa");
+            final String cohort = blankToNull(raw.get("Niên khóa"));
+
+            if (!CODE.matcher(code).matches()) {
+                problem(errors, raw.number(), "Mã lớp không hợp lệ (ví dụ DCT1222)");
+            } else if (!seen.add(code.toUpperCase(Locale.ROOT))) {
+                problem(errors, raw.number(), "Mã lớp " + code + " bị trùng trong file");
+            }
+            if (name.isEmpty() || name.length() > 128) {
+                problem(errors, raw.number(), "Tên lớp trống hoặc dài quá 128 ký tự");
+            }
+            final Long facultyId = faculties.get(facultyCode);
+            if (facultyId == null) {
+                problem(errors, raw.number(), "Khoa " + facultyCode + " chưa có trong danh mục. Nhập file Khoa trước");
+            }
+            if (cohort != null && cohort.length() > 8) {
+                problem(errors, raw.number(), "Niên khóa quá dài (tối đa 8 ký tự, ví dụ K23)");
+            }
+            if (errors.size() == before) {
+                rows.add(new ClassRow(raw.number(), code, name, facultyId, cohort));
+            }
+        }
+
+        if (dryRun || !errors.isEmpty()) {
+            return dry(rows.size());
+        }
+        final int updated = (int) rows.stream()
+                .filter(r -> exists("select count(*) from school_classes where code = ?", r.code()))
+                .count();
+        jdbc.batchUpdate(UPSERT_CLASS, rows.stream()
+                .map(r -> new Object[]{r.code(), r.name(), r.facultyId(), r.cohort()})
+                .toList());
+        return saved(rows.size(), updated);
+    }
+
+    // ---------------------------------------------------------------- môn học
+
+    private record SubjectRow(int row, String code, String name) {
+    }
+
+    private Outcome subjects(Table table, boolean dryRun, List<RowError> errors) {
+        if (!hasColumns(table, errors, "Mã MH", "Tên môn học|Môn")) {
+            return EMPTY;
+        }
+        final List<SubjectRow> rows = new ArrayList<>();
+        final Set<String> seen = new HashSet<>();
+        for (RawRow raw : table.rows()) {
+            final int before = errors.size();
+            final String code = raw.get("Mã MH");
+            final String name = raw.get("Tên môn học", "Môn");
+            if (!CODE.matcher(code).matches()) {
+                problem(errors, raw.number(), "Mã MH không hợp lệ (chữ, số, dấu . _ -, tối đa 32 ký tự)");
+            } else if (!seen.add(code.toUpperCase(Locale.ROOT))) {
+                problem(errors, raw.number(), "Mã MH " + code + " bị trùng trong file");
+            }
+            if (name.isEmpty() || name.length() > 255) {
+                problem(errors, raw.number(), "Tên môn học trống hoặc dài quá 255 ký tự");
+            }
+            if (errors.size() == before) {
+                rows.add(new SubjectRow(raw.number(), code, name));
+            }
+        }
+
+        if (dryRun || !errors.isEmpty()) {
+            return dry(rows.size());
+        }
+        final int updated = (int) rows.stream()
+                .filter(r -> exists("select count(*) from subjects where code = ?", r.code()))
+                .count();
+        jdbc.batchUpdate(UPSERT_SUBJECT, rows.stream().map(r -> new Object[]{r.code(), r.name()}).toList());
+        return saved(rows.size(), updated);
+    }
+
+    // ---------------------------------------------------------------- giảng viên
+
+    private record LecturerRow(int row, String code, String name) {
+    }
+
+    private Outcome lecturers(Table table, boolean dryRun, List<RowError> errors) {
+        if (!hasColumns(table, errors, "Mã GV", "Họ tên")) {
+            return EMPTY;
+        }
+        final List<LecturerRow> rows = new ArrayList<>();
+        final Set<String> seen = new HashSet<>();
+        final Map<String, Long> existing = usersByUsername(table.rows().stream()
+                .map(r -> r.get("Mã GV"))
+                .filter(code -> !code.isEmpty())
+                .distinct()
+                .toList());
+        for (RawRow raw : table.rows()) {
+            final int before = errors.size();
+            final String code = raw.get("Mã GV");
+            final String name = raw.get("Họ tên");
+            if (!CODE.matcher(code).matches()) {
+                problem(errors, raw.number(), "Mã GV không hợp lệ (đây là tên đăng nhập của giảng viên)");
+            } else if (!seen.add(code.toUpperCase(Locale.ROOT))) {
+                problem(errors, raw.number(), "Mã GV " + code + " bị trùng trong file");
+            } else if (existing.containsKey(code) && !isLecturer(existing.get(code))) {
+                problem(errors, raw.number(), "Mã GV " + code + " đã là tài khoản không phải giảng viên");
+            }
+            if (name.isEmpty() || name.length() > 64) {
+                problem(errors, raw.number(), "Họ tên trống hoặc dài quá 64 ký tự");
+            }
+            if (errors.size() == before) {
+                rows.add(new LecturerRow(raw.number(), code, name));
+            }
+        }
+
+        if (dryRun || !errors.isEmpty()) {
+            return dry(rows.size());
+        }
+        final RoleEntity baseRole = role("ROLE_USER");
+        final RoleEntity lecturerRole = role("ROLE_LECTURER");
+        final List<CreatedAccount> created = new ArrayList<>();
+        int updated = 0;
+        for (LecturerRow r : rows) {
+            final Long userId = existing.get(r.code());
+            if (userId == null) {
+                userRepository.save(UserEntity.builder()
+                        .username(r.code())
+                        .password(passwordEncoder.encode(DEFAULT_LECTURER_PASSWORD))
+                        .name(r.name())
+                        .roles(new ArrayList<>(List.of(baseRole, lecturerRole)))
+                        .mustChangePassword(true)
+                        .build());
+                created.add(new CreatedAccount(r.code(), r.name(), DEFAULT_LECTURER_PASSWORD));
+            } else {
+                jdbc.update("update users set name = ? where id = ?", r.name(), userId);
+                updated++;
+            }
+        }
+        return new Outcome(rows.size(), rows.size(), created, created.size(), updated);
     }
 
     // ---------------------------------------------------------------- sinh viên
@@ -151,6 +383,12 @@ public class AcademicImportService {
         if (!hasColumns(table, errors, "MSSV", "Họ tên", "Lớp")) {
             return EMPTY;
         }
+        // Lớp phải đã có trong danh mục (nhập file Khoa và Lớp trước). Không tự tạo lớp.
+        final Set<String> knownClasses = classCodesIn(table.rows().stream()
+                .map(r -> r.get("Lớp"))
+                .filter(code -> !code.isEmpty())
+                .distinct()
+                .toList());
         final List<StudentRow> rows = new ArrayList<>();
         final Set<String> mssvSeen = new HashSet<>();
         final Set<String> cccdSeen = new HashSet<>();
@@ -171,6 +409,8 @@ public class AcademicImportService {
             }
             if (!CODE.matcher(classCode).matches()) {
                 problem(errors, raw.number(), "Lớp không hợp lệ (mã lớp, ví dụ DCT1222)");
+            } else if (!knownClasses.contains(classCode)) {
+                problem(errors, raw.number(), "Lớp " + classCode + " chưa có trong danh mục. Nhập file Khoa và Lớp trước");
             }
             if (!cccd.isEmpty()) {
                 if (!CccdCipher.isValid(cccd)) {
@@ -201,12 +441,13 @@ public class AcademicImportService {
         }
 
         if (dryRun || !errors.isEmpty()) {
-            return new Outcome(rows.size(), 0, List.of());
+            return dry(rows.size());
         }
 
         final RoleEntity baseRole = role("ROLE_USER");
         final RoleEntity studentRole = role("ROLE_STUDENT");
         final List<CreatedAccount> created = new ArrayList<>();
+        int updated = 0;
         for (StudentRow r : rows) {
             Long userId = existing.get(r.mssv());
             if (userId == null) {
@@ -221,12 +462,13 @@ public class AcademicImportService {
                 created.add(new CreatedAccount(r.mssv(), r.name(), temporary));
             } else {
                 jdbc.update("update users set name = ? where id = ?", r.name(), userId);
+                updated++;
             }
             jdbc.update(UPSERT_PROFILE, userId, r.mssv(), r.classCode(),
                     r.cccd() == null ? null : cipher.encrypt(r.cccd()),
                     r.cccd() == null ? null : cipher.index(r.cccd()));
         }
-        return new Outcome(rows.size(), rows.size(), created);
+        return new Outcome(rows.size(), rows.size(), created, created.size(), updated);
     }
 
     // ---------------------------------------------------------------- thời khóa biểu
@@ -240,6 +482,12 @@ public class AcademicImportService {
         if (!hasColumns(table, errors, "Mã MH", "Lớp", "Thứ", "Tiết", "Số tiết", "Ngày", "Giờ bắt đầu")) {
             return EMPTY;
         }
+        // Môn phải đã có trong danh mục Môn học (nhập file Môn học trước)
+        final Set<String> knownSubjects = subjectCodesIn(table.rows().stream()
+                .map(r -> r.get("Mã MH"))
+                .filter(code -> !code.isEmpty())
+                .distinct()
+                .toList());
         final List<SessionRow> rows = new ArrayList<>();
         final Set<String> seen = new HashSet<>();
         for (RawRow raw : table.rows()) {
@@ -261,6 +509,9 @@ public class AcademicImportService {
             }
             if (!CODE.matcher(classCode).matches()) {
                 problem(errors, raw.number(), "Lớp không hợp lệ");
+            }
+            if (CODE.matcher(subject).matches() && !knownSubjects.contains(subject)) {
+                problem(errors, raw.number(), "Môn " + subject + " chưa có trong danh mục. Nhập file Môn học trước");
             }
             if (group.length() > 32) {
                 problem(errors, raw.number(), "Nhóm quá dài");
@@ -299,15 +550,19 @@ public class AcademicImportService {
         }
 
         if (dryRun || !errors.isEmpty()) {
-            return new Outcome(rows.size(), 0, List.of());
+            return dry(rows.size());
         }
-        final List<Object[]> batch = rows.stream()
+        final int updated = (int) rows.stream()
+                .filter(r -> exists("select count(*) from course_sessions where class_code = ? and subject_code = ?"
+                                + " and group_code = ? and session_date = ? and start_period = ?",
+                        r.classCode(), r.subjectCode(), r.groupCode(), r.date(), r.startPeriod()))
+                .count();
+        jdbc.batchUpdate(UPSERT_SESSION, rows.stream()
                 .map(r -> new Object[]{
                         r.classCode(), r.subjectCode(), r.subjectName(), r.groupCode(), r.room(), r.weekday(),
                         r.startPeriod(), r.periodCount(), r.lecturerCode(), r.lecturerName(), r.date(), r.time()})
-                .toList();
-        jdbc.batchUpdate(UPSERT_SESSION, batch);
-        return new Outcome(rows.size(), rows.size(), List.of());
+                .toList());
+        return saved(rows.size(), updated);
     }
 
     // ---------------------------------------------------------------- lịch thi
@@ -321,6 +576,11 @@ public class AcademicImportService {
         if (!hasColumns(table, errors, "Mã MH", "Ngày thi|Ngày", "Giờ bắt đầu|Giờ thi", "Phòng thi|Phòng")) {
             return EMPTY;
         }
+        final Set<String> knownSubjects = subjectCodesIn(table.rows().stream()
+                .map(r -> r.get("Mã MH"))
+                .filter(code -> !code.isEmpty())
+                .distinct()
+                .toList());
         final List<ExamRow> rows = new ArrayList<>();
         final Set<String> seen = new HashSet<>();
         for (RawRow raw : table.rows()) {
@@ -334,6 +594,9 @@ public class AcademicImportService {
 
             if (!CODE.matcher(subject).matches()) {
                 problem(errors, raw.number(), "Mã MH không hợp lệ");
+            }
+            if (CODE.matcher(subject).matches() && !knownSubjects.contains(subject)) {
+                problem(errors, raw.number(), "Môn " + subject + " chưa có trong danh mục. Nhập file Môn học trước");
             }
             if (room.isEmpty() || room.length() > 32) {
                 problem(errors, raw.number(), "Phòng thi trống hoặc quá dài");
@@ -363,13 +626,16 @@ public class AcademicImportService {
         }
 
         if (dryRun || !errors.isEmpty()) {
-            return new Outcome(rows.size(), 0, List.of());
+            return dry(rows.size());
         }
-        final List<Object[]> batch = rows.stream()
+        final int updated = (int) rows.stream()
+                .filter(r -> exists("select count(*) from exam_schedules where subject_code = ? and exam_date = ?"
+                        + " and exam_time = ? and room = ?", r.subject(), r.date(), r.time(), r.room()))
+                .count();
+        jdbc.batchUpdate(UPSERT_EXAM, rows.stream()
                 .map(r -> new Object[]{r.subject(), r.subjectName(), r.candidates(), r.date(), r.time(), r.room(), r.campus()})
-                .toList();
-        jdbc.batchUpdate(UPSERT_EXAM, batch);
-        return new Outcome(rows.size(), rows.size(), List.of());
+                .toList());
+        return saved(rows.size(), updated);
     }
 
     // ---------------------------------------------------------------- lịch gác thi
@@ -419,25 +685,25 @@ public class AcademicImportService {
         }
 
         if (dryRun || !errors.isEmpty()) {
-            return new Outcome(rows.size(), 0, List.of());
+            return dry(rows.size());
         }
-        final List<Object[]> batch = rows.stream()
+        final int updated = (int) rows.stream()
+                .filter(r -> exists("select count(*) from exam_duties where lecturer_code = ? and exam_date = ?"
+                        + " and exam_time = ? and room = ?", r.lecturer(), r.date(), r.time(), r.room()))
+                .count();
+        jdbc.batchUpdate(UPSERT_DUTY, rows.stream()
                 .map(r -> new Object[]{r.lecturer(), r.subject(), r.date(), r.time(), r.room(), r.campus()})
-                .toList();
-        jdbc.batchUpdate(UPSERT_DUTY, batch);
-        return new Outcome(rows.size(), rows.size(), List.of());
+                .toList());
+        return saved(rows.size(), updated);
     }
 
     // ---------------------------------------------------------------- học kỳ
-
-    private record TermRow(int row, TermInput term) {
-    }
 
     private Outcome terms(Table table, boolean dryRun, List<RowError> errors) {
         if (!hasColumns(table, errors, "Mã kỳ", "Tên học kỳ", "Ngày bắt đầu", "Ngày kết thúc")) {
             return EMPTY;
         }
-        final List<TermRow> rows = new ArrayList<>();
+        final List<TermInput> rows = new ArrayList<>();
         final Set<String> seen = new HashSet<>();
         for (RawRow raw : table.rows()) {
             final String code = raw.get("Mã kỳ");
@@ -450,21 +716,67 @@ public class AcademicImportService {
             } else if (!seen.add(code)) {
                 problem(errors, raw.number(), "Mã kỳ bị trùng trong file");
             } else {
-                rows.add(new TermRow(raw.number(), new TermInput(code, name, start, end)));
+                // Khoảng ngày không được trùng học kỳ khác (trong file hoặc đã có trong hệ thống)
+                final String overlap = rows.stream()
+                        .filter(other -> !other.code().equals(code) && overlaps(other.startDate(), other.endDate(), start, end))
+                        .map(other -> "Khoảng ngày trùng với học kỳ " + other.code() + " trong file")
+                        .findFirst()
+                        .orElseGet(() -> overlapInDatabase(code, start, end));
+                if (overlap != null) {
+                    problem(errors, raw.number(), overlap);
+                } else {
+                    rows.add(new TermInput(code, name, start, end));
+                }
             }
         }
 
         if (dryRun || !errors.isEmpty()) {
-            return new Outcome(rows.size(), 0, List.of());
+            return dry(rows.size());
         }
-        final List<Object[]> batch = rows.stream()
-                .map(r -> new Object[]{r.term().code(), r.term().name(), r.term().startDate(), r.term().endDate()})
-                .toList();
-        jdbc.batchUpdate(UPSERT_TERM, batch);
-        return new Outcome(rows.size(), rows.size(), List.of());
+        final int updated = (int) rows.stream()
+                .filter(r -> exists("select count(*) from academic_terms where code = ?", r.code()))
+                .count();
+        jdbc.batchUpdate(UPSERT_TERM, rows.stream()
+                .map(r -> new Object[]{r.code(), r.name(), r.startDate(), r.endDate()})
+                .toList());
+        return saved(rows.size(), updated);
     }
 
     // ---------------------------------------------------------------- tiện ích
+
+    private static Outcome dry(int valid) {
+        return new Outcome(valid, 0, List.of(), 0, 0);
+    }
+
+    /** updated dòng đã có, phần còn lại là dòng mới */
+    private static Outcome saved(int count, int updated) {
+        return new Outcome(count, count, List.of(), count - updated, updated);
+    }
+
+    private boolean exists(String sql, Object... args) {
+        final Long count = jdbc.queryForObject(sql, Long.class, args);
+        return count != null && count > 0;
+    }
+
+    private static boolean overlaps(LocalDate aStart, LocalDate aEnd, LocalDate bStart, LocalDate bEnd) {
+        return !aStart.isAfter(bEnd) && !bStart.isAfter(aEnd);
+    }
+
+    /** Tên học kỳ khác có khoảng ngày chồng lên khoảng ngày này, hoặc null nếu không trùng */
+    private String overlapInDatabase(String code, LocalDate start, LocalDate end) {
+        return jdbc.query("select code from academic_terms where code <> ? and start_date <= ? and end_date >= ? limit 1",
+                        (rs, n) -> rs.getString(1), code, end, start)
+                .stream()
+                .findFirst()
+                .map(other -> "Khoảng ngày trùng với học kỳ " + other + " đã có trong hệ thống")
+                .orElse(null);
+    }
+
+    private boolean isLecturer(Long userId) {
+        return userRepository.findById(userId)
+                .map(user -> user.getRoles().stream().anyMatch(role -> "ROLE_LECTURER".equals(role.getName())))
+                .orElse(false);
+    }
 
     private static String termProblem(String code, String name, LocalDate start, LocalDate end) {
         if (!CODE.matcher(code).matches()) {
@@ -560,6 +872,39 @@ public class AcademicImportService {
         jdbc.query("select username, id from users where username in (" + placeholders(usernames.size()) + ")",
                         (rs, n) -> Map.entry(rs.getString(1), rs.getLong(2)), usernames.toArray())
                 .forEach(e -> found.put(e.getKey(), e.getValue()));
+        return found;
+    }
+
+    private Map<String, Long> facultyIdsByCode(List<String> codes) {
+        final Map<String, Long> found = new HashMap<>();
+        if (codes.isEmpty()) {
+            return found;
+        }
+        jdbc.query("select code, id from faculties where code in (" + placeholders(codes.size()) + ")",
+                        (rs, n) -> Map.entry(rs.getString(1), rs.getLong(2)), codes.toArray())
+                .forEach(e -> found.put(e.getKey(), e.getValue()));
+        return found;
+    }
+
+    private Set<String> subjectCodesIn(List<String> codes) {
+        final Set<String> found = new HashSet<>();
+        if (codes.isEmpty()) {
+            return found;
+        }
+        jdbc.query("select code from subjects where code in (" + placeholders(codes.size()) + ")",
+                        (rs, n) -> rs.getString(1), codes.toArray())
+                .forEach(found::add);
+        return found;
+    }
+
+    private Set<String> classCodesIn(List<String> codes) {
+        final Set<String> found = new HashSet<>();
+        if (codes.isEmpty()) {
+            return found;
+        }
+        jdbc.query("select code from school_classes where code in (" + placeholders(codes.size()) + ")",
+                        (rs, n) -> rs.getString(1), codes.toArray())
+                .forEach(found::add);
         return found;
     }
 

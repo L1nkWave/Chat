@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 
+import { ImportCard, LECTURER_CARD, STUDENT_CARD } from "./AcademicTab";
+import { ManualEntryForm } from "./ManualEntryForm";
+
 import { Notice } from "@/components/ui/Notice";
 import { adminErrorMessage, setUserLocked } from "@/lib/admin/api";
 import {
@@ -65,6 +68,9 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
     const [q, setQ] = useState("");
     const [role, setRole] = useState("");
     const [status, setStatus] = useState<UserStatusFilter>("ALL");
+    const [faculty, setFaculty] = useState("");
+    const [classCode, setClassCode] = useState("");
+    const [subject, setSubject] = useState("");
     const [page, setPage] = useState(0);
 
     const [result, setResult] = useState<UserPage | null>(null);
@@ -91,7 +97,16 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
         let alive = true;
         const timer = window.setTimeout(() => {
             setLoading(true);
-            searchUsers({ q: q.trim(), role, status, page, size: PAGE_SIZE })
+            searchUsers({
+                q: q.trim(),
+                role,
+                status,
+                faculty: faculty.trim(),
+                classCode: classCode.trim(),
+                subject: subject.trim(),
+                page,
+                size: PAGE_SIZE,
+            })
                 .then((data) => {
                     if (alive) setResult(data);
                 })
@@ -106,7 +121,7 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
             alive = false;
             window.clearTimeout(timer);
         };
-    }, [q, role, status, page, reloadKey]);
+    }, [q, role, status, faculty, classCode, subject, page, reloadKey]);
 
     useEffect(() => {
         if (selectedId === null) return;
@@ -319,10 +334,70 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                             <option value="LOCKED">Đang bị khóa</option>
                         </select>
                     </div>
+                    <div className="flex flex-col gap-1">
+                        <label htmlFor="user-faculty" className={LABEL}>Khoa (mã)</label>
+                        <input
+                            id="user-faculty"
+                            value={faculty}
+                            onChange={(event) => changeFilter(setFaculty, event.target.value)}
+                            placeholder="Ví dụ: CNTT"
+                            className={INPUT}
+                        />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <label htmlFor="user-class" className={LABEL}>Lớp (mã)</label>
+                        <input
+                            id="user-class"
+                            value={classCode}
+                            onChange={(event) => changeFilter(setClassCode, event.target.value)}
+                            placeholder="Ví dụ: DCT1222"
+                            className={INPUT}
+                        />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <label htmlFor="user-subject" className={LABEL}>Môn (mã)</label>
+                        <input
+                            id="user-subject"
+                            value={subject}
+                            onChange={(event) => changeFilter(setSubject, event.target.value)}
+                            placeholder="Ví dụ: CSC101"
+                            className={INPUT}
+                        />
+                    </div>
                 </div>
             </div>
 
             {notice ? <Notice text={notice.text} tone={notice.tone} onClose={() => setNotice(null)} /> : null}
+
+            <details className={CARD}>
+                <summary className="cursor-pointer text-sm font-semibold">Nhập sinh viên và giảng viên từ Excel</summary>
+                <div className="mt-3 grid gap-4 lg:grid-cols-2">
+                    <ImportCard spec={STUDENT_CARD} />
+                    <ImportCard spec={LECTURER_CARD} />
+                </div>
+                <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                    <ManualEntryForm
+                        kind="students"
+                        title="Sinh viên"
+                        hint="Lớp phải có ở mục Khoa & lớp. Tạo tài khoản mới với mật khẩu tạm; nếu MSSV đã có thì cập nhật hồ sơ."
+                        fields={[
+                            { name: "MSSV" },
+                            { name: "Họ tên" },
+                            { name: "Lớp", placeholder: "Ví dụ: DCT1222" },
+                            { name: "CCCD", optional: true, placeholder: "12 chữ số" },
+                        ]}
+                    />
+                    <ManualEntryForm
+                        kind="lecturers"
+                        title="Giảng viên"
+                        hint="Mã GV là tên đăng nhập. Mật khẩu mặc định Dhsg@123, bắt buộc đổi ở lần đăng nhập đầu."
+                        fields={[
+                            { name: "Mã GV" },
+                            { name: "Họ tên" },
+                        ]}
+                    />
+                </div>
+            </details>
 
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
                 <div className="flex min-w-0 flex-1 flex-col gap-3">
