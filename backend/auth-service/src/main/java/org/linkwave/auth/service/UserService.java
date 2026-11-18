@@ -24,6 +24,7 @@ public class UserService {
     private final DeactivatedTokenRepository deactivatedTokenRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final SessionRevocationPublisher revocations;
 
     @Transactional
     public void deleteAccount(Token accessToken, String userPassword) {
@@ -43,12 +44,16 @@ public class UserService {
         user.setUsername(null);
         user.setOnline(false);
         user.setLastSeen(ZonedDateTime.now());
+
+        revocations.revoke(accessToken.userId(), revocationMark());
     }
 
     @Transactional
     public void logoutAllDevices(Long userId) {
         final User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
-        user.setTokensValidAfter(revocationMark());
+        final Instant mark = revocationMark();
+        user.setTokensValidAfter(mark);
+        revocations.revoke(userId, mark);
     }
 
     @Transactional(readOnly = true)
@@ -68,7 +73,7 @@ public class UserService {
 
     /**
      * Đổi mật khẩu: kiểm tra chính sách mật khẩu mới, xác nhận mật khẩu cũ, rồi ghi mật khẩu mới.
-     * Mọi phiên cũ bị thu hồi (qua mốc tokensValidAfter), người dùng phải đăng nhập lại.
+     * Mọi phiên cũ bị thu hồi (qua mốc tokensValidAfter và ws-server), người dùng phải đăng nhập lại.
      */
     @Transactional
     public void changePassword(Long userId, String oldRawPassword, String newRawPassword) {
@@ -83,9 +88,11 @@ public class UserService {
             throw new IllegalArgumentException("Mật khẩu mới phải khác mật khẩu cũ");
         }
 
+        final Instant mark = revocationMark();
         user.setPassword(passwordEncoder.encode(newRawPassword));
         user.setMustChangePassword(false);
-        user.setTokensValidAfter(revocationMark());
+        user.setTokensValidAfter(mark);
+        revocations.revoke(userId, mark);
     }
 
     /** Mốc thu hồi làm tròn lên một giây: iat chỉ có độ chính xác đến giây nên refresh token cấp trong cùng giây trước đó vẫn bị thu hồi. */

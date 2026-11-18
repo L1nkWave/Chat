@@ -53,7 +53,7 @@ public class JwtAuthFiltersConfigurer extends AbstractHttpConfigurer<JwtAuthFilt
         final var jwtTokensInitializerFilter = new JwtTokensInitializerFilter(
                 objectMapper, authenticationManager,
                 jwtRefreshSerializer, jwtAccessSerializer,
-                twoFactorService, challengeService, userService);
+                twoFactorService, challengeService, userService, loginAttemptService);
 
         final var jwtTokensRefreshFilter = new JwtTokensRefreshFilter(
                 jwtRefreshSerializer, jwtAccessSerializer, jwtRefreshParser,

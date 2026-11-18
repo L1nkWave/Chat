@@ -40,6 +40,7 @@ import static jakarta.servlet.http.HttpServletResponse.SC_OK;
 import static org.linkwave.auth.security.utils.Cookies.createRefreshCookie;
 import static org.springframework.http.HttpHeaders.SET_COOKIE;
 import org.linkwave.auth.security.DefaultUserDetails;
+import org.linkwave.auth.security.LoginAttemptService;
 import org.linkwave.auth.security.totp.ChallengeService;
 import org.linkwave.auth.service.TwoFactorService;
 import org.linkwave.auth.service.UserService;
@@ -62,6 +63,7 @@ public class JwtTokensInitializerFilter extends OncePerRequestFilter {
     private final AuthenticationEntryPoint authenticationEntryPoint;
     private final ObjectMapper objectMapper;
     private final UserService userService;
+    private final LoginAttemptService loginAttemptService;
 
 
     public JwtTokensInitializerFilter(ObjectMapper objectMapper,
@@ -70,7 +72,8 @@ public class JwtTokensInitializerFilter extends OncePerRequestFilter {
                                       JwtAccessSerializer jwtAccessSerializer,
                                       TwoFactorService twoFactorService,
                                       ChallengeService challengeService,
-                                      UserService userService) {
+                                      UserService userService,
+                                      LoginAttemptService loginAttemptService) {
         this.objectMapper = objectMapper;
         this.authenticationConverter = new CredentialsAuthenticationConverter(objectMapper);
         this.authenticationEntryPoint = new UnAuthorizedAuthenticationEntryPoint(objectMapper);
@@ -80,6 +83,7 @@ public class JwtTokensInitializerFilter extends OncePerRequestFilter {
         this.twoFactorService = twoFactorService;
         this.challengeService = challengeService;
         this.userService = userService;
+        this.loginAttemptService = loginAttemptService;
     }
 
     @Override
@@ -91,6 +95,20 @@ public class JwtTokensInitializerFilter extends OncePerRequestFilter {
 
         if (!requestMatcher.matches(request)) {
             filterChain.doFilter(request, response);
+            return;
+        }
+
+        // Giới hạn số lần thử đăng nhập theo IP, trước khi kiểm tra mật khẩu
+        if (loginAttemptService.ipExceeded(loginAttemptService.clientIp(request))) {
+            log.debug("-> doFilterInternal(): too many login attempts from this IP");
+            response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            objectMapper.writeValue(response.getOutputStream(), ApiError.builder()
+                    .path(request.getRequestURI())
+                    .timestamp(Instant.now())
+                    .status(HttpStatus.TOO_MANY_REQUESTS.value())
+                    .message("Quá nhiều lần đăng nhập từ thiết bị này. Vui lòng thử lại sau ít phút.")
+                    .build());
             return;
         }
 

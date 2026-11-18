@@ -1,5 +1,7 @@
 package org.linkwave.ws.websocket.jwt;
 
+import org.linkwave.shared.auth.Token;
+import org.linkwave.ws.lock.SessionRevocation;
 import org.linkwave.ws.websocket.dto.ErrorMessage;
 import org.linkwave.ws.websocket.ticket.WsTicketService;
 import tools.jackson.databind.ObjectMapper;
@@ -40,13 +42,16 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
 
     private final TokenParser tokenParser;
     private final WsTicketService ticketService;
+    private final SessionRevocation sessionRevocation;
     private final ObjectMapper objectMapper;
 
     public JwtHandshakeInterceptor(TokenParser tokenParser,
                                    WsTicketService ticketService,
+                                   SessionRevocation sessionRevocation,
                                    @Lazy ObjectMapper objectMapper) {
         this.tokenParser = tokenParser;
         this.ticketService = ticketService;
+        this.sessionRevocation = sessionRevocation;
         this.objectMapper = objectMapper;
     }
 
@@ -71,8 +76,14 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
             return false;
         }
 
-        if (tokenParser.isInvalid(token.get())) {
+        final Token parsed = tokenParser.parse(token.get());
+        if (parsed == null) {
             reject(response, "invalid access token");
+            return false;
+        }
+        // Token cũ (trước khi đổi mật khẩu hoặc đăng xuất mọi thiết bị) không được mở kết nối mới
+        if (sessionRevocation.isRevoked(parsed)) {
+            reject(response, "session revoked");
             return false;
         }
 

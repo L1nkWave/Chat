@@ -31,22 +31,31 @@ public class AccountLockService {
 
     public void lock(Long userId) {
         redis.opsForValue().set(KEY_PREFIX + userId, "1");
+        final int closed = closeSessions(userId);
+        log.info("-> lock(): user {} bị khóa, đã đóng {} phiên WebSocket", userId, closed);
+    }
 
+    /**
+     * Đóng các phiên WebSocket của người dùng đang nằm trên instance này.
+     * Dùng khi đổi mật khẩu, đăng xuất mọi thiết bị hoặc xóa tài khoản (không khóa tài khoản).
+     * Trả về số phiên đã đóng.
+     */
+    public int closeSessions(Long userId) {
         int closed = 0;
         for (String sessionId : chatRepository.getUserSessions(userId)) {
             final WebSocketSession session = sessionManager.find(sessionId);
             if (session == null) {
-                // Phiên thuộc instance khác: không đóng được tại đây
+                // Phiên thuộc instance khác: instance đó cũng nhận thông báo và tự đóng
                 continue;
             }
             try {
                 session.close(ACCOUNT_LOCKED);
                 closed++;
             } catch (IOException | RuntimeException e) {
-                log.warn("-> lock(): không đóng được phiên {} của user {}: {}", sessionId, userId, e.getMessage());
+                log.warn("-> closeSessions(): không đóng được phiên {} của user {}: {}", sessionId, userId, e.getMessage());
             }
         }
-        log.info("-> lock(): user {} bị khóa, đã đóng {} phiên WebSocket", userId, closed);
+        return closed;
     }
 
     public void unlock(Long userId) {

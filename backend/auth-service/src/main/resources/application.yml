@@ -48,6 +48,11 @@ spring:
 jwt:
   issuer: 'LW-auth'
 
+auth:
+  # true khi auth-service nằm sau api-gateway (lấy IP client từ X-Forwarded-For, dùng cho giới hạn đăng nhập theo IP).
+  # Đặt false nếu auth-service mở trực tiếp ra ngoài.
+  trust-forwarded-for: ${AUTH_TRUST_FORWARDED_FOR:true}
+
 logging:
   level:
     org.linkwave.auth: INFO

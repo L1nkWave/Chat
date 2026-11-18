@@ -28,6 +28,8 @@ eureka:
       defaultZone: 'http://localhost:8761/eureka/'
 
 ws:
+  # Các origin được phép mở WebSocket, cách nhau bằng dấu phẩy (biến môi trường WS_ALLOWED_ORIGINS)
+  allowed-origins: ${WS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost}
   session:
     exp: 10
     concurrent:
