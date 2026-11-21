@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { useRouter } from "next/navigation";
 import { Logo } from "@/components/brand/Logo";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
-import { apiFetch } from "@/lib/api/client";
+import { apiFetch, ensureAccessToken } from "@/lib/api/client";
 import { logout } from "@/lib/auth/auth-api";
 import { setAccessToken } from "@/lib/auth/session";
 import { chatApi, errorMessage } from "@/lib/chat/api";
@@ -160,24 +160,30 @@ export function ChatShell() {
     // Khôi phục phiên từ refresh cookie. Access token chỉ nằm trong bộ nhớ,
     // nên sau khi tải lại trang phải xin token mới.
     useEffect(() => {
-        let cancelled = false;
-        apiFetch<TokensDto>("/api/v1/auth/refresh-tokens", {
-            method: "POST",
-            skipAuth: true,
-            skipRefresh: true,
-        })
-            .then((tokens) => {
-                if (cancelled) return;
-                setAccessToken(tokens.accessToken);
+    let cancelled = false;
+
+    ensureAccessToken()
+        .then((success) => {
+            if (cancelled) return;
+
+            if (success) {
                 setReady(true);
-            })
-            .catch(() => {
-                if (!cancelled) router.replace("/login");
-            });
-        return () => {
-            cancelled = true;
-        };
-    }, [router]);
+            } else {
+                router.replace("/login");
+            }
+        })
+        .catch((error) => {
+            console.error("Failed to restore session:", error);
+
+            if (!cancelled) {
+                router.replace("/login");
+            }
+        });
+
+    return () => {
+        cancelled = true;
+    };
+}, [router]);
 
     // Tải dữ liệu ban đầu sau khi có phiên.
     useEffect(() => {

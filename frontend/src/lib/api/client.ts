@@ -95,3 +95,10 @@ export async function apiFetch<T>(path: string, init: ApiRequestInit = {}): Prom
     const text = await res.text();
     return (text ? JSON.parse(text) : undefined) as T;
 }
+
+export async function ensureAccessToken(): Promise<boolean> {
+    if (getAccessToken()) {
+        return true;
+    }
+    return refreshAccessToken();
+}

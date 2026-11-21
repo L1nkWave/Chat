@@ -1,39 +1,128 @@
-version: '3.9'
-services:
+name: sgu-chat
 
+x-backend-build: &backend-build
+  context: .
+  dockerfile: Dockerfile
+
+services:
+  # ------------------------------------------------------------
+  # Infrastructure
+  # ------------------------------------------------------------
   discovery-service:
-    container_name: "discovery-service"
-    build: discovery-service
+    image: sgu-chat/discovery-service:local
+    build:
+      <<: *backend-build
+      args:
+        APP_MODULE: discovery-service
+        APP_JAR: discovery-service-0.0.1-SNAPSHOT.jar
     ports:
       - "8761:8761"
     healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:8761/actuator/health" ]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8761/actuator/health >/dev/null || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 3
-
-  users-db:
-    container_name: "users-db"
-    image: postgres:16.1-alpine
-    ports:
-      - "15432:5432"
-    healthcheck:
-      test: [ "CMD", "pg_isready", "-q", "-d", "lw-users", "-U", "postgres" ]
-      interval: 5s
-      timeout: 5s
-      retries: 3
-    env_file: .env
-    environment:
-      POSTGRES_DB: "lw-users"
-      POSTGRES_USER: $DB_USER
-      POSTGRES_PASSWORD: $USERS_DB_PASSWORD
-    volumes:
-      - ./user-service/src/main/resources/docker-init/users_db.sql:/docker-entrypoint-initdb.d/user_db.sql
+      retries: 12
+      start_period: 20s
     restart: unless-stopped
 
+  users-db:
+    image: postgres:16.1-alpine
+    ports:
+      - "${POSTGRES_HOST_PORT:-15432}:5432"
+    environment:
+      POSTGRES_DB: lw-users
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${USERS_DB_PASSWORD:?Set USERS_DB_PASSWORD in backend/.env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  chat-db:
+    image: mongo:7.0
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
+    ports:
+      - "${MONGO_HOST_PORT:-27017}:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand({ ping: 1 }).ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  mongo-rs-init:
+    image: mongo:7.0
+    depends_on:
+      chat-db:
+        condition: service_healthy
+    command:
+      - mongosh
+      - --host
+      - chat-db:27017
+      - --quiet
+      - --eval
+      - |
+        try {
+          rs.status();
+          print("MongoDB replica set rs0 is already initialized");
+        } catch (error) {
+          print("Initializing MongoDB replica set rs0");
+          rs.initiate({
+            _id: "rs0",
+            members: [{ _id: 0, host: "chat-db:27017" }]
+          });
+        }
+
+        let isPrimary = false;
+
+        for (let i = 0; i < 30; i++) {
+          if (db.hello().isWritablePrimary) {
+            isPrimary = true;
+            break;
+          }
+          sleep(1000);
+        }
+
+        if (!isPrimary) {
+          print("MongoDB did not become primary in time");
+          quit(1);
+        }
+
+        print("MongoDB replica set rs0 is ready");
+    restart: "no"
+
+  redis-sessions:
+    image: redis:7.2.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_HOST_PORT:-16379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # ------------------------------------------------------------
+  # Application services
+  # ------------------------------------------------------------
   user-service:
-    container_name: "user-service"
-    build: user-service
+    image: sgu-chat/user-service:local
+    build:
+      <<: *backend-build
+      args:
+        APP_MODULE: user-service
+        APP_JAR: user-service-0.0.1-SNAPSHOT.jar
     ports:
       - "8082:8082"
     depends_on:
@@ -41,143 +130,225 @@ services:
         condition: service_healthy
       users-db:
         condition: service_healthy
-    healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:8082/actuator/health" ]
-      interval: 5s
-      timeout: 5s
-      retries: 3
-    env_file: .env
     environment:
-      SPRING_APPLICATION_JSON: '{
-        "spring.datasource.url": "$USERS_DB_URL",
-        "spring.datasource.username": "$DB_USER",
-        "spring.datasource.password": "$USERS_DB_PASSWORD",
-        "spring.jpa.properties.hibernate.show_sql": true,
-        "spring.jpa.hibernate.ddl-auto": "update",
-        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL",
-        "files.storage-folder": "/media"
-      }'
+      SPRING_DATASOURCE_URL: jdbc:postgresql://users-db:5432/lw-users
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${USERS_DB_PASSWORD}
+      SPRING_APPLICATION_JSON: >-
+        {
+          "files.storage-folder": "/app/storage",
+          "eureka.client.service-url.defaultZone": "http://discovery-service:8761/eureka/",
+          "eureka.instance.prefer-ip-address": false,
+          "eureka.instance.hostname": "user-service",
+          "eureka.instance.instance-id": "user-service"
+        }
+    volumes:
+      - media-storage:/app/storage
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8082/actuator/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
 
   auth-service:
-    container_name: "auth-service"
-    build: auth-service
+    image: sgu-chat/auth-service:local
+    build:
+      <<: *backend-build
+      args:
+        APP_MODULE: auth-service
+        APP_JAR: auth-service-0.0.1-SNAPSHOT.jar
     ports:
       - "8081:8081"
     depends_on:
       user-service:
         condition: service_healthy
-    healthcheck:
-      test: [ "CMD", "wget", "-qO-", "http://localhost:8081/actuator/health" ]
-      interval: 10s
-      timeout: 10s
-      retries: 5
-    env_file: .env
-    environment:
-      SPRING_APPLICATION_JSON: '{
-        "spring.datasource.url": "$USERS_DB_URL",
-        "spring.datasource.username": "$DB_USER",
-        "spring.datasource.password": "$USERS_DB_PASSWORD",
-        "spring.jpa.hibernate.ddl-auto": "update",
-        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL"
-      }'
-
-  chat-db:
-    container_name: 'chat-db'
-    image: mongo:7.0
-    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--port", "27017"]
-    ports:
-      - "27017:27017"
-    depends_on:
-      auth-service:
+      discovery-service:
         condition: service_healthy
+      users-db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://users-db:5432/lw-users
+      SPRING_DATASOURCE_USERNAME: ${DB_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${USERS_DB_PASSWORD}
+      SPRING_APPLICATION_JSON: >-
+        {
+          "eureka.client.service-url.defaultZone": "http://discovery-service:8761/eureka/",
+          "eureka.instance.prefer-ip-address": false,
+          "eureka.instance.hostname": "auth-service",
+          "eureka.instance.instance-id": "auth-service"
+        }
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh --port 27017 --quiet
-      interval: 5s
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8081/actuator/health >/dev/null || exit 1"]
+      interval: 10s
       timeout: 5s
-      retries: 3
-    volumes:
-      - ./chat-service/src/main/resources/docker-init/mongo_rs_init.js:/docker-entrypoint-initdb.d/mongo_rs_init.js
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
 
   chat-service:
-    container_name: 'chat-service'
-    build: chat-service
+    image: sgu-chat/chat-service:local
+    build:
+      <<: *backend-build
+      args:
+        APP_MODULE: chat-service
+        APP_JAR: chat-service-0.0.1-SNAPSHOT.jar
     ports:
       - "8083:8083"
     depends_on:
-      chat-db:
+      discovery-service:
         condition: service_healthy
-    env_file: .env
+      mongo-rs-init:
+        condition: service_completed_successfully
+      user-service:
+        condition: service_healthy
     environment:
-      SPRING_APPLICATION_JSON: '{
-        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL",
-        "files.storage-folder": "/media",
-        "spring.data.mongodb.uri": "$CHAT_DB_URL"
-      }'
-
-  redis-sessions:
-    container_name: "redis-sessions"
-    image: redis:7.2.4-alpine
-    ports:
-      - "16379:6379"
-    depends_on:
-      auth-service:
-        condition: service_healthy
+      SPRING_APPLICATION_JSON: >-
+        {
+          "spring.mongodb.uri": "mongodb://chat-db:27017/linkwave?replicaSet=rs0",
+          "files.storage-folder": "/app/storage",
+          "eureka.client.service-url.defaultZone": "http://discovery-service:8761/eureka/",
+          "eureka.instance.prefer-ip-address": false,
+          "eureka.instance.hostname": "chat-service",
+          "eureka.instance.instance-id": "chat-service"
+        }
+    volumes:
+      - media-storage:/app/storage
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 5s
-      timeout: 10s
-      retries: 3
-    env_file: .env
-    environment:
-      REDIS_DATABASES: 1
+      test: ["CMD-SHELL", "curl -sS --max-time 3 -o /dev/null http://localhost:8083/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
     restart: unless-stopped
 
+  # Two WS nodes are kept because the application currently uses E1/E2
+  # Redis topics for cross-instance message broadcasting.
   ws-server-1:
-    container_name: "ws-server"
-    build: ws-server
+    image: sgu-chat/ws-server:local
+    build:
+      <<: *backend-build
+      args:
+        APP_MODULE: ws-server
+        APP_JAR: ws-0.0.1-SNAPSHOT.jar
     ports:
       - "9090:9090"
     depends_on:
+      discovery-service:
+        condition: service_healthy
       redis-sessions:
         condition: service_healthy
-    env_file: .env
+      chat-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
     environment:
-      SPRING_APPLICATION_JSON: '{
-        "spring.data.redis.host": "host.docker.internal",
-        "spring.data.redis.port": 16379,
-        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL"
-      }'
+      SPRING_APPLICATION_JSON: >-
+        {
+          "server.port": 9090,
+          "server.id": "E1",
+          "server.instances.list": "E2",
+          "server.instances.enabled": true,
+          "spring.data.redis.host": "redis-sessions",
+          "spring.data.redis.port": 6379,
+          "eureka.client.service-url.defaultZone": "http://discovery-service:8761/eureka/",
+          "eureka.instance.prefer-ip-address": false,
+          "eureka.instance.hostname": "ws-server-1",
+          "eureka.instance.instance-id": "ws-server-1"
+        }
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sS --max-time 3 -o /dev/null http://localhost:9090/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    restart: unless-stopped
 
   ws-server-2:
-    container_name: "ws-server-2"
-    build: ws-server
+    image: sgu-chat/ws-server:local
+    build:
+      <<: *backend-build
+      args:
+        APP_MODULE: ws-server
+        APP_JAR: ws-0.0.1-SNAPSHOT.jar
     ports:
       - "9091:9091"
     depends_on:
+      discovery-service:
+        condition: service_healthy
       redis-sessions:
         condition: service_healthy
-    env_file: .env
+      chat-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
     environment:
-      SPRING_APPLICATION_JSON: '{
-        "server.port": 9091,
-        "server.id": "E2",
-        "server.instances.list": "E1",
-        "spring.data.redis.host": "host.docker.internal",
-        "spring.data.redis.port": 16379,
-        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL"
-      }'
+      SPRING_APPLICATION_JSON: >-
+        {
+          "server.port": 9091,
+          "server.id": "E2",
+          "server.instances.list": "E1",
+          "server.instances.enabled": true,
+          "spring.data.redis.host": "redis-sessions",
+          "spring.data.redis.port": 6379,
+          "eureka.client.service-url.defaultZone": "http://discovery-service:8761/eureka/",
+          "eureka.instance.prefer-ip-address": false,
+          "eureka.instance.hostname": "ws-server-2",
+          "eureka.instance.instance-id": "ws-server-2"
+        }
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sS --max-time 3 -o /dev/null http://localhost:9091/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+    restart: unless-stopped
 
   api-gateway:
-    container_name: "api-gateway"
-    build: api-gateway
+    image: sgu-chat/api-gateway:local
+    build:
+      <<: *backend-build
+      args:
+        APP_MODULE: api-gateway
+        APP_JAR: api-gateway-0.0.1-SNAPSHOT.jar
     ports:
       - "8080:8080"
     depends_on:
+      discovery-service:
+        condition: service_healthy
       auth-service:
         condition: service_healthy
-    env_file: .env
+      user-service:
+        condition: service_healthy
+      chat-service:
+        condition: service_healthy
+      ws-server-1:
+        condition: service_healthy
+      ws-server-2:
+        condition: service_healthy
     environment:
-      SPRING_APPLICATION_JSON: '{
-        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL",
-        "spring.cloud.gateway.globalcors.cors-configurations.[/**].allowedOrigins": "$ORIGINS"
-      }'
+      SPRING_APPLICATION_JSON: >-
+        {
+          "eureka.client.service-url.defaultZone": "http://discovery-service:8761/eureka/",
+          "eureka.instance.prefer-ip-address": false,
+          "eureka.instance.hostname": "api-gateway",
+          "eureka.instance.instance-id": "api-gateway",
+          "spring.cloud.gateway.globalcors.cors-configurations.[/**].allowedOrigins": ["${ORIGINS:-http://localhost:3000}"],
+          "spring.cloud.gateway.globalcors.cors-configurations.[/**].allowedMethods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+          "spring.cloud.gateway.globalcors.cors-configurations.[/**].allowedHeaders": ["*"],
+          "spring.cloud.gateway.globalcors.cors-configurations.[/**].allowCredentials": true
+        }
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sS --max-time 3 -o /dev/null http://localhost:8080/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  mongo-data:
+  redis-data:
+  media-storage:

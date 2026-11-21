@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 
-import { AuthLayout } from "@/components/auth/AuthLayout";
+import { AuthLayout } from "@/components/Auth/AuthLayout";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/TextField";
 import { ApiError } from "@/lib/api/client";

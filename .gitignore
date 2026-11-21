@@ -1,4 +1,14 @@
-.idea
+# IDE
+.idea/
+
+# Local environment files and secrets
 .env
-.env.local
-**/src/main/resources/keys/*.pem
+.env.*
+!.env.example
+
+# Environment-specific application RSA keys (generated locally)
+backend/**/src/main/resources/keys/*.pem
+
+# Local build/runtime output
+**/target/
+**/storage/

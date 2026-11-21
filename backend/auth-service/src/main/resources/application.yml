@@ -16,27 +16,16 @@ management:
         include: health
 
 spring:
-  application:
-    name: 'auth-service'
-
-  datasource:
-    url: 'jdbc:postgresql://localhost:15432/lw-users'
-    username: 'postgres'
-    password: 'postgres'
-    driver-class-name: org.postgresql.Driver
-
   jpa:
     open-in-view: false
-    properties:
-      hibernate:
-        show_sql: false
-        format_sql: true
-        highlight_sql: true
-
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
       naming:
         physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+
+  sql:
+    init:
+      mode: never
 
 
 jwt:

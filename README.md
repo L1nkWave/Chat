@@ -1,172 +1,183 @@
 # SGU Chat
 
-Ứng dụng chat nội bộ cho Đại học Sài Gòn, giao diện kiểu Zalo. Mã nguồn mở, tự host, không kết nối ra dịch vụ bên ngoài khi chạy.
+Ứng dụng chat nội bộ cho Đại học Sài Gòn, giao diện kiểu Zalo. Hệ thống gồm frontend Next.js và backend Spring Boot theo kiến trúc microservice.
 
 ## Kiến trúc
 
-| Thành phần | Công nghệ | Cổng |
-|---|---|---|
-| frontend | Next.js 14 | 3000 |
+| Thành phần | Công nghệ | Cổng host |
+|---|---|---:|
+| frontend | Next.js 16 | 3000 |
 | api-gateway | Spring Cloud Gateway | 8080 |
 | discovery-service | Eureka | 8761 |
 | auth-service | Spring Boot, JWT, PostgreSQL | 8081 |
 | user-service | Spring Boot, PostgreSQL | 8082 |
-| chat-service | Spring Boot, MongoDB | 8083 |
-| ws-server | Spring Boot WebSocket, Redis | 9090 |
-| PostgreSQL (users) | | 15432 |
-| MongoDB (chat) | replica set `rs0` | 27017 |
-| Redis (phiên WebSocket) | | 16379 |
+| chat-service | Spring Boot, MongoDB replica set | 8083 |
+| ws-server | Spring Boot WebSocket, 2 instances E1/E2, Redis | 9090, 9091 |
+| PostgreSQL | users database | 15432 |
+| MongoDB | replica set `rs0` | 27017 |
+| Redis | WebSocket sessions/broadcast | 16379 |
 
-Trình duyệt chỉ gọi frontend và api-gateway. Các service tự đăng ký với Eureka.
+Trong Docker, các backend service giao tiếp qua DNS nội bộ của Compose (ví dụ `users-db`, `chat-db`, `redis-sessions`, `discovery-service`), không dùng `localhost` để gọi container khác. Trình duyệt gọi API qua `api-gateway`.
 
 ## Yêu cầu
 
-- JDK 18 (không dùng JDK 26, Lombok 1.18.28 không tương thích)
-- Node.js 18 trở lên
-- Docker Desktop (để chạy PostgreSQL, MongoDB, Redis)
-- Git
+- Docker Desktop có Docker Compose v2.
+- Git.
+- Node.js 20.9 trở lên và npm để chạy frontend.
+- OpenSSL để tạo RSA key lần đầu (Git for Windows thường đã đi kèm OpenSSL).
 
-## 1. Lấy mã nguồn
+Không cần cài JDK hoặc Maven để chạy backend bằng Docker. Dockerfile build backend bằng Java 21, đúng với `backend/pom.xml`.
+
+## 1. Clone repository
 
 ```bash
-git clone https://github.com/<tên-github>/SGU-Chat.git
+git clone https://github.com/<github-username>/SGU-Chat.git
 cd SGU-Chat
 ```
 
-## 2. Chạy hạ tầng (PostgreSQL, MongoDB, Redis)
+## 2. Cấu hình biến môi trường backend
 
-Chạy riêng 3 container, không kéo theo các service khác:
-
-```bash
-cd backend
-docker compose up -d --no-deps users-db chat-db redis-sessions
-docker compose ps
-```
-
-Đợi đến khi các container ở trạng thái `healthy`. Sau đó khởi tạo replica set cho MongoDB (chỉ làm một lần):
+Tạo `backend/.env` từ file mẫu:
 
 ```bash
-docker exec chat-db mongosh --eval "rs.initiate()"
+cp backend/.env.example backend/.env
 ```
 
-Nếu báo `already initialized` thì bỏ qua.
+Trên PowerShell:
 
-## 3. Cấu hình
-
-### 3.1 Database
-
-Mở `backend/auth-service/src/main/resources/application.yml` và `backend/user-service/src/main/resources/application.yml`, sửa phần `datasource`:
-
-```yaml
-  datasource:
-    url: 'jdbc:postgresql://localhost:15432/lw-users'
-    username: 'postgres'
-    password: 'postgres'
+```powershell
+Copy-Item backend/.env.example backend/.env
 ```
 
-Mật khẩu phải khớp với `USERS_DB_PASSWORD` trong `backend/.env`.
+Mở `backend/.env`, thay `USERS_DB_PASSWORD` bằng mật khẩu riêng. `ORIGINS` mặc định là `http://localhost:3000`; thay đổi nếu frontend chạy ở origin khác.
 
-### 3.2 Redis
+## 3. Tạo RSA keys
 
-Mở `backend/ws-server/src/main/resources/application.yml`, sửa cổng Redis:
+Các key trong `src/main/resources/keys` là key theo môi trường chạy. Hãy tạo key mới trên máy local; không commit các file PEM này.
 
-```yaml
-      port: 16379
-```
-
-### 3.3 Thư mục lưu file
-
-Mở `backend/chat-service/src/main/resources/application.yml`, đổi `files.storage-folder` thành một thư mục tồn tại trên máy, ví dụ:
-
-```yaml
-files:
-  storage-folder: './storage'
-```
-
-### 3.4 Khóa RSA
-
-Các file khóa trong repo chỉ là file rỗng, phải tự tạo khóa mới (cần `openssl`, có sẵn trong Git for Windows):
+Chạy từ thư mục gốc repository (Bash/Git Bash):
 
 ```bash
 cd backend/auth-service/src/main/resources/keys
+
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out access_private_key.pem
-openssl rsa -pubout -in access_private_key.pem -out access_public_key.pem
+openssl pkey -pubout -in access_private_key.pem -out access_public_key.pem
+
 openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out refresh_private_key.pem
-openssl rsa -pubout -in refresh_private_key.pem -out refresh_public_key.pem
+openssl pkey -pubout -in refresh_private_key.pem -out refresh_public_key.pem
+
+cp access_public_key.pem ../../../../../user-service/src/main/resources/keys/
+cp access_public_key.pem ../../../../../chat-service/src/main/resources/keys/
+cp access_public_key.pem ../../../../../ws-server/src/main/resources/keys/
 ```
 
-Sau đó sao chép `access_public_key.pem` sang các service còn lại (phải là cùng một khóa):
+Trên PowerShell, thay ba lệnh `cp` cuối bằng `Copy-Item` và dùng cùng đường dẫn tương đối gồm năm cấp `..`. Nếu thư mục `keys` ở service đích chưa tồn tại, hãy tạo thư mục trước. Sau bước này, quay lại thư mục gốc repository trước khi tiếp tục.
+
+**Quan trọng:** `access_public_key.pem` phải được sao chép từ đúng `access_private_key.pem` đang dùng để ký access token. Tương tự, refresh public key phải được tạo từ refresh private key tương ứng. Không sao chép refresh key sang các service khác.
+
+## 4. Khởi động toàn bộ backend bằng Docker Compose
+
+Chạy từ thư mục `backend`:
 
 ```bash
-cp access_public_key.pem ../../../../user-service/src/main/resources/keys/
-cp access_public_key.pem ../../../../chat-service/src/main/resources/keys/
-cp access_public_key.pem ../../../../ws-server/src/main/resources/keys/
+cd backend
+docker compose up --build -d
 ```
 
-Trên Windows PowerShell, dùng `Copy-Item` thay cho `cp`. Nếu thư mục `keys` chưa tồn tại thì tạo trước.
+Lệnh này build các image backend từ Maven multi-module project, sau đó khởi động:
 
-### 3.5 Frontend
+- 6 loại application: API Gateway, Discovery, Auth, User, Chat và WebSocket.
+- 2 container WebSocket (E1 và E2), dùng chung Redis để broadcast giữa các instance.
+- PostgreSQL, MongoDB replica set `rs0` và Redis.
+
+Kiểm tra trạng thái:
+
+```bash
+docker compose ps
+```
+
+Theo dõi log:
+
+```bash
+docker compose logs -f
+```
+
+Hoặc xem log một service:
+
+```bash
+docker compose logs -f auth-service
+```
+
+Khi hoàn tất, Eureka Dashboard tại http://localhost:8761 phải hiển thị `API-GATEWAY`, `AUTH-SERVICE`, `USER-SERVICE`, `CHAT-SERVICE` và `WS-SERVER` là `UP`. `WS-SERVER` có hai instance.
+
+Các lần chạy sau, nếu không thay đổi mã nguồn backend, có thể dùng:
+
+```bash
+docker compose up -d
+```
+
+## 5. Chạy frontend
+
+Mở terminal khác, từ thư mục gốc repository:
 
 ```bash
 cd frontend
 cp .env.example .env.local
+npm ci
+npm run dev
 ```
 
-## 4. Build thư viện chung
+Trên PowerShell, dùng `Copy-Item .env.example .env.local` thay cho `cp`.
 
-Chạy một lần từ `backend/auth-service` (Windows: `mvnw.cmd`):
+Mở http://localhost:3000. Frontend gọi API và WebSocket thông qua API Gateway tại cổng 8080.
+
+## 6. Một số lệnh Docker hữu ích
 
 ```bash
-./mvnw -f ../pom.xml install -N -DskipTests
-./mvnw -f ../shared/pom.xml install -DskipTests
+# Xem trạng thái các container
+docker compose ps
+
+# Xem log tất cả service
+docker compose logs -f
+
+# Khởi động lại một service
+docker compose restart auth-service
+
+# Dừng container nhưng giữ dữ liệu trong named volumes
+docker compose down
+
+# Xóa cả dữ liệu PostgreSQL, MongoDB, Redis và media storage
+# CẢNH BÁO: thao tác này làm mất dữ liệu đã lưu.
+docker compose down -v
 ```
 
-Nếu `mvnw` báo `Could not find or load main class MavenWrapperMain`, file `.mvn/wrapper/maven-wrapper.jar` bị lỗi. Sao chép thư mục `.mvn` từ `discovery-service` sang service đó.
+MongoDB replica set được khởi tạo tự động bởi service `mongo-rs-init`; không cần chạy `rs.initiate()` thủ công. PostgreSQL, MongoDB, Redis và media storage dùng named volumes để dữ liệu không mất khi chỉ chạy `docker compose down`.
 
-## 5. Chạy backend
+## 7. Bảo mật và Git
 
-Mỗi service chạy trong một terminal riêng, **đúng thứ tự**. Chờ service trước lên hẳn (`Started ...Application`) rồi mới chạy service sau:
+- `backend/.env`, `frontend/.env.local` và key PEM trong `src/main/resources/keys` không được commit.
+- `.gitignore` không tự ngừng theo dõi file đã được commit trước đó. Để bỏ các PEM production khỏi Git index nhưng vẫn giữ file trên máy:
 
-```bash
-cd backend/discovery-service && ./mvnw spring-boot:run
-cd backend/auth-service      && ./mvnw spring-boot:run
-cd backend/user-service      && ./mvnw spring-boot:run
-cd backend/chat-service      && ./mvnw spring-boot:run
-cd backend/ws-server         && ./mvnw spring-boot:run
-cd backend/api-gateway       && ./mvnw spring-boot:run
-```
+  ```bash
+  git rm --cached -- ':(glob)backend/**/src/main/resources/keys/*.pem'
+  git commit -m "Stop tracking environment-specific RSA keys"
+  ```
 
-Kiểm tra http://localhost:8761: phải thấy `API-GATEWAY`, `AUTH-SERVICE`, `USER-SERVICE`, `CHAT-SERVICE`, `WS-SERVER` đều UP.
-
-## 6. Chạy frontend
-
-```bash
-cd frontend
-npm install
-npx next dev -p 3000
-```
-
-Mở http://localhost:3000.
-
-## 7. Kiểm tra nhanh
-
-1. Đăng ký hai tài khoản, đăng nhập bằng từng tài khoản ở hai trình duyệt (một bình thường, một ẩn danh).
-2. Tìm và thêm liên hệ, gửi tin nhắn chữ, gửi ảnh. Bên kia phải nhận được ngay không cần tải lại trang.
-3. Thử gửi tin khi một bên đăng xuất, rồi đăng nhập lại để kiểm tra lịch sử.
+- Nếu private key đã từng được push lên remote, hãy tạo cặp key mới và thay key ở tất cả service. Xóa file ở commit mới không làm mất nội dung key trong lịch sử Git; nếu repository công khai, cần cân nhắc làm sạch lịch sử Git sau khi đã rotate key.
+- Các key trong `src/test/resources` chỉ dùng cho test, không được tái sử dụng cho môi trường chạy thật.
+- Không sử dụng mật khẩu mẫu hoặc key phát triển khi triển khai production.
 
 ## 8. Lỗi thường gặp
 
-| Triệu chứng | Nguyên nhân | Cách xử lý |
+| Triệu chứng | Nguyên nhân thường gặp | Cách kiểm tra |
 |---|---|---|
-| Đăng ký báo 404 | Thiếu `frontend/.env.local` | Tạo file theo mục 3.5, khởi động lại `npm run dev` |
-| `WebSocket` lỗi `undefined` | Thiếu `NEXT_PUBLIC_WEB_SOCKET_URL` | Thêm biến vào `.env.local`, khởi động lại frontend |
-| `Missing key encoding` | File khóa rỗng hoặc sai định dạng | Tạo lại khóa theo mục 3.4 |
-| `Connection refused: localhost:5432` | Service dùng cổng mặc định | Sửa `application.yml` theo mục 3.1 |
-| `password authentication failed` | Mật khẩu DB không khớp | Đồng bộ mật khẩu trong `application.yml` và container |
-| `Could not find artifact org.linkwave:shared` | Chưa build thư viện chung | Chạy mục 4 |
-| `Could not resolve ... backend:pom` | Chưa cài pom gốc | Chạy `install -N` ở mục 4 |
-| Tin nhắn không đến bên kia | WebSocket bị đóng | Kiểm tra `ws-server` đã chạy và đăng ký với Eureka |
-| CORS khi gọi API | Origin không có trong `ORIGINS` | Thêm địa chỉ frontend vào `ORIGINS` trong `backend/.env` |
+| Container backend thoát ngay khi start | Thiếu PEM hoặc PEM sai định dạng | `docker compose logs auth-service` và kiểm tra mục 3 |
+| `password authentication failed` | Mật khẩu trong `.env` không khớp hoặc volume DB cũ | Kiểm tra `DB_USER`, `USERS_DB_PASSWORD`; không xóa volume nếu cần giữ dữ liệu |
+| Mongo báo replica set chưa khởi tạo | `mongo-rs-init` chưa hoàn tất | `docker compose logs mongo-rs-init chat-db` |
+| Service không xuất hiện trên Eureka | Sai `defaultZone` hoặc service chưa healthy | Kiểm tra log `discovery-service` và service tương ứng |
+| API trả về 503 từ Gateway | Gateway chưa thấy service đích trên Eureka | Kiểm tra service đích và Eureka Dashboard |
+| WebSocket không kết nối | Sai `NEXT_PUBLIC_WS_URL` hoặc gateway chưa thấy `ws-server` | Dùng `ws://localhost:8080/ws`, kiểm tra `api-gateway` và cả hai WS instance |
+| Cổng host đã được sử dụng | Một tiến trình khác đang dùng cổng 8080/8761/15432/27017/16379 | Đổi port host tương ứng trong `backend/.env` |
 
 ## 9. Tình trạng và việc còn lại
 
@@ -176,9 +187,3 @@ Chưa có:
 - Cấp giảng viên (hiện chỉ có `USER` và `ADMIN`).
 - Người được thêm vào nhóm phải đồng ý trước khi vào.
 - Quyền bậc trên quản lý bậc dưới.
-
-## Bảo mật
-
-- Đổi mật khẩu PostgreSQL và tạo khóa RSA mới trước khi triển khai thật.
-- Thêm `.env` và `.env.local` vào `.gitignore`, và xóa file `.env` đã commit khỏi git bằng `git rm --cached backend/.env`.
-- Không dùng khóa trong repo cho môi trường thật.

@@ -26,10 +26,8 @@ spring:
       max-file-size: 32MB
       max-request-size: 32MB
 
-  data:
-    mongodb:
-      database: 'linkwave'
-      replica-set-name: 'rs0'
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/linkwave?replicaSet=rs0}
 
 files:
   storage-folder: '${FILE_STORAGE_FOLDER:./storage}'
