@@ -187,33 +187,12 @@ services:
         "spring.data.redis.port": 6379,
         "eureka.client.service-url.defaultZone": "$DISCOVERY_URL",
         "eureka.instance.prefer-ip-address": false,
-        "eureka.instance.hostname": "ws-server"
+        "eureka.instance.hostname": "ws-server",
+        "server.instances.enabled": false
       }'
 
-  ws-server-2:
-    container_name: "ws-server-2"
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        MODULE: ws-server
-    ports:
-      - "9091:9091"
-    depends_on:
-      redis-sessions:
-        condition: service_healthy
-    env_file: .env
-    environment:
-      SPRING_APPLICATION_JSON: '{
-        "server.port": 9091,
-        "server.id": "E2",
-        "server.instances.list": "E1",
-        "spring.data.redis.host": "redis-sessions",
-        "spring.data.redis.port": 6379,
-        "eureka.client.service-url.defaultZone": "$DISCOVERY_URL",
-        "eureka.instance.prefer-ip-address": false,
-        "eureka.instance.hostname": "ws-server-2"
-      }'
+  # ws-server-2 đã bỏ: chạy nhiều instance làm mất tin realtime khi broadcast giữa các instance chưa hoạt động đúng.
+  # Chỉ chạy một ws-server khi phát triển.
 
   api-gateway:
     container_name: "api-gateway"

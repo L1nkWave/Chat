@@ -22,7 +22,7 @@ Tài khoản do nhà trường cấp. Không có đăng ký công khai.
 | auth-service | Spring Boot, Spring Security, Redis (phiên, mã 2FA) | 8081 |
 | user-service | Spring Boot, JPA, PostgreSQL, Apache POI (import Excel) | 8082 |
 | chat-service | Spring Boot, MongoDB, đồng bộ nhóm học vụ | 8083 |
-| ws-server | Spring Boot WebSocket, nhận sự kiện từ chat-service | 9090 |
+| ws-server | Spring Boot WebSocket, nhận sự kiện từ chat-service (chỉ chạy một instance) | 9090 |
 | discovery-service | Eureka | 8761 |
 | users-db | PostgreSQL 16 (CSDL `lw-users`) | 15432 |
 | chat-db | MongoDB 7 (replica set `rs0`) | 27017 |
@@ -36,7 +36,8 @@ Cấu trúc thư mục:
 backend/
   api-gateway/  auth-service/  user-service/  chat-service/  ws-server/  discovery-service/
   shared/       Mã dùng chung (mã hóa CCCD, lỗi, bảo mật nội bộ)
-  scripts/      Khóa và công cụ phụ trợ
+  gen-keys.ps1  Sinh khóa RSA cho auth-service
+  test-chats.ps1, fix-spring-security-matchers.ps1, migrate-jackson3.ps1  Công cụ phụ trợ
   docker-compose.yml, .env.example
 frontend/
   src/app/        Các trang (chat, admin, account, login, change-password, security/2fa)
@@ -58,12 +59,12 @@ scripts/reset/    Script xóa dữ liệu (chỉ chạy khi cần, xem bên dư�
 ### 1. Sinh khóa và tạo file môi trường
 
 ```bash
-bash backend/scripts/gen-keys.sh   # chạy từ thư mục gốc; sinh cặp khóa RSA cho auth-service
+powershell -ExecutionPolicy Bypass -File .\backend\gen-keys.ps1   # chạy trong PowerShell, tại thư mục gốc; sinh cặp khóa RSA cho auth-service
 cp backend/.env.example backend/.env
 cp frontend/env.example frontend/.env.local
 ```
 
-`gen-keys.sh` chỉ sinh khóa RSA (access và refresh token). Các giá trị còn lại trong `backend/.env` tự tạo bằng `openssl rand -base64 32`:
+`gen-keys.ps1` chỉ sinh khóa RSA (access và refresh token). Các giá trị còn lại trong `backend/.env` tự tạo bằng `openssl rand -base64 32`:
 
 - `CCCD_ENCRYPTION_KEY` và `CCCD_INDEX_KEY`: mỗi khóa phải giải mã base64 ra đúng 32 byte, nếu không user-service sẽ không khởi động.
 - `TOTP_KEY_1`: 32 byte base64. `TOTP_KEY_VERSION` để mặc định là `1`.
@@ -92,6 +93,8 @@ cd backend
 docker compose up -d --build
 ```
 
+Compose chỉ chạy **một** ws-server (container `ws-server`, cổng 9090). Không thêm instance thứ hai khi phát triển: mỗi instance giữ kết nối WebSocket trong bộ nhớ riêng, và việc chuyển tin giữa các instance chưa hoạt động đúng, nên tin realtime (tin nhắn, lời mời, tin của bot) sẽ không đến đều.
+
 **Cách B, từng service bằng Maven** (mở từng terminal, theo đúng thứ tự):
 
 Maven không đọc `backend/.env`, và file đó dùng tên service Docker (`users-db`, `discovery-service`) không phân giải được trên máy. Trong mỗi terminal chạy service, khai báo biến như sau (thay giá trị bằng khóa đã tạo ở bước 1):
@@ -104,6 +107,12 @@ export TOTP_KEY_1=...
 export TOTP_KEY_VERSION=1
 export TWO_FACTOR_CHALLENGE_SECRET=...
 export DISCOVERY_URL=http://localhost:8761/eureka/
+```
+
+Riêng ws-server, khai báo thêm biến này trước khi chạy (tắt broadcast giữa các instance, vì chỉ có một instance):
+
+```bash
+export SERVER_INSTANCES_ENABLED=false
 ```
 
 Sau đó:
@@ -129,6 +138,40 @@ npm run dev        # http://localhost:3000
 
 Tài khoản quản trị gốc (root) lấy từ người phụ trách dự án. Đổi mật khẩu ngay sau lần đăng nhập đầu tiên.
 
+## Khởi tạo dữ liệu nền (chỉ làm khi DB mới)
+
+Thư mục `backend/user-service/src/main/resources/db/` chứa các file SQL bổ sung bảng, vai trò, tài khoản bot và hồ sơ người dùng. Docker không tự chạy các file này, nên phải chạy tay, đúng thứ tự, trên DB `lw-users`.
+
+1. Chạy user-service một lần (bằng `docker compose` hoặc `mvn spring-boot:run`) để Hibernate tạo các bảng `users`, `roles`. Đợi service lên rồi dừng lại.
+2. Trong WSL, tại thư mục gốc repo, chạy:
+
+```bash
+for f in phase2-bot phase3-p1-roles phase4-admin phase5-academic phase5b-academic-fix phase6-subjects phase7-user-profiles phase7b-role-display; do
+  echo "== $f"
+  docker exec -i users-db psql -v ON_ERROR_STOP=1 -U postgres -d lw-users < backend/user-service/src/main/resources/db/$f.sql || break
+done
+```
+
+`ON_ERROR_STOP=1` dừng ngay ở lỗi đầu tiên để không chạy tiếp trên dữ liệu lỗi.
+
+3. Khởi động lại user-service.
+4. Lấy ID của `sgu_bot` và đặt `BOT_USER_ID` trong `backend/.env` (cách làm xem mục "Đặt lại dữ liệu", bước 3). Chat-service đã chạy từ mục "Chạy backend" với `BOT_USER_ID` mặc định `0`, nên phải tạo lại container chat-service sau bước này. Nếu chưa đặt, bot sẽ không hoạt động.
+
+### Tạo tài khoản root
+
+Chạy sau bước 2 (cần vai trò `ROLE_ROOT` có sẵn). Lệnh hỏi mật khẩu tạm và không hiện ký tự khi gõ. Tài khoản được đặt cờ bắt buộc đổi mật khẩu, nên lần đăng nhập đầu sẽ phải đổi.
+
+```bash
+read -s -p "Mật khẩu root tạm (không chứa dấu nháy đơn): " ROOT_PW; echo
+docker exec -i users-db psql -U postgres -d lw-users -c "insert into users (username, password, name, must_change_password) values ('root', crypt('$ROOT_PW', gen_salt('bf', 10)), 'Quản trị cao nhất', true) on conflict (username) do update set password = excluded.password, must_change_password = true;"
+docker exec -i users-db psql -U postgres -d lw-users -c "insert into user_roles (users_id, roles_id) select u.id, r.id from users u, roles r where u.username = 'root' and r.name = 'ROLE_ROOT' on conflict do nothing;"
+unset ROOT_PW
+```
+
+Lệnh có thể chạy lại để đặt lại mật khẩu root; mỗi lần chạy sẽ ghi đè mật khẩu cũ.
+
+Sau khi đăng nhập bằng `root`, đổi mật khẩu, rồi vào **Xác thực hai lớp** để bật 2FA cho tài khoản này.
+
 ## Nhập dữ liệu đào tạo
 
 Đăng nhập bằng tài khoản admin, vào tab **Học vụ**. Import theo đúng thứ tự, vì mỗi file phụ thuộc file trước:
@@ -147,35 +190,56 @@ Sau khi import, bấm **Đồng bộ nhóm học vụ**. Nhóm lớp, môn, khoa
 
 Các file mẫu nằm trong `test-data/`. Có thể nhập tay cho từng bản ghi ở mọi tab import.
 
-## Kiểm thử
-
-Backend:
-
-```bash
-cd backend/user-service && mvn test
-cd backend/chat-service && mvn test
-```
-
-Frontend:
-
-```bash
-cd frontend
-npm run typecheck
-npm run lint
-npm test
-npm run build
-```
-
-Kiểm tra thủ công nên làm: import đủ 9 file, đồng bộ nhóm, nhắn tin giữa hai trình duyệt (realtime), mở lại chat riêng đã ẩn, tải và xóa tệp, giao diện trên điện thoại (390px).
-
 ## Đặt lại dữ liệu
 
 `scripts/reset/` chứa hai script xóa dữ liệu. Chỉ dùng khi đã sao lưu, và chạy theo thứ tự:
 
-- `reset-keep-root-and-roles.sql`: xóa dữ liệu PostgreSQL, giữ tài khoản root và các vai trò, quyền cơ bản.
-- `reset-chat.js`: xóa tin nhắn và nhóm trong MongoDB. Mặc định `DRY_RUN=true` (chỉ in, không xóa). Đặt `DRY_RUN=false` để thực sự xóa.
+### Bước 1: MongoDB (tin nhắn, nhóm chat)
 
-Đọc kỹ script trước khi chạy. Sau khi reset, nhập lại dữ liệu theo thứ tự ở trên.
+Chạy qua container `chat-db`, từ WSL tại thư mục chứa `reset-chat.js`:
+
+1. Chạy thử. File đang để `DRY_RUN = true`, lệnh chỉ in số document, không xóa gì:
+   ```bash
+   docker exec -i chat-db mongosh linkwave --quiet < reset-chat.js
+   ```
+2. Khi số liệu đúng, mở file, đổi `const DRY_RUN = true;` thành `const DRY_RUN = false;`, lưu, rồi chạy lại lệnh trên.
+
+Script drop 6 collection: `chats`, `messages`, `group_invitations`, `message_revisions`, `message_reports`, `users`. Redis không bị ảnh hưởng.
+
+### Bước 2: PostgreSQL (tài khoản, học vụ)
+
+Chạy trong TablePlus, kết nối `localhost`, cổng `15432`, user `postgres`, database `lw-users`, mật khẩu lấy từ `USERS_DB_PASSWORD` trong `backend/.env`.
+
+1. Mở `reset-keep-root-and-roles.sql`, chạy phần kiểm tra trước (phần A).
+2. Chạy toàn bộ file. File có `BEGIN;` ở đầu và **không** có `COMMIT;`, nên thay đổi chưa được ghi vào DB.
+3. Xem kết quả phần C: `users = 1`, các bảng dữ liệu bằng 0, còn `roles`, `permissions`, `role_permissions` giữ nguyên.
+4. Đúng thì chạy `COMMIT;`, sai thì chạy `ROLLBACK;`. Trong TablePlus, nếu có nút Commit thì bấm nút đó.
+
+Script giữ lại tài khoản `root`, bảng `roles`, `permissions`, `role_permissions`. Script xóa cả tài khoản bot `sgu_bot` (nằm trong `users`).
+
+### Bước 3: Tạo lại bot sau khi reset
+
+Sau khi `COMMIT` ở bước 2, bot phải được tạo lại và chat-service phải biết ID mới của bot. Nếu bỏ qua, chat của bot sẽ không hiện, dù tài khoản đã tồn tại.
+
+1. Chạy lại `phase2-bot.sql` trên DB `lw-users`:
+   ```bash
+   docker exec -i users-db psql -v ON_ERROR_STOP=1 -U postgres -d lw-users < backend/user-service/src/main/resources/db/phase2-bot.sql
+   ```
+2. Lấy ID của bot:
+   ```bash
+   docker exec -i users-db psql -U postgres -d lw-users -c "select id, username from users where username = 'sgu_bot';"
+   ```
+3. Mở `backend/.env`, thêm hoặc sửa dòng `BOT_USER_ID=<id vừa lấy>`.
+4. Tạo lại container chat-service để đọc giá trị mới. `restart` không đủ, vì `env_file` chỉ được đọc khi tạo container:
+   ```bash
+   cd backend
+   docker compose up -d --no-deps --force-recreate chat-service
+   ```
+5. Refresh trang và kiểm tra chat của bot.
+
+ID thay đổi mỗi lần tạo lại `sgu_bot`, nên phải làm lại bước 2 đến 4 mỗi lần reset.
+
+Sao lưu DB trước khi chạy cả ba bước.
 
 ## Bảo mật và giới hạn đã biết
 

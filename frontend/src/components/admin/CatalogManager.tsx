@@ -4,6 +4,7 @@ import { useEffect, useId, useState } from "react";
 
 import { Notice } from "@/components/ui/Notice";
 import { adminErrorMessage } from "@/lib/admin/api";
+import { notifyAcademicChanged, onAcademicChanged } from "@/lib/admin/refresh";
 import {
     deleteClass,
     deleteFaculty,
@@ -46,6 +47,7 @@ export function CatalogManager() {
 
     useEffect(() => {
         void reload();
+        return onAcademicChanged(() => void reload());
     }, []);
 
     return (

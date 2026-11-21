@@ -6,6 +6,7 @@ import { Notice } from "@/components/ui/Notice";
 import { apiFetch } from "@/lib/api/client";
 import { adminErrorMessage } from "@/lib/admin/api";
 import { importAcademicFile, saveAcademicTerm } from "@/lib/admin/academic-api";
+import { notifyAcademicChanged } from "@/lib/admin/refresh";
 import type { CreatedAccount, ImportKind, ImportReport } from "@/lib/admin/academic-api";
 import { buttonStyle, CARD, FIELD, HELP, LABEL, SECTION_TITLE, TABLE, TABLE_WRAP, TD, TH } from "@/components/ui/styles";
 import { CatalogManager } from "./CatalogManager";
@@ -78,6 +79,13 @@ const DUTY_CARD: CardSpec = {
     title: "Lịch gác thi",
     columns: "Mã GV, Mã MH, Ngày, Giờ thi, Phòng, Cơ sở",
     note: "Mã GV là tên đăng nhập của giảng viên.",
+};
+
+const TERM_CARD: CardSpec = {
+    kind: "terms",
+    title: "Học kỳ",
+    columns: "Mã kỳ, Tên học kỳ, Ngày bắt đầu, Ngày kết thúc",
+    note: "Khoảng ngày của hai học kỳ không được trùng nhau. Nhập lại file cũ sẽ cập nhật tên và ngày của học kỳ đã có.",
 };
 
 const SUBJECT_RECORDS: RecordSpec = {
@@ -268,7 +276,10 @@ export function AcademicTab() {
 
             {tab === "terms" ? (
                 <div className="flex flex-col gap-4">
-                    <TermCard />
+                    <div className="grid gap-4 lg:grid-cols-2">
+                        <ImportCard spec={TERM_CARD} />
+                        <TermCard />
+                    </div>
                     <RecordsTable spec={TERM_RECORDS} />
                 </div>
             ) : null}
@@ -402,6 +413,7 @@ export function ImportCard({ spec }: { spec: CardSpec }) {
                         ? { text: successText(spec, result), tone: "info" }
                         : { text: "Chưa ghi dòng nào vì file còn lỗi. Sửa file rồi kiểm tra lại.", tone: "error" },
                 );
+                if (result.written > 0) notifyAcademicChanged();
             }
         } catch (err) {
             setNotice({ text: adminErrorMessage(err), tone: "error" });
@@ -560,6 +572,7 @@ function TermCard() {
         setNotice(null);
         try {
             await saveAcademicTerm({ code: code.trim(), name: name.trim(), startDate: start, endDate: end });
+            notifyAcademicChanged();
             setNotice({ text: `Đã lưu học kỳ ${code.trim()}.`, tone: "info" });
             setCode("");
             setName("");

@@ -4,6 +4,7 @@ import { useEffect, useId, useState, type FormEvent } from "react";
 
 import { Notice } from "@/components/ui/Notice";
 import { adminErrorMessage } from "@/lib/admin/api";
+import { onAcademicChanged } from "@/lib/admin/refresh";
 import { createSubject, deleteRecord, listRecords, updateRecord } from "@/lib/admin/academic-api";
 import type { RecordKind, RecordPage, RecordRow } from "@/lib/admin/academic-api";
 import { buttonStyle, CARD, FIELD, HELP, LABEL, SECTION_TITLE, TABLE, TABLE_WRAP, TD, TH } from "@/components/ui/styles";
@@ -53,6 +54,8 @@ export function RecordsTable({ spec }: { spec: RecordSpec }) {
             active = false;
         };
     }, [spec.kind, query, page, version]);
+
+    useEffect(() => onAcademicChanged(() => setVersion((v) => v + 1)), []);
 
     const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
 

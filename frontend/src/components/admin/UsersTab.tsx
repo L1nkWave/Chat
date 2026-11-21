@@ -13,6 +13,7 @@ import { searchFaculties } from "./pickers";
 
 import { Notice } from "@/components/ui/Notice";
 import { adminErrorMessage, setUserLocked } from "@/lib/admin/api";
+import { onAcademicChanged } from "@/lib/admin/refresh";
 import { listClasses } from "@/lib/admin/catalog-api";
 import {
     getUserDetail,
@@ -133,6 +134,9 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
             window.clearTimeout(timer);
         };
     }, [q, role, status, facultyCode, classCode, subject, page, reloadKey]);
+
+    // Import học vụ (sinh viên, giảng viên) làm đổi danh sách người dùng
+    useEffect(() => onAcademicChanged(() => setReloadKey((key) => key + 1)), []);
 
     useEffect(() => {
         if (selectedId === null) return;

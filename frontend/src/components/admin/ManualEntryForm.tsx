@@ -5,6 +5,7 @@ import { useId, useState, type FormEvent } from "react";
 import { Notice } from "@/components/ui/Notice";
 import { adminErrorMessage } from "@/lib/admin/api";
 import { addManualEntry } from "@/lib/admin/academic-api";
+import { notifyAcademicChanged } from "@/lib/admin/refresh";
 import type { ManualKind } from "@/lib/admin/academic-api";
 import { BTN_PRIMARY, CARD, INPUT, LABEL } from "./shared";
 import { HELP, SECTION_TITLE } from "@/components/ui/styles";
@@ -41,6 +42,7 @@ export function ManualEntryForm({ kind, title, hint, fields }: {
         setNotice(null);
         try {
             await addManualEntry(kind, values);
+            notifyAcademicChanged();
             setNotice({ text: `Đã thêm 1 dòng vào mục ${title.toLowerCase()}.`, tone: "info" });
             setValues({});
         } catch (err) {
