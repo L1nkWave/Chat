@@ -8,6 +8,7 @@ import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import { TextField } from "@/components/ui/TextField";
+import { LINK } from "@/components/ui/styles";
 import { ApiError } from "@/lib/api/client";
 import { login, verifyTwoFactor } from "@/lib/auth/auth-api";
 import { isAdminUser } from "@/lib/auth/token";
@@ -107,7 +108,7 @@ export default function LoginPage() {
                     <button
                         type="button"
                         onClick={backToCredentials}
-                        className="text-primary underline-offset-4 hover:underline"
+                        className={`${LINK} cursor-pointer`}
                     >
                         Quay lại đăng nhập
                     </button>

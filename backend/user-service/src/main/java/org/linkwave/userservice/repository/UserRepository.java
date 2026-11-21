@@ -18,39 +18,12 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
     Optional<UserEntity> findByUsername(String username);
 
-    @Query(
-            value = """
-                    select count(*)
-                    from users
-                    where id != :requestUserId
-                        and id not in (select c.user_id_2 as cid
-                                        from users u
-                                        join contacts c on u.id = c.user_id_1
-                                        where u.id = :requestUserId)
-                        and upper(username) like upper(:usernamePattern)
-                    """,
-            nativeQuery = true
-    )
-    long getUsersCountByUsernameContains(Long requestUserId,
-                                         String usernamePattern);
-
-    @Query(
-            value = """
-                    select *
-                    from users
-                    where id != :requestUserId
-                        and id not in (select c.user_id_2 as cid
-                                        from users u
-                                        join contacts c on u.id = c.user_id_1
-                                        where u.id = :requestUserId)
-                        and upper(username) like upper(:usernamePattern)
-                    order by name
-                    offset :offset limit :limit
-                    """,
-            nativeQuery = true
-    )
-    List<UserEntity> getUsersByUsernameContains(Long requestUserId, String usernamePattern,
-                                                int offset, int limit);
+    /**
+     * Mọi tài khoản chưa bị xóa. Việc khớp tên/mã (không phân biệt hoa thường, không dấu)
+     * và phân trang làm trong service, vì PostgreSQL không so khớp không dấu tiếng Việt.
+     */
+    @Query("select u from UserEntity u where u.isDeleted = false")
+    List<UserEntity> findAllNotDeleted();
 
     @Query("select u from UserEntity u join fetch u.roles where u.id = :id")
     Optional<UserEntity> findUserWithRoles(Long id);

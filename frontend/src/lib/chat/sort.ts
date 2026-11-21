@@ -12,7 +12,18 @@ export function timeValue(value: string): number {
     return Number.isNaN(t) ? 0 : t;
 }
 
-/** Đưa các cuộc trò chuyện được ghim (chat bot) lên đầu, giữ nguyên thứ tự còn lại. */
-export function pinnedFirst(list: Conversation[]): Conversation[] {
-    return [...list].sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned));
+/**
+ * Thứ tự danh sách: bot hệ thống đứng đầu, rồi các chat đã ghim (ghim mới nhất trước),
+ * rồi các chat còn lại theo thời gian tin nhắn cuối (mới nhất trước). Không sắp theo tên.
+ */
+export function sortConversations(list: Conversation[]): Conversation[] {
+    return [...list].sort((a, b) => {
+        if (a.isBot !== b.isBot) return a.isBot ? -1 : 1;
+        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+        if (a.pinned && b.pinned) {
+            const byPin = timeValue(b.pinnedAt ?? "") - timeValue(a.pinnedAt ?? "");
+            if (byPin !== 0) return byPin;
+        }
+        return timeValue(b.lastTime) - timeValue(a.lastTime);
+    });
 }

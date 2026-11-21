@@ -14,7 +14,7 @@ import {
     saveFaculty,
 } from "@/lib/admin/academic-api";
 import type { ClassRow, FacultyRow, LecturerOption } from "@/lib/admin/academic-api";
-import { BTN_GHOST, BTN_PRIMARY, CARD, INPUT, LABEL } from "./shared";
+import { buttonStyle, CARD, FIELD, HELP, LABEL, SECTION_TITLE, SELECT, TABLE, TABLE_WRAP, TD, TH } from "@/components/ui/styles";
 
 type Feedback = { text: string; tone: "info" | "error" };
 
@@ -51,8 +51,8 @@ export function CatalogManager() {
     return (
         <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
-                <h3 className="text-base font-semibold">Quản lý khoa và lớp</h3>
-                <p className="text-xs text-muted">
+                <h3 className={SECTION_TITLE}>Quản lý khoa và lớp</h3>
+                <p className={HELP}>
                     Thêm hoặc sửa từng khoa, lớp bằng form. Không xóa được khoa còn lớp, hoặc lớp còn sinh viên và thời khóa biểu.
                     Không đổi mã lớp đã có sinh viên.
                 </p>
@@ -73,10 +73,10 @@ export function CatalogManager() {
                         value={filterInput}
                         onChange={(event) => setFilterInput(event.target.value)}
                         placeholder="Mã, tên, niên khóa"
-                        className={INPUT}
+                        className={FIELD}
                     />
                 </div>
-                <button type="submit" className={BTN_GHOST}>Tìm</button>
+                <button type="submit" className={buttonStyle("secondary")}>Tìm</button>
             </form>
             <div className="grid gap-4 lg:grid-cols-2">
                 <FacultySection
@@ -152,46 +152,46 @@ function FacultySection({ faculties, onChanged, onNotice }: SectionProps & { fac
 
     return (
         <section className={CARD} aria-label="Danh mục khoa">
-            <h4 className="text-sm font-semibold">Khoa ({faculties.length})</h4>
+            <h4 className={SECTION_TITLE}>Khoa ({faculties.length})</h4>
 
             <div className="grid gap-3 sm:grid-cols-2">
                 <div className="flex flex-col gap-1">
                     <label htmlFor={codeId} className={LABEL}>Mã khoa</label>
-                    <input id={codeId} value={code} onChange={(e) => setCode(e.target.value)} placeholder="Ví dụ: CNTT" className={INPUT} />
+                    <input id={codeId} value={code} onChange={(e) => setCode(e.target.value)} placeholder="Ví dụ: CNTT" className={FIELD} />
                 </div>
                 <div className="flex flex-col gap-1">
                     <label htmlFor={nameId} className={LABEL}>Tên khoa</label>
-                    <input id={nameId} value={name} onChange={(e) => setName(e.target.value)} placeholder="Công nghệ thông tin" className={INPUT} />
+                    <input id={nameId} value={name} onChange={(e) => setName(e.target.value)} placeholder="Công nghệ thông tin" className={FIELD} />
                 </div>
             </div>
             <div className="flex flex-wrap gap-2">
-                <button type="button" disabled={busy} onClick={submit} className={BTN_PRIMARY}>
+                <button type="button" disabled={busy} onClick={submit} className={buttonStyle("primary")}>
                     {editing ? "Lưu thay đổi" : "Thêm khoa"}
                 </button>
                 {editing ? (
-                    <button type="button" onClick={reset} className={BTN_GHOST}>Hủy sửa</button>
+                    <button type="button" onClick={reset} className={buttonStyle("secondary")}>Hủy sửa</button>
                 ) : null}
             </div>
 
-            <div className="max-h-80 overflow-auto">
-                <table className="w-full text-left text-sm">
-                    <thead className="text-xs text-muted">
+            <div className={`${TABLE_WRAP} max-h-80 overflow-y-auto`}>
+                <table className={TABLE}>
+                    <thead>
                     <tr>
-                        <th className="py-1 pr-2 font-medium">Mã</th>
-                        <th className="py-1 pr-2 font-medium">Tên</th>
-                        <th className="py-1 pr-2 font-medium">Số lớp</th>
-                        <th className="py-1 font-medium"><span className="sr-only">Thao tác</span></th>
+                        <th className={TH}>Mã</th>
+                        <th className={TH}>Tên</th>
+                        <th className={`${TH} text-right`}>Số lớp</th>
+                        <th className={TH}><span className="sr-only">Thao tác</span></th>
                     </tr>
                     </thead>
                     <tbody>
                     {faculties.map((row) => (
-                        <tr key={row.id} className="border-t border-line">
-                            <td className="py-1 pr-2 font-mono">{row.code}</td>
-                            <td className="py-1 pr-2">{row.name}</td>
-                            <td className="py-1 pr-2">{row.classCount}</td>
-                            <td className="py-1 whitespace-nowrap">
-                                <button type="button" onClick={() => edit(row)} className={BTN_GHOST}>Sửa</button>{" "}
-                                <button type="button" onClick={() => remove(row)} className={BTN_GHOST}>Xóa</button>
+                        <tr key={row.id}>
+                            <td className={`${TD} font-mono`}>{row.code}</td>
+                            <td className={TD}>{row.name}</td>
+                            <td className={`${TD} text-right`}>{row.classCount}</td>
+                            <td className={`${TD} whitespace-nowrap`}>
+                                <button type="button" onClick={() => edit(row)} className={buttonStyle("secondary", "sm")}>Sửa</button>{" "}
+                                <button type="button" onClick={() => remove(row)} className={buttonStyle("danger", "sm")}>Xóa</button>
                             </td>
                         </tr>
                     ))}
@@ -284,10 +284,10 @@ function ClassSection({
 
     return (
         <section className={CARD} aria-label="Danh mục lớp">
-            <h4 className="text-sm font-semibold">Lớp ({classes.length})</h4>
+            <h4 className={SECTION_TITLE}>Lớp ({classes.length})</h4>
 
             {faculties.length === 0 ? (
-                <p className="text-xs text-muted">Chưa có khoa nào. Thêm khoa trước khi thêm lớp.</p>
+                <p className={HELP}>Chưa có khoa nào. Thêm khoa trước khi thêm lớp.</p>
             ) : null}
 
             <div className="grid gap-3 sm:grid-cols-2">
@@ -299,17 +299,17 @@ function ClassSection({
                         disabled={editing !== null}
                         onChange={(e) => setCode(e.target.value)}
                         placeholder="Ví dụ: DCT1222"
-                        className={INPUT}
+                        className={FIELD}
                     />
-                    {editing ? <span className="text-xs text-muted">Mã lớp không đổi sau khi tạo.</span> : null}
+                    {editing ? <span className={HELP}>Mã lớp không đổi sau khi tạo.</span> : null}
                 </div>
                 <div className="flex flex-col gap-1">
                     <label htmlFor={nameId} className={LABEL}>Tên lớp</label>
-                    <input id={nameId} value={name} onChange={(e) => setName(e.target.value)} placeholder="Khoa học máy tính K22" className={INPUT} />
+                    <input id={nameId} value={name} onChange={(e) => setName(e.target.value)} placeholder="Khoa học máy tính K22" className={FIELD} />
                 </div>
                 <div className="flex flex-col gap-1">
                     <label htmlFor={facultyId} className={LABEL}>Khoa</label>
-                    <select id={facultyId} value={faculty} onChange={(e) => setFaculty(e.target.value)} className={INPUT}>
+                    <select id={facultyId} value={faculty} onChange={(e) => setFaculty(e.target.value)} className={SELECT}>
                         <option value="">-- Chọn khoa --</option>
                         {faculties.map((f) => (
                             <option key={f.id} value={f.id}>{f.code} - {f.name}</option>
@@ -318,51 +318,51 @@ function ClassSection({
                 </div>
                 <div className="flex flex-col gap-1">
                     <label htmlFor={cohortId} className={LABEL}>Niên khóa</label>
-                    <input id={cohortId} value={cohort} onChange={(e) => setCohort(e.target.value)} placeholder="Ví dụ: K22" className={INPUT} />
+                    <input id={cohortId} value={cohort} onChange={(e) => setCohort(e.target.value)} placeholder="Ví dụ: K22" className={FIELD} />
                 </div>
                 <div className="flex flex-col gap-1 sm:col-span-2">
                     <label htmlFor={advisorId} className={LABEL}>Giảng viên chủ nhiệm</label>
-                    <select id={advisorId} value={advisor} onChange={(e) => setAdvisor(e.target.value)} className={INPUT}>
+                    <select id={advisorId} value={advisor} onChange={(e) => setAdvisor(e.target.value)} className={SELECT}>
                         <option value="">-- Chưa gán --</option>
                         {lecturers.map((l) => (
                             <option key={l.id} value={l.id}>{l.username} - {l.name}</option>
                         ))}
                     </select>
-                    <span className="text-xs text-muted">Mỗi lớp có tối đa một giảng viên chủ nhiệm.</span>
+                    <span className={HELP}>Mỗi lớp có tối đa một giảng viên chủ nhiệm.</span>
                 </div>
             </div>
             <div className="flex flex-wrap gap-2">
-                <button type="button" disabled={busy} onClick={submit} className={BTN_PRIMARY}>
+                <button type="button" disabled={busy} onClick={submit} className={buttonStyle("primary")}>
                     {editing ? "Lưu thay đổi" : "Thêm lớp"}
                 </button>
                 {editing ? (
-                    <button type="button" onClick={reset} className={BTN_GHOST}>Hủy sửa</button>
+                    <button type="button" onClick={reset} className={buttonStyle("secondary")}>Hủy sửa</button>
                 ) : null}
             </div>
 
-            <div className="max-h-80 overflow-auto">
-                <table className="w-full text-left text-sm">
-                    <thead className="text-xs text-muted">
+            <div className={`${TABLE_WRAP} max-h-80 overflow-y-auto`}>
+                <table className={TABLE}>
+                    <thead>
                     <tr>
-                        <th className="py-1 pr-2 font-medium">Mã</th>
-                        <th className="py-1 pr-2 font-medium">Tên</th>
-                        <th className="py-1 pr-2 font-medium">Khoa</th>
-                        <th className="py-1 pr-2 font-medium">GVCN</th>
-                        <th className="py-1 pr-2 font-medium">SV</th>
-                        <th className="py-1 font-medium"><span className="sr-only">Thao tác</span></th>
+                        <th className={TH}>Mã</th>
+                        <th className={TH}>Tên</th>
+                        <th className={TH}>Khoa</th>
+                        <th className={TH}>GVCN</th>
+                        <th className={`${TH} text-right`}>SV</th>
+                        <th className={TH}><span className="sr-only">Thao tác</span></th>
                     </tr>
                     </thead>
                     <tbody>
                     {classes.map((row) => (
-                        <tr key={row.id} className="border-t border-line">
-                            <td className="py-1 pr-2 font-mono">{row.code}</td>
-                            <td className="py-1 pr-2">{row.name}</td>
-                            <td className="py-1 pr-2 font-mono">{row.facultyCode}</td>
-                            <td className="py-1 pr-2">{row.advisorName ?? "—"}</td>
-                            <td className="py-1 pr-2">{row.studentCount}</td>
-                            <td className="py-1 whitespace-nowrap">
-                                <button type="button" onClick={() => edit(row)} className={BTN_GHOST}>Sửa</button>{" "}
-                                <button type="button" onClick={() => remove(row)} className={BTN_GHOST}>Xóa</button>
+                        <tr key={row.id}>
+                            <td className={`${TD} font-mono`}>{row.code}</td>
+                            <td className={TD}>{row.name}</td>
+                            <td className={`${TD} font-mono`}>{row.facultyCode}</td>
+                            <td className={TD}>{row.advisorName ?? "—"}</td>
+                            <td className={`${TD} text-right`}>{row.studentCount}</td>
+                            <td className={`${TD} whitespace-nowrap`}>
+                                <button type="button" onClick={() => edit(row)} className={buttonStyle("secondary", "sm")}>Sửa</button>{" "}
+                                <button type="button" onClick={() => remove(row)} className={buttonStyle("danger", "sm")}>Xóa</button>
                             </td>
                         </tr>
                     ))}

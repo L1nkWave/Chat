@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { INPUT, LABEL } from "./shared";
+import { buttonStyle, HELP } from "@/components/ui/styles";
 
 export type PickerOption = {
     id: number;
@@ -53,7 +54,7 @@ export function EntityPicker({ id, label, placeholder, search, value, onChange }
         return (
             <div className="flex flex-col gap-1">
                 <span className={LABEL}>{label}</span>
-                <div className="flex items-center justify-between gap-2 rounded-md border border-line bg-paper px-3 py-2 text-sm">
+                <div className="flex h-10 items-center justify-between gap-2 rounded-md border border-line bg-paper px-3 text-sm text-ink">
                     <span className="min-w-0 truncate">
                         {value.label}
                         {value.hint ? <span className="text-muted"> · {value.hint}</span> : null}
@@ -61,7 +62,7 @@ export function EntityPicker({ id, label, placeholder, search, value, onChange }
                     <button
                         type="button"
                         onClick={() => onChange(null)}
-                        className="shrink-0 text-xs text-primary underline-offset-4 hover:underline"
+                        className={buttonStyle("ghost", "sm")}
                     >
                         Bỏ chọn
                     </button>
@@ -90,9 +91,9 @@ export function EntityPicker({ id, label, placeholder, search, value, onChange }
             />
             {open ? (
                 <ul role="listbox" aria-label={label} className="flex flex-col divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
-                    {loading ? <li className="px-3 py-2 text-xs text-muted">Đang tìm...</li> : null}
+                    {loading ? <li className="px-3 py-2 text-sm text-muted">Đang tìm...</li> : null}
                     {!loading && options.length === 0 ? (
-                        <li className="px-3 py-2 text-xs text-muted">Không có kết quả.</li>
+                        <li className="px-3 py-2 text-sm text-muted">Không có kết quả.</li>
                     ) : null}
                     {!loading
                         ? options.map((item) => (
@@ -108,7 +109,7 @@ export function EntityPicker({ id, label, placeholder, search, value, onChange }
                                     className="flex w-full flex-col items-start px-3 py-2 text-left text-sm transition-colors hover:bg-tint"
                                 >
                                     <span>{item.label}</span>
-                                    {item.hint ? <span className="text-xs text-muted">{item.hint}</span> : null}
+                                    {item.hint ? <span className={HELP}>{item.hint}</span> : null}
                                 </button>
                             </li>
                         ))

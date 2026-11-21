@@ -9,6 +9,7 @@ import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import { TextField } from "@/components/ui/TextField";
+import { LINK } from "@/components/ui/styles";
 import { ApiError } from "@/lib/api/client";
 import { changePassword } from "@/lib/auth/auth-api";
 import { isPasswordChangeRequired } from "@/lib/auth/session";
@@ -65,7 +66,7 @@ export default function ChangePasswordPage() {
             <AuthLayout
                 title="Đổi mật khẩu"
                 subtitle="Đang kiểm tra phiên đăng nhập..."
-                footer={<Link href="/login" className="text-primary underline-offset-4 hover:underline">Quay lại đăng nhập</Link>}
+                footer={<Link href="/login" className={LINK}>Quay lại đăng nhập</Link>}
             >
                 <p className="text-sm text-muted"></p>
             </AuthLayout>
@@ -109,7 +110,7 @@ export default function ChangePasswordPage() {
                     : "Sau khi đổi, mọi phiên đăng nhập sẽ bị đăng xuất và bạn cần đăng nhập lại."
             }
             footer={
-                <Link href="/chat" className="text-primary underline-offset-4 hover:underline">
+                <Link href="/chat" className={LINK}>
                     Về trang chat
                 </Link>
             }

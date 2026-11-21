@@ -10,6 +10,7 @@ import { AuthLayout } from "@/components/auth/AuthLayout";
 import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/Notice";
 import { TextField } from "@/components/ui/TextField";
+import { LABEL, LINK, SECTION_TITLE } from "@/components/ui/styles";
 import { ApiError } from "@/lib/api/client";
 import { confirmTwoFactor, disableTwoFactor, logout, setupTwoFactor } from "@/lib/auth/auth-api";
 import { useAuthGate } from "@/lib/auth/useAuthGate";
@@ -36,7 +37,7 @@ export default function TwoFactorPage() {
             <AuthLayout
                 title="Xác thực hai lớp"
                 subtitle={status === "forbidden" ? "Trang này chỉ dành cho ADMIN và ROOT." : "Đang kiểm tra phiên đăng nhập..."}
-                footer={<Link href="/chat" className="text-primary underline-offset-4 hover:underline">Về trang chat</Link>}
+                footer={<Link href="/chat" className={LINK}>Về trang chat</Link>}
             >
                 <p className="text-sm text-muted">{status === "forbidden" ? "Bạn không có quyền truy cập." : ""}</p>
             </AuthLayout>
@@ -136,20 +137,12 @@ export default function TwoFactorPage() {
                 </ol>
 
                 <div className="flex flex-wrap gap-2">
-                    <button
-                        type="button"
-                        onClick={() => copyCodes(recoveryCodes)}
-                        className="h-10 rounded-md border border-line px-4 text-sm text-ink transition-colors hover:bg-tint"
-                    >
+                    <Button variant="secondary" onClick={() => copyCodes(recoveryCodes)}>
                         Sao chép
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => downloadCodes(recoveryCodes)}
-                        className="h-10 rounded-md border border-line px-4 text-sm text-ink transition-colors hover:bg-tint"
-                    >
+                    </Button>
+                    <Button variant="secondary" onClick={() => downloadCodes(recoveryCodes)}>
                         Tải về (.txt)
-                    </button>
+                    </Button>
                 </div>
 
                 {notice ? <Notice text={notice.text} tone={notice.tone} /> : null}
@@ -163,7 +156,7 @@ export default function TwoFactorPage() {
         <AuthLayout
             title="Xác thực hai lớp"
             subtitle="Dùng ứng dụng xác thực (Google Authenticator, Microsoft Authenticator...) để lấy mã 6 số mỗi lần đăng nhập."
-            footer={<Link href="/admin" className="text-primary underline-offset-4 hover:underline">Quay lại trang quản trị</Link>}
+            footer={<Link href="/admin" className={LINK}>Quay lại trang quản trị</Link>}
         >
             {setup ? (
                 <div className="flex flex-col gap-5">
@@ -178,11 +171,11 @@ export default function TwoFactorPage() {
                             alt="Mã QR để thêm tài khoản SGU Chat vào ứng dụng xác thực"
                             width={224}
                             height={224}
-                            className="rounded-md border border-line bg-white p-2"
+                            className="rounded-md border border-line bg-surface p-2"
                         />
                     </div>
                     <div className="flex flex-col gap-1">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-muted">Khóa bí mật</span>
+                        <span className={LABEL}>Khóa bí mật</span>
                         <code className="break-all rounded-md border border-line bg-paper px-3 py-2 font-mono text-sm">
                             {setup.secret}
                         </code>
@@ -207,7 +200,7 @@ export default function TwoFactorPage() {
             ) : (
                 <div className="flex flex-col gap-6">
                     <div className="flex flex-col gap-3">
-                        <h2 className="text-sm font-semibold">Bật xác thực hai lớp</h2>
+                        <h2 className={SECTION_TITLE}>Bật xác thực hai lớp</h2>
                         <p className="text-sm leading-relaxed text-muted">
                             Sau khi bật, mỗi lần ADMIN hoặc ROOT đăng nhập sẽ cần thêm mã 6 số.
                         </p>
@@ -217,7 +210,7 @@ export default function TwoFactorPage() {
                     </div>
 
                     <form noValidate onSubmit={disable} className="flex flex-col gap-3 border-t border-line pt-5">
-                        <h2 className="text-sm font-semibold">Tắt xác thực hai lớp</h2>
+                        <h2 className={SECTION_TITLE}>Tắt xác thực hai lớp</h2>
                         <TextField
                             label="Mã xác thực hoặc mã khôi phục"
                             name="disableCode"
@@ -227,7 +220,7 @@ export default function TwoFactorPage() {
                             onChange={(event) => setCode(event.target.value)}
                         />
                         {notice ? <Notice text={notice.text} tone={notice.tone} /> : null}
-                        <Button type="submit" variant="outline" disabled={busy}>
+                        <Button type="submit" variant="danger" disabled={busy}>
                             Tắt 2FA
                         </Button>
                     </form>

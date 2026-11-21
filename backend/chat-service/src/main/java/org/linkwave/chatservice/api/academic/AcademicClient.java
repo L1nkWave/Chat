@@ -32,6 +32,9 @@ public interface AcademicClient {
     @GetMapping("/terms")
     List<TermView> terms(@RequestHeader("X-Internal-Key") String key, @RequestParam("date") LocalDate date);
 
+    @GetMapping("/rosters")
+    RostersView rosters(@RequestHeader("X-Internal-Key") String key);
+
     // Các record khớp với JSON của user-service (AcademicQueryService)
     record SessionView(LocalDate date, int startPeriod, int periodCount, LocalTime startTime,
                        String subjectCode, String subjectName, String groupCode, String room,
@@ -50,5 +53,25 @@ public interface AcademicClient {
     }
 
     record TermView(String code, String name, LocalDate startDate, LocalDate endDate) {
+    }
+
+    // Các record khớp với JSON của user-service (AcademicRosterService)
+    record RostersView(List<ClassRoster> classes, List<SubjectRoster> subjects, List<FacultyRoster> faculties,
+                       List<AmbiguousLecturer> ambiguous, List<String> unmatchedLecturers) {
+    }
+
+    record ClassRoster(String classCode, String className, String facultyCode, String facultyName,
+                       Long advisorUserId, List<Long> studentUserIds) {
+    }
+
+    record SubjectRoster(String subjectCode, String subjectName, List<Long> studentUserIds,
+                         List<Long> lecturerUserIds) {
+    }
+
+    record FacultyRoster(String facultyCode, String facultyName, List<Long> userIds) {
+    }
+
+    /** Giảng viên trùng họ tên, không xác định được là ai: không được tự động thêm vào nhóm */
+    record AmbiguousLecturer(String subjectCode, String lecturerName, List<Long> candidateUserIds) {
     }
 }

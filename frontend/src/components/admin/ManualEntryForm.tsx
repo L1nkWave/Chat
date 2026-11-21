@@ -7,6 +7,7 @@ import { adminErrorMessage } from "@/lib/admin/api";
 import { addManualEntry } from "@/lib/admin/academic-api";
 import type { ManualKind } from "@/lib/admin/academic-api";
 import { BTN_PRIMARY, CARD, INPUT, LABEL } from "./shared";
+import { HELP, SECTION_TITLE } from "@/components/ui/styles";
 
 export type ManualField = {
     /** Đúng tên cột trong file import */
@@ -52,8 +53,8 @@ export function ManualEntryForm({ kind, title, hint, fields }: {
     return (
         <section className={CARD} aria-label={`Thêm ${title} bằng form`}>
             <div className="flex flex-col gap-1">
-                <h3 className="text-base font-semibold">Thêm {title.toLowerCase()} bằng form</h3>
-                <p className="text-xs text-muted">{hint}</p>
+                <h3 className={SECTION_TITLE}>Thêm {title.toLowerCase()} bằng form</h3>
+                <p className={HELP}>{hint}</p>
             </div>
             <form onSubmit={submit} className="grid gap-3 sm:grid-cols-2">
                 {fields.map((field, index) => {

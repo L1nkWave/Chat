@@ -6,7 +6,7 @@ import { EntityPicker } from "./EntityPicker";
 import type { PickerOption } from "./EntityPicker";
 import { actionLabel, AUDIT_ACTION_OPTIONS } from "./labels";
 import { searchPeople } from "./pickers";
-import { BTN_GHOST, INPUT, LABEL } from "./shared";
+import { buttonStyle, EMPTY, FIELD, HELP, LABEL, SECTION_TITLE, SELECT, TABLE_WRAP, TD } from "@/components/ui/styles";
 
 import { Notice } from "@/components/ui/Notice";
 import { adminErrorMessage, getUsersByIds } from "@/lib/admin/api";
@@ -117,9 +117,9 @@ export function AuditTab() {
     return (
         <section aria-label="Nhật ký hệ thống" className="flex flex-col gap-4">
             <div className="flex flex-col gap-3">
-                <h2 className="font-serif text-lg font-semibold">Nhật ký hệ thống</h2>
+                <h2 className={SECTION_TITLE}>Nhật ký hệ thống</h2>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-                    <div className="flex flex-col gap-1 lg:col-span-2">
+                    <div className="flex flex-col gap-1.5 lg:col-span-2">
                         <label htmlFor="audit-action" className={LABEL}>
                             Hành động
                         </label>
@@ -127,7 +127,7 @@ export function AuditTab() {
                             id="audit-action"
                             value={action}
                             onChange={(event) => changeFilter(setAction, event.target.value)}
-                            className={INPUT}
+                            className={SELECT}
                         >
                             {AUDIT_ACTION_OPTIONS.map((item) => (
                                 <option key={item.value} value={item.value}>
@@ -136,7 +136,7 @@ export function AuditTab() {
                             ))}
                         </select>
                     </div>
-                    <div className="flex flex-col gap-1 lg:col-span-2">
+                    <div className="flex flex-col gap-1.5 lg:col-span-2">
                         <EntityPicker
                             id="audit-actor"
                             label="Người thực hiện (tìm theo tên)"
@@ -146,7 +146,7 @@ export function AuditTab() {
                             onChange={(option) => changeFilter(setActor, option)}
                         />
                     </div>
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1.5">
                         <label htmlFor="audit-target" className={LABEL}>
                             Đối tượng (mã người dùng)
                         </label>
@@ -155,10 +155,10 @@ export function AuditTab() {
                             inputMode="numeric"
                             value={targetId}
                             onChange={(event) => changeFilter(setTargetId, event.target.value.trim())}
-                            className={INPUT}
+                            className={FIELD}
                         />
                     </div>
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1.5">
                         <label htmlFor="audit-from" className={LABEL}>
                             Từ ngày
                         </label>
@@ -167,10 +167,10 @@ export function AuditTab() {
                             type="date"
                             value={from}
                             onChange={(event) => changeFilter(setFrom, event.target.value)}
-                            className={INPUT}
+                            className={FIELD}
                         />
                     </div>
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1.5">
                         <label htmlFor="audit-to" className={LABEL}>
                             Đến ngày
                         </label>
@@ -179,13 +179,13 @@ export function AuditTab() {
                             type="date"
                             value={to}
                             onChange={(event) => changeFilter(setTo, event.target.value)}
-                            className={INPUT}
+                            className={FIELD}
                         />
                     </div>
                 </div>
                 {hasFilter ? (
                     <div>
-                        <button type="button" onClick={clearFilters} className={BTN_GHOST}>
+                        <button type="button" onClick={clearFilters} className={buttonStyle("ghost", "md")}>
                             Xóa bộ lọc
                         </button>
                     </div>
@@ -194,19 +194,19 @@ export function AuditTab() {
 
             {notice ? <Notice text={notice} tone="error" onClose={() => setNotice(null)} /> : null}
 
-            <p className="text-xs text-muted">
+            <p className={HELP}>
                 {result ? `${result.total} bản ghi` : " "}
                 {loading ? " · Đang tải..." : ""}
             </p>
 
             {result && result.items.length === 0 && !loading ? (
-                <p className="text-sm text-muted">Không có bản ghi nào phù hợp.</p>
+                <p className={EMPTY}>Không có bản ghi nào phù hợp.</p>
             ) : null}
 
-            <ul className="flex flex-col divide-y divide-line overflow-hidden rounded-lg border border-line bg-surface">
+            <ul className={TABLE_WRAP}>
                 {result?.items.map((entry) => (
-                    <li key={entry.id} className="flex flex-col gap-1 px-4 py-3 text-sm">
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+                    <li key={entry.id} className={`${TD} flex flex-col gap-1 text-sm`}>
+                        <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 ${HELP}`}>
                             <span>{formatChatTime(entry.createdAt)}</span>
                             <span>
                                 Người thực hiện: {names[entry.actorId] ?? `mã #${entry.actorId}`}
@@ -214,7 +214,7 @@ export function AuditTab() {
                             {entry.ip ? <span>IP {entry.ip}</span> : null}
                         </div>
                         <p className="break-words">
-                            <span className="font-semibold text-primary">{actionLabel(entry.action)}</span>
+                            <span className="font-semibold text-ink">{actionLabel(entry.action)}</span>
                             {entry.targetType ? (
                                 <span className="text-muted">
                                     {" · "}
@@ -234,7 +234,7 @@ export function AuditTab() {
                     type="button"
                     disabled={page === 0 || loading}
                     onClick={() => setPage((value) => Math.max(0, value - 1))}
-                    className={BTN_GHOST}
+                    className={buttonStyle("secondary", "md")}
                 >
                     Trang trước
                 </button>
@@ -245,7 +245,7 @@ export function AuditTab() {
                     type="button"
                     disabled={!result || page + 1 >= totalPages || loading}
                     onClick={() => setPage((value) => value + 1)}
-                    className={BTN_GHOST}
+                    className={buttonStyle("secondary", "md")}
                 >
                     Trang sau
                 </button>

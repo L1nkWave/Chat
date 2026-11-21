@@ -3,14 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { chatApi, errorMessage } from "@/lib/chat/api";
 import type { Invitation, Member } from "@/lib/chat/types";
-
-const INPUT =
-    "h-10 min-w-0 w-full rounded-md border border-line bg-paper px-3 text-sm text-ink outline-none transition-colors placeholder:text-muted focus:border-primary";
-const BTN_PRIMARY =
-    "h-10 shrink-0 rounded-md bg-primary px-4 text-sm font-medium text-primary-ink transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40";
-const BTN_GHOST =
-    "h-10 shrink-0 rounded-md border border-line px-4 text-sm text-ink transition-colors hover:bg-tint disabled:cursor-not-allowed disabled:opacity-40";
-const LABEL = "text-xs font-semibold uppercase tracking-wide text-muted";
+import { FIELD, HELP, LABEL, LINK, buttonStyle } from "@/components/ui/styles";
 
 function initial(name: string): string {
     return name.trim().charAt(0).toUpperCase() || "?";
@@ -55,13 +48,13 @@ export function CreateGroupForm({ onCreated, onCancel, onError }: CreateGroupFor
                 onChange={(e) => setTitle(e.target.value)}
                 maxLength={64}
                 placeholder="Ví dụ: Nhóm đồ án DCT1222"
-                className={INPUT}
+                className={FIELD}
             />
             <div className="flex justify-end gap-2 pt-1">
-                <button type="button" onClick={onCancel} className={BTN_GHOST}>
+                <button type="button" onClick={onCancel} className={buttonStyle("secondary")}>
                     Hủy
                 </button>
-                <button type="submit" disabled={busy} className={BTN_PRIMARY}>
+                <button type="submit" disabled={busy} className={buttonStyle("primary")}>
                     {busy ? "Đang tạo..." : "Tạo nhóm"}
                 </button>
             </div>
@@ -92,12 +85,13 @@ export function InvitationList({ invitations, onChanged, onError }: InvitationLi
     }
 
     return (
-        <section aria-label="Lời mời vào nhóm" className="flex flex-col gap-2 border-b border-line px-4 py-4">
+        <section aria-label="Lời mời vào nhóm" className="flex shrink-0 flex-col gap-2 border-b border-line px-4 py-4">
             <h3 className={LABEL}>Lời mời ({invitations.length})</h3>
-            <ul className="flex flex-col gap-2">
+            {/* Vùng cuộn riêng để nhiều lời mời không đẩy danh sách chat xuống */}
+            <ul className="flex max-h-60 flex-col gap-2 overflow-y-auto pr-1">
                 {invitations.map((inv) => (
                     <li key={inv.id} className="flex flex-col gap-3 rounded-md border border-line bg-paper p-3">
-                        <p className="text-sm leading-relaxed">
+                        <p className="text-[15px] leading-relaxed">
                             <span className="font-medium">{inv.inviter}</span> mời bạn vào nhóm{" "}
                             <span className="font-medium">{inv.groupTitle}</span>
                         </p>
@@ -106,7 +100,7 @@ export function InvitationList({ invitations, onChanged, onError }: InvitationLi
                                 type="button"
                                 disabled={busyId === inv.id}
                                 onClick={() => respond(inv.id, true)}
-                                className={`${BTN_PRIMARY} h-9 flex-1`}
+                                className={buttonStyle("primary", "md", "flex-1")}
                             >
                                 Chấp nhận
                             </button>
@@ -114,7 +108,7 @@ export function InvitationList({ invitations, onChanged, onError }: InvitationLi
                                 type="button"
                                 disabled={busyId === inv.id}
                                 onClick={() => respond(inv.id, false)}
-                                className={`${BTN_GHOST} h-9 flex-1`}
+                                className={buttonStyle("secondary", "md", "flex-1")}
                             >
                                 Từ chối
                             </button>
@@ -261,7 +255,7 @@ export function MembersPanel({
                                     {initial(m.name)}
                                 </span>
                                 <span className="min-w-0">
-                                    <span className="block truncate text-sm">
+                                    <span className="block truncate text-[15px]">
                                         {m.name}
                                         {m.userId === currentUserId ? (
                                             <span className="text-muted"> (bạn)</span>
@@ -280,7 +274,7 @@ export function MembersPanel({
                                             type="button"
                                             onClick={() => changeRole(m, "ADMIN")}
                                             disabled={busy}
-                                            className="text-primary underline-offset-4 hover:underline disabled:opacity-40"
+                                            className={`${LINK} text-xs disabled:cursor-not-allowed disabled:opacity-40`}
                                         >
                                             Làm quản trị
                                         </button>
@@ -289,7 +283,7 @@ export function MembersPanel({
                                             type="button"
                                             onClick={() => changeRole(m, "MEMBER")}
                                             disabled={busy}
-                                            className="text-muted underline-offset-4 hover:text-ink hover:underline disabled:opacity-40"
+                                            className="text-xs text-muted underline-offset-4 hover:text-ink hover:underline disabled:cursor-not-allowed disabled:opacity-40"
                                         >
                                             Gỡ quyền
                                         </button>
@@ -299,7 +293,7 @@ export function MembersPanel({
                                             type="button"
                                             onClick={() => remove(m)}
                                             disabled={busy}
-                                            className="text-danger underline-offset-4 hover:underline disabled:opacity-40"
+                                            className="text-xs text-danger underline-offset-4 hover:underline disabled:cursor-not-allowed disabled:opacity-40"
                                         >
                                             Xóa
                                         </button>
@@ -323,9 +317,9 @@ export function MembersPanel({
                         placeholder="Tên đăng nhập"
                         autoCapitalize="none"
                         spellCheck={false}
-                        className={INPUT}
+                        className={FIELD}
                     />
-                    <button type="submit" disabled={busy || !username.trim()} className={BTN_PRIMARY}>
+                    <button type="submit" disabled={busy || !username.trim()} className={buttonStyle("primary")}>
                         Mời
                     </button>
                 </div>
@@ -343,9 +337,9 @@ export function MembersPanel({
                             onChange={(e) => setNewTitle(e.target.value)}
                             placeholder="Tên nhóm mới"
                             maxLength={64}
-                            className={INPUT}
+                            className={FIELD}
                         />
-                        <button type="submit" disabled={busy || !newTitle.trim()} className={BTN_GHOST}>
+                        <button type="submit" disabled={busy || !newTitle.trim()} className={buttonStyle("secondary")}>
                             Đổi
                         </button>
                     </div>
@@ -355,12 +349,12 @@ export function MembersPanel({
             <div className="flex flex-col gap-3 border-t border-line pt-4">
                 {isOwner ? (
                     <>
-                        <p className="text-xs text-muted">Bạn là chủ nhóm nên không thể rời nhóm.</p>
+                        <p className={HELP}>Bạn là chủ nhóm nên không thể rời nhóm.</p>
                         <button
                             type="button"
                             onClick={deleteGroup}
                             disabled={busy}
-                            className="self-start text-sm text-danger underline-offset-4 hover:underline disabled:opacity-40"
+                            className={buttonStyle("danger", "md", "self-start")}
                         >
                             Xóa nhóm
                         </button>
@@ -370,7 +364,7 @@ export function MembersPanel({
                         type="button"
                         onClick={leave}
                         disabled={busy}
-                        className="text-sm text-danger underline-offset-4 hover:underline disabled:opacity-40"
+                        className={buttonStyle("danger", "md", "self-start")}
                     >
                         Rời nhóm
                     </button>

@@ -1,194 +1,190 @@
 # SGU Chat
 
-Ứng dụng chat nội bộ cho Đại học Sài Gòn, giao diện kiểu Zalo. Mã nguồn mở, tự host, không kết nối ra dịch vụ bên ngoài khi chạy.
+Chat nội bộ cho Đại học Sài Gòn, kiểu Zalo: chat riêng, nhóm lớp, nhóm môn, nhóm khoa được tạo từ dữ liệu đào tạo, kèm bot tra cứu và trang quản trị học vụ. Đồ án môn Seminar chuyên đề, không phải sản phẩm chính thức của nhà trường.
 
-## Chuẩn bị
+## Tính năng
 
-Khóa RSA không nằm trong repo. Sau khi clone, sinh khóa trước khi chạy backend hoặc test:
+- **Chat**: chat riêng, nhóm tự tạo, nhóm lớp, nhóm môn, nhóm khoa. Mọi thành viên nhóm phải chấp nhận lời mời. Ghim tối đa 5 cuộc trò chuyện, lọc theo loại, tìm người để nhắn riêng theo tên hoặc mã.
+- **Tin nhắn**: gửi nhiều tệp cùng lúc, thư viện ảnh và tệp của từng cuộc trò chuyện, xóa tin (tác giả hoặc admin nhóm). Liên kết cần xác nhận trước khi mở.
+- **Bot**: `/tkb` (thời khóa biểu), `/lichthi`, `/lop`, `/lichgac`.
+- **Tài khoản**: hồ sơ, đổi số điện thoại và địa chỉ, đổi mật khẩu, đăng xuất mọi thiết bị.
+- **Xác thực hai lớp (2FA)**: bật cho admin, có mã khôi phục.
+- **Quản trị học vụ**: import Excel (khoa, lớp, sinh viên, giảng viên, thời khóa biểu, học kỳ, môn học, lịch thi, lịch gác thi), đồng bộ nhóm học vụ theo bấm nút, quản lý người dùng, vai trò, phân quyền, báo cáo tin nhắn, nhật ký hệ thống.
 
-```bash
-bash backend/scripts/gen-keys.sh
-```
-
-Đăng ký công khai đã tắt, vì tài khoản do nhà trường cấp. Muốn bật lại khi chạy user-service thì đặt `REGISTRATION_ENABLED=true`.
+Tài khoản do nhà trường cấp. Không có đăng ký công khai.
 
 ## Kiến trúc
 
 | Thành phần | Công nghệ | Cổng |
 |---|---|---|
-| frontend | Next.js 16 | 3000 |
+| Frontend | Next.js (App Router), React, Tailwind CSS v4 | 3000 |
 | api-gateway | Spring Cloud Gateway | 8080 |
+| auth-service | Spring Boot, Spring Security, Redis (phiên, mã 2FA) | 8081 |
+| user-service | Spring Boot, JPA, PostgreSQL, Apache POI (import Excel) | 8082 |
+| chat-service | Spring Boot, MongoDB, đồng bộ nhóm học vụ | 8083 |
+| ws-server | Spring Boot WebSocket, nhận sự kiện từ chat-service | 9090 |
 | discovery-service | Eureka | 8761 |
-| auth-service | Spring Boot, JWT, PostgreSQL | 8081 |
-| user-service | Spring Boot, PostgreSQL | 8082 |
-| chat-service | Spring Boot, MongoDB | 8083 |
-| ws-server | Spring Boot WebSocket, Redis | 9090 |
-| PostgreSQL (users) | | 15432 |
-| MongoDB (chat) | replica set `rs0` | 27017 |
-| Redis (phiên WebSocket) | | 16379 |
+| users-db | PostgreSQL 16 (CSDL `lw-users`) | 15432 |
+| chat-db | MongoDB 7 (replica set `rs0`) | 27017 |
+| redis-sessions | Redis | 16379 |
 
-Trình duyệt chỉ gọi frontend và api-gateway. Các service tự đăng ký với Eureka.
+Frontend chỉ gọi `/api/*` qua api-gateway. Trình duyệt nhận sự kiện realtime qua ws-server bằng ticket lấy từ API.
+
+Cấu trúc thư mục:
+
+```
+backend/
+  api-gateway/  auth-service/  user-service/  chat-service/  ws-server/  discovery-service/
+  shared/       Mã dùng chung (mã hóa CCCD, lỗi, bảo mật nội bộ)
+  scripts/      Khóa và công cụ phụ trợ
+  docker-compose.yml, .env.example
+frontend/
+  src/app/        Các trang (chat, admin, account, login, change-password, security/2fa)
+  src/components/ Giao diện theo khu vực; components/ui là bộ thành phần dùng chung
+  src/lib/        Gọi API, WebSocket, định dạng dữ liệu
+test-data/        9 file Excel mẫu để import (xem bên dưới)
+scripts/reset/    Script xóa dữ liệu (chỉ chạy khi cần, xem bên dưới)
+```
 
 ## Yêu cầu
 
-- JDK 18 (không dùng JDK 26, Lombok 1.18.28 không tương thích)
-- Node.js 18 trở lên
-- Docker Desktop (để chạy PostgreSQL, MongoDB, Redis)
-- Git
+- JDK 21 và Maven 3.9+ (để build và chạy từng service)
+- Node.js 20+ và npm (frontend)
+- Docker và Docker Compose (chạy cơ sở dữ liệu và, tùy chọn, toàn bộ stack)
+- `openssl` để sinh khóa
 
-## 1. Lấy mã nguồn
+## Cài đặt
+
+### 1. Sinh khóa và tạo file môi trường
 
 ```bash
-git clone https://github.com/<tên-github>/SGU-Chat.git
-cd SGU-Chat
+bash backend/scripts/gen-keys.sh   # chạy từ thư mục gốc; sinh cặp khóa RSA cho auth-service
+cp backend/.env.example backend/.env
+cp frontend/env.example frontend/.env.local
 ```
 
-## 2. Chạy hạ tầng (PostgreSQL, MongoDB, Redis)
+`gen-keys.sh` chỉ sinh khóa RSA (access và refresh token). Các giá trị còn lại trong `backend/.env` tự tạo bằng `openssl rand -base64 32`:
 
-Chạy riêng 3 container, không kéo theo các service khác:
+- `CCCD_ENCRYPTION_KEY` và `CCCD_INDEX_KEY`: mỗi khóa phải giải mã base64 ra đúng 32 byte, nếu không user-service sẽ không khởi động.
+- `TOTP_KEY_1`: 32 byte base64. `TOTP_KEY_VERSION` để mặc định là `1`.
+- `INTERNAL_SERVICE_KEY`: dùng chung cho mọi service, phải giống nhau.
+- `TWO_FACTOR_CHALLENGE_SECRET`: chuỗi ngẫu nhiên từ 32 ký tự trở lên.
+
+Không đổi các khóa này khi đã có dữ liệu: đổi `TOTP_KEY_1` sẽ làm không đọc được secret 2FA đã lưu, và đổi khóa CCCD làm không đọc được CCCD đã mã hóa. Không commit `.env` thật.
+
+### 2. Chạy cơ sở dữ liệu
 
 ```bash
 cd backend
-docker compose up -d --no-deps users-db chat-db redis-sessions
-docker compose ps
+docker compose up -d --no-deps users-db redis-sessions discovery-service chat-db mongo-init
 ```
 
-Đợi đến khi các container ở trạng thái `healthy`. Sau đó khởi tạo replica set cho MongoDB (chỉ làm một lần):
+`--no-deps` bắt buộc ở đây: `chat-db` trong compose phụ thuộc auth-service, nếu không có cờ này compose sẽ kéo cả auth và user lên và chiếm cổng 8081, 8082 trước khi chạy Maven. Service `mongo-init` khởi tạo replica set `rs0` sau khi `chat-db` sẵn sàng. Kiểm tra bằng `docker compose logs mongo-init`.
+
+### 3. Chạy backend
+
+Có hai cách.
+
+**Cách A, toàn bộ bằng Docker:**
 
 ```bash
-docker exec chat-db mongosh --eval "rs.initiate()"
+cd backend
+docker compose up -d --build
 ```
 
-Nếu báo `already initialized` thì bỏ qua.
+**Cách B, từng service bằng Maven** (mở từng terminal, theo đúng thứ tự):
 
-## 3. Cấu hình
-
-### 3.1 Database
-
-Mở `backend/auth-service/src/main/resources/application.yml` và `backend/user-service/src/main/resources/application.yml`, sửa phần `datasource`:
-
-```yaml
-datasource:
-  url: 'jdbc:postgresql://localhost:15432/lw-users'
-  username: 'postgres'
-  password: 'postgres'
-```
-
-Mật khẩu phải khớp với `USERS_DB_PASSWORD` trong `backend/.env`.
-
-### 3.2 Redis
-
-Mở `backend/ws-server/src/main/resources/application.yml`, sửa cổng Redis:
-
-```yaml
-port: 16379
-```
-
-### 3.3 Thư mục lưu file
-
-Mở `backend/chat-service/src/main/resources/application.yml`, đổi `files.storage-folder` thành một thư mục tồn tại trên máy, ví dụ:
-
-```yaml
-files:
-  storage-folder: './storage'
-```
-
-### 3.4 Khóa RSA
-
-Các file khóa trong repo chỉ là file rỗng, phải tự tạo khóa mới (cần `openssl`, có sẵn trong Git for Windows):
+Maven không đọc `backend/.env`, và file đó dùng tên service Docker (`users-db`, `discovery-service`) không phân giải được trên máy. Trong mỗi terminal chạy service, khai báo biến như sau (thay giá trị bằng khóa đã tạo ở bước 1):
 
 ```bash
-cd backend/auth-service/src/main/resources/keys
-openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out access_private_key.pem
-openssl rsa -pubout -in access_private_key.pem -out access_public_key.pem
-openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out refresh_private_key.pem
-openssl rsa -pubout -in refresh_private_key.pem -out refresh_public_key.pem
+export INTERNAL_SERVICE_KEY=...
+export CCCD_ENCRYPTION_KEY=...
+export CCCD_INDEX_KEY=...
+export TOTP_KEY_1=...
+export TOTP_KEY_VERSION=1
+export TWO_FACTOR_CHALLENGE_SECRET=...
+export DISCOVERY_URL=http://localhost:8761/eureka/
 ```
 
-Sau đó sao chép `access_public_key.pem` sang các service còn lại (phải là cùng một khóa):
+Sau đó:
 
 ```bash
-cp access_public_key.pem ../../../../user-service/src/main/resources/keys/
-cp access_public_key.pem ../../../../chat-service/src/main/resources/keys/
-cp access_public_key.pem ../../../../ws-server/src/main/resources/keys/
+cd backend/discovery-service && mvn spring-boot:run
+cd backend/user-service      && mvn spring-boot:run
+cd backend/auth-service      && mvn spring-boot:run
+cd backend/chat-service      && mvn spring-boot:run
+cd backend/ws-server         && mvn spring-boot:run
+cd backend/api-gateway       && mvn spring-boot:run
 ```
 
-Trên Windows PowerShell, dùng `Copy-Item` thay cho `cp`. Nếu thư mục `keys` chưa tồn tại thì tạo trước.
+Kiểm tra: `http://localhost:8761` (Eureka) phải thấy đủ các service đã đăng ký.
 
-### 3.5 Frontend
+### 4. Chạy frontend
 
 ```bash
 cd frontend
-cp .env.example .env.local
+npm ci
+npm run dev        # http://localhost:3000
 ```
 
-## 4. Build thư viện chung
+Tài khoản quản trị gốc (root) lấy từ người phụ trách dự án. Đổi mật khẩu ngay sau lần đăng nhập đầu tiên.
 
-Chạy một lần từ `backend/auth-service` (Windows: `mvnw.cmd`):
+## Nhập dữ liệu đào tạo
+
+Đăng nhập bằng tài khoản admin, vào tab **Học vụ**. Import theo đúng thứ tự, vì mỗi file phụ thuộc file trước:
+
+1. `1-khoa.xlsx`
+2. `9-giang-vien.xlsx` (trước khi import lớp, để gán GVCN)
+3. `2-lop.xlsx`
+4. `3-sinh-vien.xlsx`
+5. `8-mon-hoc.xlsx`
+6. `7-hoc-ky.xlsx`
+7. `4-thoi-khoa-bieu.xlsx` (cần môn học đã có từ bước 5; import trước sẽ báo lỗi môn học)
+8. `5-lich-thi.xlsx`
+9. `6-lich-gac-thi.xlsx`
+
+Sau khi import, bấm **Đồng bộ nhóm học vụ**. Nhóm lớp, môn, khoa được tạo từ dữ liệu này. Đồng bộ là thao tác thủ công của admin; chạy lại không tạo nhóm trùng, nhưng lời mời đã từ chối sẽ được gửi lại.
+
+Các file mẫu nằm trong `test-data/`. Có thể nhập tay cho từng bản ghi ở mọi tab import.
+
+## Kiểm thử
+
+Backend:
 
 ```bash
-./mvnw -f ../pom.xml install -N -DskipTests
-./mvnw -f ../shared/pom.xml install -DskipTests
+cd backend/user-service && mvn test
+cd backend/chat-service && mvn test
 ```
 
-Nếu `mvnw` báo `Could not find or load main class MavenWrapperMain`, file `.mvn/wrapper/maven-wrapper.jar` bị lỗi. Sao chép thư mục `.mvn` từ `discovery-service` sang service đó.
-
-## 5. Chạy backend
-
-Mỗi service chạy trong một terminal riêng, **đúng thứ tự**. Chờ service trước lên hẳn (`Started ...Application`) rồi mới chạy service sau:
-
-```bash
-cd backend/discovery-service && ./mvnw spring-boot:run
-cd backend/auth-service      && ./mvnw spring-boot:run
-cd backend/user-service      && ./mvnw spring-boot:run
-cd backend/chat-service      && ./mvnw spring-boot:run
-cd backend/ws-server         && ./mvnw spring-boot:run
-cd backend/api-gateway       && ./mvnw spring-boot:run
-```
-
-Kiểm tra http://localhost:8761: phải thấy `API-GATEWAY`, `AUTH-SERVICE`, `USER-SERVICE`, `CHAT-SERVICE`, `WS-SERVER` đều UP.
-
-## 6. Chạy frontend
+Frontend:
 
 ```bash
 cd frontend
-npm install
-npx next dev -p 3000
+npm run typecheck
+npm run lint
+npm test
+npm run build
 ```
 
-Mở http://localhost:3000.
+Kiểm tra thủ công nên làm: import đủ 9 file, đồng bộ nhóm, nhắn tin giữa hai trình duyệt (realtime), mở lại chat riêng đã ẩn, tải và xóa tệp, giao diện trên điện thoại (390px).
 
-## 7. Kiểm tra nhanh
+## Đặt lại dữ liệu
 
-1. Đăng ký hai tài khoản, đăng nhập bằng từng tài khoản ở hai trình duyệt (một bình thường, một ẩn danh).
-2. Tìm và thêm liên hệ, gửi tin nhắn chữ, gửi ảnh. Bên kia phải nhận được ngay không cần tải lại trang.
-3. Thử gửi tin khi một bên đăng xuất, rồi đăng nhập lại để kiểm tra lịch sử.
+`scripts/reset/` chứa hai script xóa dữ liệu. Chỉ dùng khi đã sao lưu, và chạy theo thứ tự:
 
-## 8. Lỗi thường gặp
+- `reset-keep-root-and-roles.sql`: xóa dữ liệu PostgreSQL, giữ tài khoản root và các vai trò, quyền cơ bản.
+- `reset-chat.js`: xóa tin nhắn và nhóm trong MongoDB. Mặc định `DRY_RUN=true` (chỉ in, không xóa). Đặt `DRY_RUN=false` để thực sự xóa.
 
-| Triệu chứng | Nguyên nhân | Cách xử lý |
-|---|---|---|
-| Đăng ký báo 404 | Thiếu `frontend/.env.local` | Tạo file theo mục 3.5, khởi động lại `npm run dev` |
-| `WebSocket` lỗi `undefined` | Thiếu `NEXT_PUBLIC_WEB_SOCKET_URL` | Thêm biến vào `.env.local`, khởi động lại frontend |
-| `Missing key encoding` | File khóa rỗng hoặc sai định dạng | Tạo lại khóa theo mục 3.4 |
-| `Connection refused: localhost:5432` | Service dùng cổng mặc định | Sửa `application.yml` theo mục 3.1 |
-| `password authentication failed` | Mật khẩu DB không khớp | Đồng bộ mật khẩu trong `application.yml` và container |
-| `Could not find artifact org.linkwave:shared` | Chưa build thư viện chung | Chạy mục 4 |
-| `Could not resolve ... backend:pom` | Chưa cài pom gốc | Chạy `install -N` ở mục 4 |
-| Tin nhắn không đến bên kia | WebSocket bị đóng | Kiểm tra `ws-server` đã chạy và đăng ký với Eureka |
-| CORS khi gọi API | Origin không có trong `ORIGINS` | Thêm địa chỉ frontend vào `ORIGINS` trong `backend/.env` |
+Đọc kỹ script trước khi chạy. Sau khi reset, nhập lại dữ liệu theo thứ tự ở trên.
 
-## 9. Tình trạng và việc còn lại
+## Bảo mật và giới hạn đã biết
 
-Đã có: đăng ký, đăng nhập, danh bạ, chat 1-1, chat nhóm, gửi file và ảnh, đã đọc, trạng thái trực tuyến.
+- CCCD, dân tộc và tôn giáo được mã hóa AES-GCM. Xem thông tin đầy đủ cần quyền và được ghi vào nhật ký.
+- Mọi lệnh gọi nội bộ giữa service dùng `INTERNAL_SERVICE_KEY`.
+- Khóa tài khoản: WebSocket đang mở bị ngắt ngay; phiên HTTP còn hiệu lực tối đa 5 phút.
+- Số ghim (5 cuộc trò chuyện) kiểm tra theo từng yêu cầu, chưa khóa nguyên tử nên có thể vượt nếu bấm đồng thời.
+- Tìm kiếm theo tên không phân biệt dấu cần kiểm thử với dữ liệu tên thật.
 
-Chưa có:
-- Cấp giảng viên (hiện chỉ có `USER` và `ADMIN`).
-- Người được thêm vào nhóm phải đồng ý trước khi vào.
-- Quyền bậc trên quản lý bậc dưới.
+## Giấy phép
 
-## Bảo mật
-
-- Đổi mật khẩu PostgreSQL và tạo khóa RSA mới trước khi triển khai thật.
-- Thêm `.env` và `.env.local` vào `.gitignore`, và xóa file `.env` đã commit khỏi git bằng `git rm --cached backend/.env`.
-- Không dùng khóa trong repo cho môi trường thật.
+Xem file [LICENSE](LICENSE).

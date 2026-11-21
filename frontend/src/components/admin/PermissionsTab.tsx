@@ -9,7 +9,8 @@ import type { ScopeType } from "@/lib/admin/api";
 import { getUserDetail } from "@/lib/admin/users-api";
 import type { ScopedGrant, UserDetail } from "@/lib/admin/users-api";
 import { ROLE_LABEL, SCOPE_LABEL } from "./labels";
-import { BTN_GHOST, BTN_PRIMARY, CARD, INPUT, LABEL } from "./shared";
+import { BTN_PRIMARY, CARD, LABEL } from "./shared";
+import { buttonStyle, HELP, SECTION_TITLE, SELECT } from "@/components/ui/styles";
 import { EntityPicker } from "./EntityPicker";
 import type { PickerOption } from "./EntityPicker";
 import { searchClasses, searchFaculties, searchPeople } from "./pickers";
@@ -120,7 +121,7 @@ export function PermissionsTab() {
 
     return (
         <section aria-label="Phân quyền" className="flex flex-col gap-5">
-            <h2 className="font-serif text-lg font-semibold">Phân quyền</h2>
+            <h2 className={SECTION_TITLE}>Phân quyền</h2>
             <p className="text-sm text-muted">
                 Cấp vai trò theo phạm vi: toàn trường, khoa hoặc lớp. Mọi thao tác được ghi nhật ký.
                 Vai trò toàn trường (sinh viên, giảng viên, quản trị viên) đổi ở tab Người dùng.
@@ -129,7 +130,7 @@ export function PermissionsTab() {
             {notice ? <Notice text={notice.text} tone={notice.tone} onClose={() => setNotice(null)} /> : null}
 
             <form onSubmit={submitGrant} className={CARD}>
-                <h3 className="text-sm font-semibold">Cấp vai trò cho người dùng</h3>
+                <h3 className={SECTION_TITLE}>Cấp vai trò cho người dùng</h3>
                 <EntityPicker
                     id="grant-user"
                     label="Người dùng"
@@ -145,7 +146,7 @@ export function PermissionsTab() {
                         value={role}
                         disabled={busy}
                         onChange={(event) => setRole(event.target.value)}
-                        className={INPUT}
+                        className={SELECT}
                     >
                         {GRANTABLE_ROLES.map((item) => (
                             <option key={item.value} value={item.value}>{item.label}</option>
@@ -162,7 +163,7 @@ export function PermissionsTab() {
                             setScope(event.target.value as ScopeType);
                             setScopeTarget(null);
                         }}
-                        className={INPUT}
+                        className={SELECT}
                     >
                         <option value="SCHOOL">{SCOPE_LABEL.SCHOOL}</option>
                         <option value="FACULTY">{SCOPE_LABEL.FACULTY}</option>
@@ -195,7 +196,7 @@ export function PermissionsTab() {
             </form>
 
             <div className={CARD}>
-                <h3 className="text-sm font-semibold">Thu hồi vai trò theo phạm vi</h3>
+                <h3 className={SECTION_TITLE}>Thu hồi vai trò theo phạm vi</h3>
                 <EntityPicker
                     id="revoke-user"
                     label="Chọn người dùng"
@@ -217,13 +218,13 @@ export function PermissionsTab() {
                             <li key={grant.grantId} className="flex flex-wrap items-center justify-between gap-3 p-3 text-sm">
                                 <span className="flex flex-col">
                                     <span className="font-medium">{ROLE_LABEL[grant.role] ?? grant.role}</span>
-                                    <span className="text-xs text-muted">
+                                    <span className={HELP}>
                                         {SCOPE_LABEL[grant.scopeType]}
                                         {grant.scopeId ? ` #${grant.scopeId}` : ""} · cấp lúc{" "}
                                         {new Date(grant.grantedAt).toLocaleString("vi-VN")}
                                     </span>
                                 </span>
-                                <button type="button" disabled={busy} onClick={() => revoke(grant)} className={BTN_GHOST}>
+                                <button type="button" disabled={busy} onClick={() => revoke(grant)} className={buttonStyle("danger", "sm")}>
                                     Thu hồi
                                 </button>
                             </li>

@@ -16,6 +16,8 @@ import org.linkwave.chatservice.common.ResourceNotFoundException;
 import org.linkwave.chatservice.common.UnacceptableRequestDataException;
 import org.linkwave.chatservice.message.file.CreatedFileMessage;
 import org.linkwave.chatservice.message.file.FileMessage;
+import org.linkwave.chatservice.message.file.MediaItemDto;
+import org.linkwave.chatservice.message.file.MediaKind;
 import org.linkwave.chatservice.message.member.MemberMessage;
 import org.linkwave.chatservice.message.text.EditTextMessage;
 import org.linkwave.chatservice.message.text.NewTextMessage;
@@ -193,6 +195,10 @@ public class MessageServiceImpl implements MessageService {
         if (!chatService.isMember(userId, chat)) {
             throw new PrivacyViolationException();
         } else if (message instanceof FileMessage fileMessage) {
+            // tin đã xóa giữ lại trong database nhưng không trả nội dung tệp
+            if (fileMessage.getRemovedAt() != null) {
+                throw new MessageRemovedException();
+            }
             try {
                 // api/chats/{chatId}/{senderId}/{filename}
                 final Path fileStoragePath = Path.of(
@@ -370,6 +376,31 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
+    public List<MediaItemDto> getChatMedia(Long userId, String chatId, @NonNull MediaKind kind, int offset, int limit) {
+        final Chat chat = chatService.findChat(chatId);
+        if (!chatService.isMember(userId, chat)) {
+            throw new PrivacyViolationException();
+        }
+
+        final List<Message> messages = kind == MediaKind.IMAGE
+                ? messageRepository.getChatImages(chatId, offset, limit)
+                : messageRepository.getChatFiles(chatId, offset, limit);
+
+        return messages.stream()
+                .filter(FileMessage.class::isInstance)
+                .map(FileMessage.class::cast)
+                .map(file -> new MediaItemDto(
+                        file.getId(),
+                        file.getFilename(),
+                        file.getContentType(),
+                        file.getSize(),
+                        file.getCreatedAt(),
+                        file.getAuthorId(),
+                        file.getRemovedAt()))
+                .toList();
+    }
+
+    @Override
     public Message getMessage(String id) {
         return messageRepository.findById(id).orElseThrow(MessageNotFoundException::new);
     }
@@ -393,7 +424,7 @@ public class MessageServiceImpl implements MessageService {
                 .findAny();
 
         // prepare for querydsl
-        final var qMessage = new org.linkwave.chatservice.message.QMessage("message");
+        final var qMessage = new QMessage("message");
         final var isChatMessageAndNotOwn = qMessage.chat.id.eq(chatId).and(qMessage.authorId.ne(memberId));
         final var beforeLastReadMessage = isChatMessageAndNotOwn.andAnyOf(
                 qMessage.createdAt.before(lastReadMessageTimestamp),

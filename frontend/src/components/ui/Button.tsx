@@ -1,24 +1,24 @@
 import type { ButtonHTMLAttributes } from "react";
 
-type ButtonVariant = "primary" | "outline";
+import { buttonStyle, type ButtonSize, type ButtonVariant } from "./styles";
 
-const base =
-    "inline-flex h-11 items-center justify-center rounded-md px-5 text-[15px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50";
+/** "outline" là tên cũ của "secondary", giữ lại để các trang đăng nhập không phải sửa. */
+type Variant = ButtonVariant | "outline";
 
-const variants: Record<ButtonVariant, string> = {
-    primary: "bg-primary text-primary-ink hover:bg-primary-hover",
-    outline: "border border-line bg-surface text-ink hover:bg-tint",
-};
+function normalize(variant: Variant): ButtonVariant {
+    return variant === "outline" ? "secondary" : variant;
+}
 
-/** Classes for elements that must look like a button but are links, e.g. <Link>. */
-export function buttonClasses(variant: ButtonVariant = "primary", extra = ""): string {
-    return `${base} ${variants[variant]} ${extra}`.trim();
+/** Class cho phần tử giống nút nhưng là liên kết, ví dụ <Link>. */
+export function buttonClasses(variant: Variant = "primary", extra = "", size: ButtonSize = "md"): string {
+    return buttonStyle(normalize(variant), size, extra);
 }
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-    variant?: ButtonVariant;
+    variant?: Variant;
+    size?: ButtonSize;
 };
 
-export function Button({ variant = "primary", className = "", type = "button", ...rest }: ButtonProps) {
-    return <button type={type} className={buttonClasses(variant, className)} {...rest} />;
+export function Button({ variant = "primary", size = "md", className = "", type = "button", ...rest }: ButtonProps) {
+    return <button type={type} className={buttonClasses(variant, className, size)} {...rest} />;
 }

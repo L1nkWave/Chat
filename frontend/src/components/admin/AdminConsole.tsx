@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { buttonClasses } from "@/components/ui/Button";
 import { AcademicTab } from "./AcademicTab";
 import { AuditTab } from "./AuditTab";
 import { PermissionsTab } from "./PermissionsTab";
@@ -38,17 +39,22 @@ export function AdminConsole({ isRoot }: AdminConsoleProps) {
         <div className="flex min-h-dvh flex-col bg-paper text-ink">
             <header className="border-b border-line bg-surface">
                 <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 pt-5 sm:px-8">
-                    <div className="flex flex-col">
-                        <h1 className="font-serif text-xl font-semibold">Quản trị</h1>
-                        <p className="text-xs text-muted">{isRoot ? "Đăng nhập với quyền quản trị cao nhất" : "Đăng nhập với quyền quản trị viên"}</p>
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                        <h1 className="text-lg font-semibold tracking-tight">Quản trị học vụ</h1>
+                        <p className="text-sm text-muted">
+                            {isRoot ? "Quyền quản trị cao nhất" : "Quyền quản trị viên"}
+                        </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <nav aria-label="Liên kết nhanh" className="flex items-center gap-4 text-sm">
-                            <Link href="/security/2fa" className="text-primary underline-offset-4 hover:underline">
+                    <div className="flex items-center gap-3">
+                        <nav aria-label="Liên kết nhanh" className="flex items-center gap-1 text-sm">
+                            <Link href="/security/2fa" className={buttonClasses("ghost", "", "sm")}>
                                 Xác thực hai lớp
                             </Link>
-                            <Link href="/chat" className="text-muted underline-offset-4 hover:text-ink hover:underline">
-                                Về trang chat
+                            <Link href="/account" className={buttonClasses("ghost", "", "sm")}>
+                                Tài khoản
+                            </Link>
+                            <Link href="/chat" className={buttonClasses("ghost", "", "sm")}>
+                                Trang chat
                             </Link>
                         </nav>
                         <ThemeToggle />
@@ -58,7 +64,7 @@ export function AdminConsole({ isRoot }: AdminConsoleProps) {
                 <div
                     role="tablist"
                     aria-label="Mục quản trị"
-                    className="mx-auto flex w-full max-w-6xl gap-1 overflow-x-auto px-4 pt-4 sm:px-8"
+                    className="mx-auto mt-3 flex w-full max-w-6xl gap-1 overflow-x-auto px-4 sm:px-8"
                 >
                     {tabs.map((item) => {
                         const active = tab === item.id;
@@ -71,9 +77,9 @@ export function AdminConsole({ isRoot }: AdminConsoleProps) {
                                 aria-selected={active}
                                 aria-controls={`panel-${item.id}`}
                                 onClick={() => setTab(item.id)}
-                                className={`whitespace-nowrap border-b-2 px-3 pb-3 text-sm transition-colors ${
+                                className={`-mb-px whitespace-nowrap border-b-2 px-3 pb-3 pt-1 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary ${
                                     active
-                                        ? "border-primary font-semibold text-ink"
+                                        ? "border-primary font-semibold text-primary"
                                         : "border-transparent text-muted hover:text-ink"
                                 }`}
                             >

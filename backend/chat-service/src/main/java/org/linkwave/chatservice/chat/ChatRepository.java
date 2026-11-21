@@ -51,11 +51,58 @@ public interface ChatRepository<T extends Chat> extends MongoRepository<T, Strin
                 }
             }
             """,
-            "{ $sort: { 'lastMessage.createdAt': -1 } }",
+            // đoạn chat đã ghim của người này lên đầu (ghim gần nhất đứng trước), sau đó theo tin nhắn mới nhất
+            """
+            {
+                $addFields: {
+                    pinOrder: {
+                        $max: {
+                            $map: {
+                                input: {
+                                    $filter: {
+                                        input: '$members',
+                                        as: 'm',
+                                        cond: {
+                                            $and: [
+                                                { $eq: ['$$m._id', ?0] },
+                                                { $eq: ['$$m.pinned', true] }
+                                            ]
+                                        }
+                                    }
+                                },
+                                as: 'p',
+                                in: '$$p.pinnedAt'
+                            }
+                        }
+                    }
+                }
+            }
+            """,
+            "{ $sort: { pinOrder: -1, 'lastMessage.createdAt': -1 } }",
+            "{ $project: { pinOrder: 0 } }",
             "{ $skip : ?1 }",
             "{ $limit : ?2 }"
     })
     List<T> getUserChats(Long userId, int offset, int limit);
+
+    /** Số đoạn chat mà người này đã ghim, đếm trên mọi đoạn chat người đó là thành viên. */
+    @Query(
+            value = """
+                    {
+                      'members': {
+                        $elemMatch: {
+                          _id: { $eq: ?0 },
+                          pinned: { $eq: true }
+                        }
+                      }
+                    }
+                    """,
+            count = true)
+    long countPinnedChats(Long userId);
+
+    /** Nhóm học vụ theo khóa đồng bộ. Dùng @Query vì khóa chỉ có ở GroupChat, không có ở Chat. */
+    @Query("{ 'academicKey': { $eq: ?0 } }")
+    Optional<GroupChat> findGroupChatByAcademicKey(String academicKey);
 
     @Query(
             value = """

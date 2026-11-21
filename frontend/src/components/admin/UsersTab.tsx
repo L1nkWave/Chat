@@ -25,6 +25,7 @@ import {
 import type { SensitiveView, UserDetail, UserPage, UserStatusFilter } from "@/lib/admin/users-api";
 import { formatChatTime } from "@/lib/chat/time";
 import { BTN_GHOST, BTN_PRIMARY, CARD, INPUT, LABEL, permissionLabel } from "./shared";
+import { badgeStyle, buttonStyle, EMPTY, HELP, SECTION_TITLE, SELECT, TEXTAREA } from "@/components/ui/styles";
 
 const PAGE_SIZE = 20;
 const SEARCH_DELAY_MS = 300;
@@ -319,7 +320,7 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
         <section aria-label="Quản lý người dùng" className="flex flex-col gap-4">
             <div className="flex flex-col gap-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                    <h2 className="font-serif text-lg font-semibold">Người dùng</h2>
+                    <h2 className={SECTION_TITLE}>Người dùng</h2>
                     <button
                         type="button"
                         onClick={() => setCreating((open) => !open)}
@@ -350,7 +351,7 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                             id="user-role"
                             value={role}
                             onChange={(event) => changeFilter(setRole, event.target.value)}
-                            className={INPUT}
+                            className={SELECT}
                         >
                             {ROLE_OPTIONS.map((item) => (
                                 <option key={item.value} value={item.value}>
@@ -367,7 +368,7 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                             id="user-status"
                             value={status}
                             onChange={(event) => changeFilter(setStatus, event.target.value as UserStatusFilter)}
-                            className={INPUT}
+                            className={SELECT}
                         >
                             <option value="ALL">Tất cả</option>
                             <option value="ACTIVE">Đang hoạt động</option>
@@ -429,13 +430,13 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
 
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
                 <div className="flex min-w-0 flex-1 flex-col gap-3">
-                    <p className="text-xs text-muted">
-                        {result ? `${result.total} người phù hợp` : " "}
+                    <p className={HELP}>
+                        {result ?`${result.total} người phù hợp` : " "}
                         {loading ? " · Đang tải..." : ""}
                     </p>
 
                     {result && result.items.length === 0 && !loading ? (
-                        <p className="text-sm text-muted">Không tìm thấy người dùng nào.</p>
+                        <p className={EMPTY}>Không tìm thấy người dùng nào.</p>
                     ) : null}
 
                     <ul className="flex flex-col gap-2">
@@ -455,16 +456,16 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                                             <span className="truncate font-medium">
                                                 {user.name}
                                                 {user.locked ? (
-                                                    <span className="ml-2 text-xs font-semibold text-primary">Đang khóa</span>
+                                                    <span className={`ml-2 ${badgeStyle("danger")}`}>Đang khóa</span>
                                                 ) : null}
                                             </span>
-                                            <span className="truncate text-xs text-muted">@{user.username}</span>
+                                            <span className={`truncate ${HELP}`}>@{user.username}</span>
                                         </span>
-                                        <span className="flex flex-wrap gap-1 text-xs text-muted">
+                                        <span className="flex flex-wrap gap-1">
                                             {user.roles
                                                 .filter((item) => item !== "ROLE_USER")
                                                 .map((item) => (
-                                                    <span key={item} className="rounded-full border border-line px-2 py-0.5">
+                                                    <span key={item} className={badgeStyle("outline")}>
                                                         {ROLE_LABEL[item] ?? item}
                                                     </span>
                                                 ))}
@@ -484,7 +485,7 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                         >
                             Trang trước
                         </button>
-                        <span className="text-xs text-muted">
+                        <span className={HELP}>
                             Trang {page + 1} / {totalPages}
                         </span>
                         <button
@@ -510,8 +511,8 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                     ) : detail ? (
                         <div className={CARD}>
                             <div className="flex flex-col">
-                                <h3 className="text-base font-semibold">{detail.name}</h3>
-                                <p className="text-xs text-muted">@{detail.username} · Mã #{detail.id}</p>
+                                <h3 className={SECTION_TITLE}>{detail.name}</h3>
+                                <p className={HELP}>@{detail.username} · Mã #{detail.id}</p>
                             </div>
 
                             <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
@@ -532,7 +533,7 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                                 {detail.studentCode ? (
                                     <>
                                         <dt className="text-muted">Mã sinh viên</dt>
-                                        <dd className="font-mono">{detail.studentCode}</dd>
+                                        <dd className="tabular-nums">{detail.studentCode}</dd>
                                         <dt className="text-muted">Lớp</dt>
                                         <dd>{detail.classCode ?? "Chưa có"}</dd>
                                     </>
@@ -554,7 +555,7 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                                 <dt className="text-muted">Địa chỉ</dt>
                                 <dd>{detail.profile.address ?? "Chưa có"}</dd>
                                 <dt className="text-muted">CCCD</dt>
-                                <dd className="font-mono">
+                                <dd className="tabular-nums">
                                     {revealed ? revealed.cccd ?? "Chưa có" : detail.profile.cccdMasked ?? "Chưa có"}
                                 </dd>
                                 <dt className="text-muted">Dân tộc</dt>
@@ -664,7 +665,7 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                                             maxLength={255}
                                             rows={2}
                                             onChange={(event) => setEditBio(event.target.value)}
-                                            className="min-w-0 w-full rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-primary"
+                                            className={TEXTAREA}
                                         />
                                     </div>
                                     {editableRole ? (
@@ -680,7 +681,7 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                                             }}
                                         />
                                     ) : null}
-                                    <p className="text-xs text-muted">
+                                    <p className={HELP}>
                                         Trường CCCD, dân tộc, tôn giáo: để trống nếu không đổi. Bấm Xóa để xóa giá trị đã lưu.
                                     </p>
                                     <div className="flex flex-wrap gap-2">
@@ -703,7 +704,7 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                                             value={roleChoice || currentGlobalRole}
                                             disabled={busy}
                                             onChange={(event) => setRoleChoice(event.target.value)}
-                                            className={INPUT}
+                                            className={SELECT}
                                         >
                                             {currentGlobalRole === "" ? <option value="">Chưa có</option> : null}
                                             {GLOBAL_ROLE_OPTIONS.map((item) => (
@@ -721,7 +722,7 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                                             Lưu
                                         </button>
                                     </div>
-                                    <p className="text-xs text-muted">
+                                    <p className={HELP}>
                                         Đổi vai trò sẽ đăng xuất người dùng để họ nhận quyền mới khi đăng nhập lại.
                                     </p>
                                 </div>
@@ -736,7 +737,7 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                                             {copied ? "Đã sao chép" : "Sao chép"}
                                         </button>
                                     </div>
-                                    <p className="text-xs text-muted">
+                                    <p className={HELP}>
                                         Chỉ hiển thị một lần. Gửi cho người dùng qua kênh an toàn; họ phải đổi mật khẩu khi đăng nhập.
                                     </p>
                                 </div>
@@ -756,7 +757,7 @@ export function UsersTab({ isRoot }: { isRoot: boolean }) {
                                         Mở khóa
                                     </button>
                                 ) : (
-                                    <button type="button" disabled={busy} onClick={() => toggleLock(true)} className={BTN_GHOST}>
+                                    <button type="button" disabled={busy} onClick={() => toggleLock(true)} className={buttonStyle("danger")}>
                                         Khóa tài khoản
                                     </button>
                                 )}

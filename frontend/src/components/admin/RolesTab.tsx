@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { BTN_GHOST, BTN_PRIMARY } from "./shared";
+import { SECTION_TITLE } from "@/components/ui/styles";
 import { RoleCreateForm } from "./RoleCreateForm";
 import { RoleOverview } from "./RoleOverview";
 
@@ -14,7 +15,7 @@ export function RolesTab() {
     return (
         <section aria-label="Quản lý vai trò" className="flex flex-col gap-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="font-serif text-lg font-semibold">Vai trò</h2>
+                <h2 className={SECTION_TITLE}>Vai trò</h2>
                 <button
                     type="button"
                     onClick={() => setCreating((open) => !open)}

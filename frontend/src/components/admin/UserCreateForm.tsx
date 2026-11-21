@@ -9,6 +9,7 @@ import { listClasses } from "@/lib/admin/catalog-api";
 import { createUser } from "@/lib/admin/users-api";
 import type { CreateUserPayload } from "@/lib/admin/users-api";
 import { BTN_PRIMARY, CARD, INPUT, LABEL } from "./shared";
+import { SECTION_TITLE, SELECT } from "@/components/ui/styles";
 import { ROLE_LABEL } from "./labels";
 import { EntityPicker } from "./EntityPicker";
 import type { PickerOption } from "./EntityPicker";
@@ -124,7 +125,7 @@ export function UserCreateForm({ isRoot, onCreated }: UserCreateFormProps) {
 
     return (
         <form onSubmit={submit} className={CARD} aria-label="Thêm người dùng">
-            <h3 className="text-sm font-semibold">Thêm người dùng</h3>
+            <h3 className={SECTION_TITLE}>Thêm người dùng</h3>
 
             {notice ? <Notice text={notice.text} tone={notice.tone} onClose={() => setNotice(null)} /> : null}
 
@@ -136,7 +137,7 @@ export function UserCreateForm({ isRoot, onCreated }: UserCreateFormProps) {
                         value={role}
                         disabled={busy}
                         onChange={(event) => changeRole(event.target.value)}
-                        className={INPUT}
+                        className={SELECT}
                     >
                         <option value="ROLE_STUDENT">{ROLE_LABEL.ROLE_STUDENT}</option>
                         <option value="ROLE_LECTURER">{ROLE_LABEL.ROLE_LECTURER}</option>

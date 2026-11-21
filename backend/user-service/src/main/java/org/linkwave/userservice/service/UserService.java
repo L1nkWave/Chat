@@ -20,16 +20,17 @@ public interface UserService {
     void setUserStatus(Long id, @NonNull Boolean isOnline);
 
     /**
-     * Performs users global searching and ignores users which initiator is familiar with.
+     * Searches users by username or name for the direct-chat picker. Matching ignores case and
+     * Vietnamese diacritics, and excludes the initiator and deleted accounts.
      *
      * @param userDetails details of the user that initiated request
-     * @param search      match value for username and name
+     * @param search      match value for username (student or staff code) and name
      * @param offset      how many records to skip
      * @param limit       how many record to return
      * @return pair the first value of is total count of matched users,
      * and the second - selected users with offset and limit params
      */
-    Pair<Long, List<UserDto>> getUsersByUsernameWithoutContacts(
+    Pair<Long, List<UserDto>> searchUsers(
             DefaultUserDetails userDetails,
             String search,
             int offset, int limit

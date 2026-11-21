@@ -1,7 +1,8 @@
 "use client";
 
 import { GENDER_LABEL, STATUS_OPTIONS_BY_ROLE } from "./labels";
-import { BTN_GHOST, INPUT, LABEL } from "./shared";
+import { INPUT, LABEL } from "./shared";
+import { buttonStyle, SELECT } from "@/components/ui/styles";
 import type { ProfilePayload } from "@/lib/admin/users-api";
 
 /**
@@ -88,7 +89,7 @@ export function UserProfileFields({ role, value, onChange, disabled, existing }:
                     disabled={disabled}
                     value={value.gender}
                     onChange={(event) => set("gender", event.target.value)}
-                    className={INPUT}
+                    className={SELECT}
                 >
                     <option value="">Chưa chọn</option>
                     {Object.entries(GENDER_LABEL).map(([code, label]) => (
@@ -118,7 +119,7 @@ export function UserProfileFields({ role, value, onChange, disabled, existing }:
                     disabled={disabled}
                     value={value.status}
                     onChange={(event) => set("status", event.target.value)}
-                    className={INPUT}
+                    className={SELECT}
                 >
                     <option value="">Chọn tình trạng</option>
                     {statusOptions.map((item) => (
@@ -187,7 +188,7 @@ export function UserProfileFields({ role, value, onChange, disabled, existing }:
                         className={INPUT}
                     />
                     {existing?.cccd ? (
-                        <button type="button" disabled={disabled} onClick={() => set("cccd", "")} className={BTN_GHOST}>
+                        <button type="button" disabled={disabled} onClick={() => set("cccd", "")} className={buttonStyle("danger")}>
                             Xóa
                         </button>
                     ) : null}
@@ -206,7 +207,7 @@ export function UserProfileFields({ role, value, onChange, disabled, existing }:
                         className={INPUT}
                     />
                     {existing?.ethnicity ? (
-                        <button type="button" disabled={disabled} onClick={() => set("ethnicity", "")} className={BTN_GHOST}>
+                        <button type="button" disabled={disabled} onClick={() => set("ethnicity", "")} className={buttonStyle("danger")}>
                             Xóa
                         </button>
                     ) : null}
@@ -225,7 +226,7 @@ export function UserProfileFields({ role, value, onChange, disabled, existing }:
                         className={INPUT}
                     />
                     {existing?.religion ? (
-                        <button type="button" disabled={disabled} onClick={() => set("religion", "")} className={BTN_GHOST}>
+                        <button type="button" disabled={disabled} onClick={() => set("religion", "")} className={buttonStyle("danger")}>
                             Xóa
                         </button>
                     ) : null}

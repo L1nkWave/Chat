@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.linkwave.chatservice.common.DtoViews.New;
 import org.linkwave.chatservice.common.UnacceptableRequestDataException;
 import org.linkwave.chatservice.message.file.CreatedFileMessage;
+import org.linkwave.chatservice.message.file.MediaItemDto;
+import org.linkwave.chatservice.message.file.MediaKind;
 import org.linkwave.chatservice.message.text.EditTextMessage;
 import org.linkwave.chatservice.message.text.NewTextMessage;
 import org.linkwave.chatservice.message.text.UpdatedTextMessage;
@@ -109,6 +111,17 @@ public class MessageController {
                 .build();
         final boolean isOwn = messageService.isOwnFileMessage(userDetails().id(), chatId, message);
         return ResponseEntity.status(isOwn ? OK : NOT_FOUND).build();
+    }
+
+    @GetMapping("/{chatId}/media")
+    public List<MediaItemDto> getChatMedia(@PathVariable String chatId,
+                                           @RequestParam MediaKind kind,
+                                           @RequestParam(defaultValue = "0") int offset,
+                                           @RequestParam(defaultValue = "30") int limit) {
+        if (offset < 0 || limit < 1 || limit > 100) {
+            throw new UnacceptableRequestDataException("offset phải >= 0 và limit trong khoảng [1, 100]");
+        }
+        return messageService.getChatMedia(userDetails().id(), chatId, kind, offset, limit);
     }
 
     @GetMapping("/messages/{messageId}/file")

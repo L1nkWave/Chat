@@ -10,8 +10,8 @@ export function Notice({ text, tone, onClose }: NoticeProps) {
     return (
         <div
             role={isError ? "alert" : "status"}
-            className={`flex items-start gap-3 rounded-md border px-3 py-2 text-sm leading-relaxed ${
-                isError ? "border-danger text-danger" : "border-line bg-tint text-ink"
+            className={`flex items-start gap-3 rounded-md border px-3.5 py-2.5 text-sm leading-relaxed text-ink ${
+                isError ? "border-danger/40 bg-danger/5" : "border-line bg-tint"
             }`}
         >
             <p className="min-w-0 flex-1">{text}</p>
@@ -20,7 +20,7 @@ export function Notice({ text, tone, onClose }: NoticeProps) {
                     type="button"
                     onClick={onClose}
                     aria-label="Đóng thông báo"
-                    className="shrink-0 rounded px-1 text-lg leading-none text-muted transition-colors hover:text-ink"
+                    className="-my-1 grid size-7 shrink-0 place-items-center rounded text-lg leading-none text-muted transition-colors hover:bg-surface hover:text-ink"
                 >
                     ×
                 </button>

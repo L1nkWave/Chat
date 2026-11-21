@@ -12,7 +12,8 @@ import {
 } from "@/lib/admin/roles-api";
 import type { RoleMember, RoleOverview as RoleItem } from "@/lib/admin/roles-api";
 import { ROLE_LABEL, SCOPE_LABEL } from "./labels";
-import { BTN_GHOST, BTN_PRIMARY, CARD, INPUT, PERMISSION_OPTIONS, permissionLabel } from "./shared";
+import { BTN_GHOST, BTN_PRIMARY, CARD, INPUT, LABEL, PERMISSION_OPTIONS, permissionLabel } from "./shared";
+import { HELP, SECTION_TITLE } from "@/components/ui/styles";
 
 function describeMember(member: RoleMember): string {
     if (member.source === "GLOBAL") return "Gán toàn trường";
@@ -148,8 +149,8 @@ export function RoleOverview({ refreshKey }: RoleOverviewProps) {
         <section aria-label="Tổng quan vai trò" className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-col">
-                    <h3 className="text-sm font-semibold">Danh sách vai trò</h3>
-                    <p className="text-xs text-muted">
+                    <h3 className={SECTION_TITLE}>Danh sách vai trò</h3>
+                    <p className={HELP}>
                         Có {roles.length} vai trò. Bấm vào một vai trò để xem người có vai trò đó.
                     </p>
                 </div>
@@ -180,14 +181,14 @@ export function RoleOverview({ refreshKey }: RoleOverviewProps) {
                                         {roleTitle(role)}
                                         <span className="ml-2 font-mono text-xs font-normal text-muted">{role.name}</span>
                                     </span>
-                                    <span className="text-xs leading-relaxed text-muted">
+                                    <span className={HELP}>
                                         {role.permissions.length > 0
                                             ? role.permissions.map((code) => permissionLabel(code)).join(" · ")
                                             : "Chưa có quyền nào"}
                                     </span>
                                 </button>
                                 <div className="flex shrink-0 flex-col items-end gap-2">
-                                    <span className="flex flex-col items-end gap-1 text-xs text-muted">
+                                    <span className={`flex flex-col items-end gap-1 ${HELP}`}>
                                         <span>{role.globalMembers} người gán toàn trường</span>
                                         <span>{role.scopedMembers} người theo phạm vi</span>
                                     </span>
@@ -227,7 +228,7 @@ export function RoleOverview({ refreshKey }: RoleOverviewProps) {
 
                             {editing ? (
                                 <div className="flex flex-col gap-3 border-t border-line pt-3">
-                                    <span className="text-xs font-semibold uppercase tracking-wide text-muted">
+                                    <span className={LABEL}>
                                         Chọn quyền cho vai trò
                                     </span>
                                     {PERMISSION_OPTIONS.map((item) => (
@@ -244,7 +245,7 @@ export function RoleOverview({ refreshKey }: RoleOverviewProps) {
                                             />
                                             <span className="flex min-w-0 flex-col">
                                                 <span className="font-medium">{item.label}</span>
-                                                <span className="text-xs leading-relaxed text-muted">{item.description}</span>
+                                                <span className={HELP}>{item.description}</span>
                                             </span>
                                         </label>
                                     ))}
@@ -275,7 +276,7 @@ export function RoleOverview({ refreshKey }: RoleOverviewProps) {
                                                     {member.name}{" "}
                                                     <span className="text-muted">(@{member.username})</span>
                                                 </span>
-                                                <span className="text-xs text-muted">{describeMember(member)}</span>
+                                                <span className={HELP}>{describeMember(member)}</span>
                                             </div>
                                         ))
                                     )}

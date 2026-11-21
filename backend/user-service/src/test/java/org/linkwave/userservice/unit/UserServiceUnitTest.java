@@ -25,6 +25,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.time.ZonedDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -192,7 +193,7 @@ class UserServiceUnitTest {
     @DisplayName("Should find users by username with offset and limit")
     void shouldFindUsersByUsernameWithOffsetAndLimit() {
         final var userDetails = DefaultUserDetails.builder()
-                .id(1L)
+                .id(1000L)
                 .username(username)
                 .authorities(List.of(new SimpleGrantedAuthority(USER_ROLE.getName())))
                 .build();
@@ -202,32 +203,27 @@ class UserServiceUnitTest {
         final int limit = 5;
 
         final String username = "toxic";
-        final String usernamePattern = "%toxic%";
-        final List<UserEntity> users = generateUsers(usersCount, usernamePattern, USER_ROLE);
+        final List<UserEntity> users = generateUsers(usersCount, username, USER_ROLE);
         final List<UserEntity> expectedUsers = users.stream()
+                .sorted(Comparator.comparing(UserEntity::getName))
                 .skip(offset)
-                .limit(5)
+                .limit(limit)
                 .toList();
 
         final List<UserDto> expectedUsersDto = expectedUsers.stream()
                 .map(user -> modelMapper.map(user, UserDto.class))
                 .toList();
 
-        when(userRepository.getUsersByUsernameContains(userDetails.id(), usernamePattern, offset, limit))
-                .thenReturn(expectedUsers);
+        when(userRepository.findAllNotDeleted()).thenReturn(users);
 
-        when(userRepository.getUsersCountByUsernameContains(userDetails.id(), usernamePattern))
-                .thenReturn((long) users.size());
-
-        final Pair<Long, List<UserDto>> result = userService.getUsersByUsernameWithoutContacts(userDetails, username, offset, limit);
+        final Pair<Long, List<UserDto>> result = userService.searchUsers(userDetails, username, offset, limit);
 
         assertThat(result).isNotNull();
         assertThat(result.getFirst()).isEqualTo(users.size());
         assertThat(result.getSecond()).isNotEmpty();
         assertThat(result.getSecond()).isEqualTo(expectedUsersDto);
 
-        verify(userRepository, times(1)).getUsersByUsernameContains(userDetails.id(), usernamePattern, offset, limit);
-        verify(userRepository, times(1)).getUsersCountByUsernameContains(userDetails.id(), usernamePattern);
+        verify(userRepository, times(1)).findAllNotDeleted();
     }
 
     @AfterEach

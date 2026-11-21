@@ -1,6 +1,8 @@
 package org.linkwave.userservice.controller;
 
 import org.linkwave.userservice.academic.AcademicQueryService;
+import org.linkwave.userservice.academic.AcademicRosterService;
+import org.linkwave.userservice.academic.AcademicRosterService.Rosters;
 import org.linkwave.userservice.academic.AcademicQueryService.ClassView;
 import org.linkwave.userservice.academic.AcademicQueryService.DutyView;
 import org.linkwave.userservice.academic.AcademicQueryService.ExamView;
@@ -31,11 +33,14 @@ public class InternalAcademicController {
     private static final String KEY_HEADER = "X-Internal-Key";
 
     private final AcademicQueryService query;
+    private final AcademicRosterService rosterService;
     private final byte[] serviceKey;
 
     public InternalAcademicController(AcademicQueryService query,
+                                      AcademicRosterService rosterService,
                                       @Value("${internal.service-key}") String serviceKey) {
         this.query = query;
+        this.rosterService = rosterService;
         this.serviceKey = serviceKey.getBytes(StandardCharsets.UTF_8);
     }
 
@@ -70,6 +75,13 @@ public class InternalAcademicController {
     public List<TermView> terms(@RequestHeader(KEY_HEADER) String key, @RequestParam LocalDate date) {
         requireKey(key);
         return query.termsAt(date);
+    }
+
+    /** Thành viên của nhóm lớp, môn, khoa để chat-service đồng bộ. Không nhận tham số. */
+    @GetMapping("/rosters")
+    public Rosters rosters(@RequestHeader(KEY_HEADER) String key) {
+        requireKey(key);
+        return rosterService.rosters();
     }
 
     private void requireKey(String key) {

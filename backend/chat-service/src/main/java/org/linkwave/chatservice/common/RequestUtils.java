@@ -25,6 +25,20 @@ public class RequestUtils {
         return new RequestInitiator(userDetails().id(), request.getHeader(AUTHORIZATION));
     }
 
+    /** Chỉ ADMIN hoặc ROOT được gọi. Sau đó áp dụng kiểm tra MFA như các endpoint quản trị khác. */
+    public static void requireAdminOrRoot() {
+        final List<String> authorities = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getAuthorities()
+                .stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
+        if (!authorities.contains("ROLE_ADMIN") && !authorities.contains("ROLE_ROOT")) {
+            throw new PrivacyViolationException("Chỉ quản trị viên được thực hiện chức năng này");
+        }
+        requireMfaIfPrivileged();
+    }
+
     /**
      * ADMIN/ROOT phải có cờ MFA_VERIFIED trong token (đã bật và xác thực 2FA).
      * Gọi ở mọi endpoint quản trị của chat-service để không phụ thuộc user-service.

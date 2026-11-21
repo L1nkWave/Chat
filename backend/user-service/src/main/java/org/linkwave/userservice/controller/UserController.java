@@ -74,7 +74,7 @@ public class UserController {
             @Min(value = 0, message = PAGINATION_PARAM_MIN_MSG) @Max(value = 100, message = PAGINATION_PARAM_MAX_MSG)
             @RequestParam int limit
     ) {
-        final Pair<Long, List<UserDto>> result = userService.getUsersByUsernameWithoutContacts(
+        final Pair<Long, List<UserDto>> result = userService.searchUsers(
                 getDetails(), username, offset, limit
         );
         response.setHeader(TOTAL_COUNT.getValue(), String.valueOf(result.getFirst()));

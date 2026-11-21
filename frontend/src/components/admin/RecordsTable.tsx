@@ -6,7 +6,7 @@ import { Notice } from "@/components/ui/Notice";
 import { adminErrorMessage } from "@/lib/admin/api";
 import { createSubject, deleteRecord, listRecords, updateRecord } from "@/lib/admin/academic-api";
 import type { RecordKind, RecordPage, RecordRow } from "@/lib/admin/academic-api";
-import { BTN_GHOST, BTN_PRIMARY, CARD, INPUT, LABEL } from "./shared";
+import { buttonStyle, CARD, FIELD, HELP, LABEL, SECTION_TITLE, TABLE, TABLE_WRAP, TD, TH } from "@/components/ui/styles";
 
 type Feedback = { text: string; tone: "info" | "error" };
 
@@ -104,7 +104,7 @@ export function RecordsTable({ spec }: { spec: RecordSpec }) {
     return (
         <section className={CARD} aria-label={`Danh sách ${spec.title}`}>
             <div className="flex flex-wrap items-end justify-between gap-2">
-                <h4 className="text-sm font-semibold">
+                <h4 className={SECTION_TITLE}>
                     {spec.title} {data ? `(${data.total})` : ""}
                 </h4>
                 <form onSubmit={search} role="search" className="flex items-end gap-2">
@@ -115,23 +115,23 @@ export function RecordsTable({ spec }: { spec: RecordSpec }) {
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             placeholder="Nhập từ khóa"
-                            className={INPUT}
+                            className={FIELD}
                         />
                     </div>
-                    <button type="submit" className={BTN_GHOST}>Tìm</button>
+                    <button type="submit" className={buttonStyle("secondary")}>Tìm</button>
                 </form>
             </div>
 
             {notice ? <Notice text={notice.text} tone={notice.tone} onClose={() => setNotice(null)} /> : null}
 
-            <div className="max-h-96 overflow-auto">
-                <table className="w-full text-left text-sm">
-                    <thead className="text-xs text-muted">
+            <div className={`${TABLE_WRAP} max-h-96 overflow-y-auto`}>
+                <table className={TABLE}>
+                    <thead>
                     <tr>
                         {spec.fields.map((field) => (
-                            <th key={field.name} className="whitespace-nowrap py-1 pr-2 font-medium">{field.label}</th>
+                            <th key={field.name} className={TH}>{field.label}</th>
                         ))}
-                        <th className="py-1 font-medium"><span className="sr-only">Thao tác</span></th>
+                        <th className={TH}><span className="sr-only">Thao tác</span></th>
                     </tr>
                     </thead>
                     <tbody>
@@ -140,7 +140,7 @@ export function RecordsTable({ spec }: { spec: RecordSpec }) {
                         const editing = editingKey === key;
                         if (editing) {
                             return (
-                                <tr key={key} className="border-t border-line bg-tint">
+                                <tr key={key} className="bg-tint">
                                     <td colSpan={spec.fields.length + 1} className="py-2">
                                         <div className="grid gap-2 sm:grid-cols-3">
                                             {spec.fields.map((field) => (
@@ -152,7 +152,7 @@ export function RecordsTable({ spec }: { spec: RecordSpec }) {
                                                             type={field.type === "number" ? "number" : field.type === "date" ? "date" : field.type === "time" ? "time" : "text"}
                                                             value={draft[field.name] ?? ""}
                                                             onChange={(e) => setDraft({ ...draft, [field.name]: e.target.value })}
-                                                            className={INPUT}
+                                                            className={FIELD}
                                                         />
                                                     ) : (
                                                         <span className="text-sm text-muted">{row[field.name] == null ? "" : String(row[field.name])}</span>
@@ -161,10 +161,10 @@ export function RecordsTable({ spec }: { spec: RecordSpec }) {
                                             ))}
                                         </div>
                                         <div className="mt-2 flex gap-2">
-                                            <button type="button" disabled={busy} onClick={() => save(key)} className={BTN_PRIMARY}>
+                                            <button type="button" disabled={busy} onClick={() => save(key)} className={buttonStyle("primary")}>
                                                 Lưu
                                             </button>
-                                            <button type="button" onClick={() => setEditingKey(null)} className={BTN_GHOST}>
+                                            <button type="button" onClick={() => setEditingKey(null)} className={buttonStyle("secondary")}>
                                                 Hủy
                                             </button>
                                         </div>
@@ -173,15 +173,15 @@ export function RecordsTable({ spec }: { spec: RecordSpec }) {
                             );
                         }
                         return (
-                            <tr key={key} className="border-t border-line">
+                            <tr key={key}>
                                 {spec.fields.map((field) => (
-                                    <td key={field.name} className="py-1 pr-2 align-top">
+                                    <td key={field.name} className={TD}>
                                         {row[field.name] == null || row[field.name] === "" ? "-" : String(row[field.name])}
                                     </td>
                                 ))}
-                                <td className="whitespace-nowrap py-1">
-                                    <button type="button" onClick={() => startEdit(row)} className={BTN_GHOST}>Sửa</button>{" "}
-                                    <button type="button" onClick={() => remove(row)} className={BTN_GHOST}>Xóa</button>
+                                <td className={`${TD} whitespace-nowrap`}>
+                                    <button type="button" onClick={() => startEdit(row)} className={buttonStyle("secondary", "sm")}>Sửa</button>{" "}
+                                    <button type="button" onClick={() => remove(row)} className={buttonStyle("danger", "sm")}>Xóa</button>
                                 </td>
                             </tr>
                         );
@@ -197,8 +197,8 @@ export function RecordsTable({ spec }: { spec: RecordSpec }) {
                 </table>
             </div>
 
-            <div className="flex items-center justify-between gap-2 text-xs text-muted">
-                <button type="button" disabled={page === 0} onClick={() => setPage((p) => p - 1)} className={BTN_GHOST}>
+            <div className="flex items-center justify-between gap-2 text-sm text-muted">
+                <button type="button" disabled={page === 0} onClick={() => setPage((p) => p - 1)} className={buttonStyle("secondary")}>
                     Trang trước
                 </button>
                 <span>Trang {page + 1} / {totalPages}</span>
@@ -206,7 +206,7 @@ export function RecordsTable({ spec }: { spec: RecordSpec }) {
                     type="button"
                     disabled={!data || page + 1 >= totalPages}
                     onClick={() => setPage((p) => p + 1)}
-                    className={BTN_GHOST}
+                    className={buttonStyle("secondary")}
                 >
                     Trang sau
                 </button>
@@ -246,20 +246,20 @@ function CreateSubjectForm({ onCreated }: { onCreated: () => void }) {
     }
 
     return (
-        <form onSubmit={submit} className="flex flex-col gap-2 border-t border-line pt-3">
-            <span className="text-xs text-muted">Thêm môn học thủ công</span>
+        <form onSubmit={submit} className="flex flex-col gap-3 border-t border-line pt-4">
+            <span className={HELP}>Thêm môn học thủ công</span>
             <div className="grid gap-2 sm:grid-cols-2">
                 <div className="flex flex-col gap-1">
                     <label htmlFor={codeId} className={LABEL}>Mã MH</label>
-                    <input id={codeId} value={code} onChange={(e) => setCode(e.target.value)} className={INPUT} />
+                    <input id={codeId} value={code} onChange={(e) => setCode(e.target.value)} className={FIELD} />
                 </div>
                 <div className="flex flex-col gap-1">
                     <label htmlFor={nameId} className={LABEL}>Tên môn học</label>
-                    <input id={nameId} value={name} onChange={(e) => setName(e.target.value)} className={INPUT} />
+                    <input id={nameId} value={name} onChange={(e) => setName(e.target.value)} className={FIELD} />
                 </div>
             </div>
             <div>
-                <button type="submit" disabled={busy} className={BTN_PRIMARY}>Thêm môn</button>
+                <button type="submit" disabled={busy} className={buttonStyle("primary")}>Thêm môn</button>
             </div>
             {notice ? <Notice text={notice.text} tone={notice.tone} onClose={() => setNotice(null)} /> : null}
         </form>

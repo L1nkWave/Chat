@@ -6,6 +6,7 @@ import {
     formatSize,
     isImage,
 } from "@/lib/chat/files";
+import { buttonStyle } from "@/components/ui/styles";
 import type { Attachment } from "@/lib/chat/types";
 
 type AttachmentViewProps = {
@@ -13,7 +14,7 @@ type AttachmentViewProps = {
     mine: boolean;
 };
 
-export function AttachmentView({ attachment, mine }: AttachmentViewProps) {
+export function AttachmentView({ attachment }: AttachmentViewProps) {
     const image = isImage(attachment.contentType);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -81,11 +82,11 @@ export function AttachmentView({ attachment, mine }: AttachmentViewProps) {
                         <img
                             src={previewUrl}
                             alt={attachment.filename}
-                            className="max-h-72 max-w-full rounded-lg object-contain"
+                            className="max-h-72 max-w-full rounded-md object-contain"
                         />
                     </button>
                 ) : (
-                    <div className="grid h-24 w-48 place-items-center rounded-lg bg-paper text-xs text-muted">
+                    <div className="grid h-24 w-48 place-items-center rounded-md border border-line bg-surface text-xs text-muted">
                         {error ?? "Đang tải ảnh..."}
                     </div>
                 )}
@@ -105,7 +106,7 @@ export function AttachmentView({ attachment, mine }: AttachmentViewProps) {
                                     e.stopPropagation();
                                     void download();
                                 }}
-                                className="rounded-lg bg-white/90 px-3 py-1.5 text-sm text-black hover:bg-white"
+                                className={buttonStyle("secondary", "sm")}
                             >
                                 Tải về
                             </button>
@@ -113,7 +114,7 @@ export function AttachmentView({ attachment, mine }: AttachmentViewProps) {
                                 type="button"
                                 onClick={() => setZoomed(false)}
                                 aria-label="Đóng xem ảnh"
-                                className="rounded-lg bg-white/90 px-3 py-1.5 text-sm text-black hover:bg-white"
+                                className={buttonStyle("secondary", "sm")}
                             >
                                 Đóng
                             </button>
@@ -123,7 +124,7 @@ export function AttachmentView({ attachment, mine }: AttachmentViewProps) {
                             src={previewUrl}
                             alt={attachment.filename}
                             onClick={(e) => e.stopPropagation()}
-                            className="max-h-full max-w-full rounded-lg object-contain"
+                            className="max-h-full max-w-full rounded-md object-contain"
                         />
                         <p className="text-sm text-white/80">{attachment.filename}</p>
                     </div>
@@ -137,13 +138,11 @@ export function AttachmentView({ attachment, mine }: AttachmentViewProps) {
             <button
                 type="button"
                 onClick={download}
-                className={`flex max-w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition-opacity hover:opacity-90 ${
-                    mine ? "bg-primary-ink/10" : "bg-paper"
-                }`}
+                className="flex max-w-full items-center gap-3 rounded-md border border-line bg-surface px-3 py-2.5 text-left text-sm text-ink transition-colors hover:bg-tint"
             >
                 <span className="min-w-0">
                     <span className="block truncate font-medium">{attachment.filename}</span>
-                    <span className={`block text-xs ${mine ? "text-primary-ink/70" : "text-muted"}`}>
+                    <span className="block text-xs tabular-nums text-muted">
                         {formatSize(attachment.size)} · Nhấn để tải về
                     </span>
                 </span>

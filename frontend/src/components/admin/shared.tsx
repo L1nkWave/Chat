@@ -1,13 +1,13 @@
 import type { ReportCategory } from "@/lib/admin/api";
+import { buttonStyle, CARD as KIT_CARD, FIELD, LABEL as KIT_LABEL, SECTION_TITLE } from "@/components/ui/styles";
 
-export const INPUT =
-    "h-10 min-w-0 w-full rounded-md border border-line bg-paper px-3 text-sm text-ink outline-none transition-colors placeholder:text-muted focus:border-primary";
-export const BTN_PRIMARY =
-    "h-10 shrink-0 rounded-md bg-primary px-4 text-sm font-medium text-primary-ink transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-40";
-export const BTN_GHOST =
-    "h-10 shrink-0 rounded-md border border-line px-4 text-sm text-ink transition-colors hover:bg-tint disabled:cursor-not-allowed disabled:opacity-40";
-export const LABEL = "text-xs font-semibold uppercase tracking-wide text-muted";
-export const CARD = "flex flex-col gap-3 rounded-lg border border-line bg-surface p-4";
+/* Tên cũ giữ nguyên để các tab quản trị dùng chung một bộ class từ components/ui/styles.ts */
+export const INPUT = FIELD;
+export const BTN_PRIMARY = buttonStyle("primary", "md");
+export const BTN_GHOST = buttonStyle("secondary", "md");
+export const LABEL = KIT_LABEL;
+export const CARD = KIT_CARD;
+export const TITLE = SECTION_TITLE;
 
 export const CATEGORY_LABEL: Record<ReportCategory, string> = {
     HARASSMENT: "Quấy rối",

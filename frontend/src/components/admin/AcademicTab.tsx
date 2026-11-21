@@ -3,10 +3,11 @@
 import { useId, useState } from "react";
 
 import { Notice } from "@/components/ui/Notice";
+import { apiFetch } from "@/lib/api/client";
 import { adminErrorMessage } from "@/lib/admin/api";
 import { importAcademicFile, saveAcademicTerm } from "@/lib/admin/academic-api";
 import type { CreatedAccount, ImportKind, ImportReport } from "@/lib/admin/academic-api";
-import { BTN_GHOST, BTN_PRIMARY, CARD, INPUT, LABEL } from "./shared";
+import { buttonStyle, CARD, FIELD, HELP, LABEL, SECTION_TITLE, TABLE, TABLE_WRAP, TD, TH } from "@/components/ui/styles";
 import { CatalogManager } from "./CatalogManager";
 import { RecordsTable } from "./RecordsTable";
 import { ManualEntryForm } from "./ManualEntryForm";
@@ -163,11 +164,13 @@ export function AcademicTab() {
     return (
         <section aria-label="Dữ liệu học vụ" className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
-                <h2 className="font-serif text-lg font-semibold">Dữ liệu học vụ</h2>
+                <h2 className="text-lg font-semibold text-ink">Dữ liệu học vụ</h2>
                 <p className="text-sm text-muted">
                     Kiểm tra file trước khi nhập. Nếu file còn dòng lỗi thì hệ thống không ghi dòng nào; sửa file rồi kiểm tra lại.
                 </p>
             </div>
+
+            <AcademicSyncCard />
 
             <div role="tablist" aria-label="Mục học vụ" className="flex flex-wrap gap-2">
                 {SUB_TABS.map((t) => (
@@ -177,13 +180,13 @@ export function AcademicTab() {
                         role="tab"
                         aria-selected={tab === t.id}
                         onClick={() => setTab(t.id)}
-                        className={tab === t.id ? BTN_PRIMARY : BTN_GHOST}
+                        className={tab === t.id ? buttonStyle("primary") : buttonStyle("secondary")}
                     >
                         {t.label}
                     </button>
                 ))}
             </div>
-            <p className="text-xs text-muted">{current.hint}</p>
+            <p className={HELP}>{current.hint}</p>
 
             {tab === "structure" ? (
                 <div className="flex flex-col gap-4">
@@ -273,6 +276,101 @@ export function AcademicTab() {
     );
 }
 
+/** Kết quả đồng bộ nhóm học vụ (chat-service) */
+type AcademicSyncReport = {
+    created: number;
+    invitationsSent: number;
+    alreadyMember: number;
+    skipped: number;
+    /** Giảng viên trùng tên, cần kiểm tra thủ công */
+    ambiguousTeachers: unknown[];
+};
+
+function describeTeacher(item: unknown): string {
+    if (typeof item === "string") return item;
+    if (item && typeof item === "object") {
+        const record = item as Record<string, unknown>;
+        const label = record.name ?? record.fullName ?? record.username;
+        if (typeof label === "string") return label;
+    }
+    return String(item);
+}
+
+/** Nút đồng bộ nhóm học vụ và báo cáo kết quả. Chỉ quản trị viên thấy tab này. */
+function AcademicSyncCard() {
+    const [busy, setBusy] = useState(false);
+    const [report, setReport] = useState<AcademicSyncReport | null>(null);
+    const [notice, setNotice] = useState<Feedback | null>(null);
+
+    async function run() {
+        if (!window.confirm("Đồng bộ nhóm học vụ ngay bây giờ? Hệ thống có thể tạo nhóm mới và gửi lời mời.")) return;
+        setBusy(true);
+        setNotice(null);
+        try {
+            const result = await apiFetch<AcademicSyncReport>("/api/v1/chats/academic-sync", { method: "POST" });
+            setReport({ ...result, ambiguousTeachers: result.ambiguousTeachers ?? [] });
+            setNotice({ text: "Đã đồng bộ nhóm học vụ.", tone: "info" });
+        } catch (err) {
+            setNotice({ text: adminErrorMessage(err), tone: "error" });
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    return (
+        <section className={CARD} aria-label="Đồng bộ nhóm học vụ">
+            <div className="flex flex-col gap-1">
+                <h3 className={SECTION_TITLE}>Đồng bộ nhóm học vụ</h3>
+                <p className={HELP}>
+                    Tạo nhóm chat cho lớp, môn và giảng viên theo dữ liệu học vụ hiện có, rồi gửi lời mời cho thành viên chưa có trong nhóm.
+                </p>
+            </div>
+            <div>
+                <button type="button" disabled={busy} onClick={run} className={buttonStyle("primary")}>
+                    {busy ? "Đang đồng bộ..." : "Đồng bộ nhóm học vụ"}
+                </button>
+            </div>
+
+            {notice ? <Notice text={notice.text} tone={notice.tone} onClose={() => setNotice(null)} /> : null}
+
+            {report ? (
+                <div className="flex flex-col gap-3 border-t border-line pt-4 text-sm">
+                    <dl className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4">
+                        <div className="flex flex-col">
+                            <dt className="text-sm text-muted">Nhóm tạo mới</dt>
+                            <dd className="text-base font-semibold tabular-nums text-ink">{report.created}</dd>
+                        </div>
+                        <div className="flex flex-col">
+                            <dt className="text-sm text-muted">Lời mời đã gửi</dt>
+                            <dd className="text-base font-semibold tabular-nums text-ink">{report.invitationsSent}</dd>
+                        </div>
+                        <div className="flex flex-col">
+                            <dt className="text-sm text-muted">Đã là thành viên</dt>
+                            <dd className="text-base font-semibold tabular-nums text-ink">{report.alreadyMember}</dd>
+                        </div>
+                        <div className="flex flex-col">
+                            <dt className="text-sm text-muted">Bỏ qua</dt>
+                            <dd className="text-base font-semibold tabular-nums text-ink">{report.skipped}</dd>
+                        </div>
+                    </dl>
+                    {report.ambiguousTeachers.length > 0 ? (
+                        <div className="flex flex-col gap-1">
+                            <p className="font-medium text-danger">
+                                Giảng viên trùng tên, cần kiểm tra ({report.ambiguousTeachers.length})
+                            </p>
+                            <ul className="flex max-h-40 flex-col gap-0.5 overflow-auto text-sm">
+                                {report.ambiguousTeachers.map((item, index) => (
+                                    <li key={`${describeTeacher(item)}-${index}`}>{describeTeacher(item)}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    ) : null}
+                </div>
+            ) : null}
+        </section>
+    );
+}
+
 /** Thẻ nhập Excel. Dùng chung cho tab Học vụ và tab Người dùng. */
 export function ImportCard({ spec }: { spec: CardSpec }) {
     const inputId = useId();
@@ -315,9 +413,9 @@ export function ImportCard({ spec }: { spec: CardSpec }) {
     return (
         <section className={CARD} aria-label={`Nhập ${spec.title}`}>
             <div className="flex flex-col gap-1">
-                <h3 className="text-base font-semibold">{spec.title}</h3>
-                <p className="text-xs text-muted">Cột trong file: {spec.columns}</p>
-                {spec.note ? <p className="text-xs text-muted">{spec.note}</p> : null}
+                <h3 className={SECTION_TITLE}>{spec.title}</h3>
+                <p className={HELP}>Cột trong file: {spec.columns}</p>
+                {spec.note ? <p className={HELP}>{spec.note}</p> : null}
             </div>
 
             <div className="flex flex-col gap-1">
@@ -330,15 +428,15 @@ export function ImportCard({ spec }: { spec: CardSpec }) {
                     accept=".xlsx"
                     disabled={busy}
                     onChange={(event) => pick(event.target.files?.[0] ?? null)}
-                    className="text-sm"
+                    className="w-full text-sm text-ink file:mr-3 file:h-8 file:cursor-pointer file:rounded-md file:border file:border-line file:bg-surface file:px-3 file:text-sm file:font-medium file:text-ink hover:file:bg-tint disabled:opacity-50"
                 />
             </div>
 
             <div className="flex flex-wrap gap-2">
-                <button type="button" disabled={!file || busy} onClick={() => run(true)} className={BTN_GHOST}>
+                <button type="button" disabled={!file || busy} onClick={() => run(true)} className={buttonStyle("secondary")}>
                     Kiểm tra file
                 </button>
-                <button type="button" disabled={!canImport} onClick={() => run(false)} className={BTN_PRIMARY}>
+                <button type="button" disabled={!canImport} onClick={() => run(false)} className={buttonStyle("primary")}>
                     Nhập vào hệ thống
                 </button>
             </div>
@@ -372,10 +470,10 @@ function ReportView({ report }: { report: ImportReport }) {
             </p>
             {report.errors.length > 0 ? (
                 <div className="flex flex-col gap-1">
-                    <p className="font-medium text-primary">
+                    <p className="font-medium text-danger">
                         Còn {report.errors.length} lỗi. Sửa các dòng dưới đây rồi kiểm tra lại.
                     </p>
-                    <ul className="flex max-h-60 flex-col gap-1 overflow-auto rounded-md border border-line bg-paper p-2 text-xs">
+                    <ul className="flex max-h-60 flex-col gap-1 overflow-auto rounded-md border border-line bg-paper p-2 text-sm">
                         {shown.map((item, index) => (
                             <li key={`${item.row}-${index}`}>
                                 Dòng {item.row}: {item.message}
@@ -383,7 +481,7 @@ function ReportView({ report }: { report: ImportReport }) {
                         ))}
                     </ul>
                     {report.errors.length > MAX_SHOWN_ERRORS ? (
-                        <p className="text-xs text-muted">Chỉ hiện {MAX_SHOWN_ERRORS} lỗi đầu tiên.</p>
+                        <p className={HELP}>Chỉ hiện {MAX_SHOWN_ERRORS} lỗi đầu tiên.</p>
                     ) : null}
                 </div>
             ) : report.dryRun ? (
@@ -407,33 +505,33 @@ function AccountsView({ accounts }: { accounts: CreatedAccount[] }) {
     }
 
     return (
-        <div className="flex flex-col gap-2 rounded-md border border-line bg-tint p-3">
-            <span className={LABEL}>Tài khoản mới ({accounts.length})</span>
-            <p className="text-xs text-muted">
+        <div className="flex flex-col gap-3 border-t border-line pt-4">
+            <h4 className={SECTION_TITLE}>Tài khoản mới ({accounts.length})</h4>
+            <p className={HELP}>
                 Mật khẩu tạm chỉ hiển thị lúc này. Gửi cho người dùng qua kênh an toàn; họ phải đổi mật khẩu khi đăng nhập.
             </p>
-            <div className="max-h-64 overflow-auto">
-                <table className="w-full text-left text-sm">
-                    <thead className="text-xs text-muted">
+            <div className={`${TABLE_WRAP} max-h-64 overflow-y-auto`}>
+                <table className={TABLE}>
+                    <thead>
                     <tr>
-                        <th className="py-1 pr-2 font-medium">Tên đăng nhập</th>
-                        <th className="py-1 pr-2 font-medium">Họ tên</th>
-                        <th className="py-1 font-medium">Mật khẩu tạm</th>
+                        <th className={TH}>Tên đăng nhập</th>
+                        <th className={TH}>Họ tên</th>
+                        <th className={TH}>Mật khẩu tạm</th>
                     </tr>
                     </thead>
                     <tbody>
                     {accounts.map((account) => (
-                        <tr key={account.username} className="border-t border-line">
-                            <td className="py-1 pr-2 font-mono">{account.username}</td>
-                            <td className="py-1 pr-2">{account.name}</td>
-                            <td className="py-1 font-mono">{account.temporaryPassword}</td>
+                        <tr key={account.username}>
+                            <td className={`${TD} font-mono`}>{account.username}</td>
+                            <td className={TD}>{account.name}</td>
+                            <td className={`${TD} font-mono`}>{account.temporaryPassword}</td>
                         </tr>
                     ))}
                     </tbody>
                 </table>
             </div>
             <div>
-                <button type="button" onClick={copyAll} className={BTN_GHOST}>
+                <button type="button" onClick={copyAll} className={buttonStyle("secondary")}>
                     {copied ? "Đã sao chép" : "Sao chép tất cả"}
                 </button>
             </div>
@@ -477,8 +575,8 @@ function TermCard() {
     return (
         <section className={CARD} aria-label="Học kỳ">
             <div className="flex flex-col gap-1">
-                <h3 className="text-base font-semibold">Thêm học kỳ</h3>
-                <p className="text-xs text-muted">
+                <h3 className={SECTION_TITLE}>Thêm học kỳ</h3>
+                <p className={HELP}>
                     Mã kỳ đã có thì cập nhật học kỳ đó. Khoảng ngày không được trùng với học kỳ khác có mã khác.
                     Có thể nhập nhiều học kỳ bằng file Excel với các cột: Mã kỳ, Tên học kỳ, Ngày bắt đầu, Ngày kết thúc.
                 </p>
@@ -486,23 +584,23 @@ function TermCard() {
             <div className="grid gap-3 sm:grid-cols-2">
                 <div className="flex flex-col gap-1">
                     <label htmlFor={codeId} className={LABEL}>Mã kỳ</label>
-                    <input id={codeId} value={code} onChange={(e) => setCode(e.target.value)} placeholder="Ví dụ: HK1-2026" className={INPUT} />
+                    <input id={codeId} value={code} onChange={(e) => setCode(e.target.value)} placeholder="Ví dụ: HK1-2026" className={FIELD} />
                 </div>
                 <div className="flex flex-col gap-1">
                     <label htmlFor={nameId} className={LABEL}>Tên học kỳ</label>
-                    <input id={nameId} value={name} onChange={(e) => setName(e.target.value)} placeholder="Học kỳ 1 năm học 2026-2027" className={INPUT} />
+                    <input id={nameId} value={name} onChange={(e) => setName(e.target.value)} placeholder="Học kỳ 1 năm học 2026-2027" className={FIELD} />
                 </div>
                 <div className="flex flex-col gap-1">
                     <label htmlFor={startId} className={LABEL}>Ngày bắt đầu</label>
-                    <input id={startId} type="date" value={start} onChange={(e) => setStart(e.target.value)} className={INPUT} />
+                    <input id={startId} type="date" value={start} onChange={(e) => setStart(e.target.value)} className={FIELD} />
                 </div>
                 <div className="flex flex-col gap-1">
                     <label htmlFor={endId} className={LABEL}>Ngày kết thúc</label>
-                    <input id={endId} type="date" value={end} onChange={(e) => setEnd(e.target.value)} className={INPUT} />
+                    <input id={endId} type="date" value={end} onChange={(e) => setEnd(e.target.value)} className={FIELD} />
                 </div>
             </div>
             <div>
-                <button type="button" disabled={busy} onClick={save} className={BTN_PRIMARY}>
+                <button type="button" disabled={busy} onClick={save} className={buttonStyle("primary")}>
                     Lưu học kỳ
                 </button>
             </div>

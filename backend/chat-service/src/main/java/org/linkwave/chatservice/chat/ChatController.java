@@ -11,6 +11,8 @@ import org.linkwave.chatservice.chat.duo.NewChatRequest;
 import org.linkwave.chatservice.chat.group.GroupChatDetailsDto;
 import org.linkwave.chatservice.chat.group.GroupChatDto;
 import org.linkwave.chatservice.chat.group.NewGroupChatRequest;
+import org.linkwave.chatservice.academic.AcademicSyncService;
+import org.linkwave.chatservice.academic.SyncReport;
 import org.linkwave.chatservice.api.ws.WSServiceClient;
 import org.linkwave.chatservice.chat.group.UpdateGroupChat;
 import org.linkwave.chatservice.common.RequestInitiator;
@@ -27,6 +29,7 @@ import java.util.Map;
 
 import static org.linkwave.chatservice.common.DtoViews.New;
 import static org.linkwave.chatservice.common.RequestUtils.requestInitiator;
+import static org.linkwave.chatservice.common.RequestUtils.requireAdminOrRoot;
 import static org.linkwave.chatservice.common.RequestUtils.userDetails;
 import static org.linkwave.shared.utils.Headers.TOTAL_COUNT;
 import static org.springframework.http.HttpStatus.*;
@@ -40,6 +43,7 @@ public class ChatController {
 
     private final ChatService chatService;
     private final WSServiceClient wsServiceClient;
+    private final AcademicSyncService academicSyncService;
 
     @GetMapping
     public List<ChatDto> getUserChats(@RequestParam int offset, @RequestParam int limit,
@@ -78,6 +82,26 @@ public class ChatController {
     public ChatDto createChat(@RequestBody @Valid NewChatRequest chatRequest,
                               @NonNull HttpServletRequest request) {
         return chatService.createChat(requestInitiator(request), chatRequest);
+    }
+
+    /** Ghim đoạn chat lên đầu danh sách của người gọi (tối đa 5 đoạn). */
+    @PutMapping("/{id}/pin")
+    @ResponseStatus(NO_CONTENT)
+    public void pinChat(@PathVariable String id) {
+        chatService.pinChat(userDetails().id(), id);
+    }
+
+    @DeleteMapping("/{id}/pin")
+    @ResponseStatus(NO_CONTENT)
+    public void unpinChat(@PathVariable String id) {
+        chatService.unpinChat(userDetails().id(), id);
+    }
+
+    /** Đồng bộ nhóm lớp, môn, khoa từ dữ liệu học vụ. Chỉ ADMIN / ROOT. Chạy lại an toàn (không nhân đôi). */
+    @PostMapping("/academic-sync")
+    public SyncReport syncAcademicChats() {
+        requireAdminOrRoot();
+        return academicSyncService.sync(userDetails().id());
     }
 
     @GetMapping("/{id}/exists")

@@ -1,5 +1,5 @@
 import { ApiError, apiFetch } from "@/lib/api/client";
-import type { Conversation, Invitation, Member, Message } from "./types";
+import type { Conversation, Invitation, MediaItem, Member, Message, UserSuggestion } from "./types";
 import {
     toConversation,
     toMembers,
@@ -37,6 +37,23 @@ export const chatApi = {
     listMembers: async (conversationId: string): Promise<Member[]> => {
         return toMembers(await getGroupDetails(conversationId));
     },
+
+    // Ghim (PUT) hoặc bỏ ghim (DELETE). Server trả 422 khi đã ghim đủ 5 cuộc trò chuyện.
+    setPinned: (conversationId: string, pinned: boolean) =>
+        apiFetch<void>(`${BASE}/${enc(conversationId)}/pin`, {
+            method: pinned ? "PUT" : "DELETE",
+        }),
+
+    // Ảnh hoặc tệp của cuộc trò chuyện, phân trang theo offset
+    listMedia: (
+        conversationId: string,
+        kind: "IMAGE" | "FILE",
+        offset = 0,
+        limit = 30,
+    ): Promise<MediaItem[]> =>
+        apiFetch<MediaItem[]>(
+            `${BASE}/${enc(conversationId)}/media?kind=${kind}&offset=${offset}&limit=${limit}`,
+        ),
 
     createGroup: async (title: string): Promise<Conversation> => {
         const chat = await apiFetch<BackendChat>(`${BASE}/group`, {
@@ -81,18 +98,27 @@ export const chatApi = {
             { method: "PATCH" },
         ),
 
-    // Tìm người nhận theo tên đăng nhập rồi tạo (hoặc mở lại) chat riêng
-    startDirectChat: async (username: string): Promise<Conversation> => {
-        const users = await apiFetch<{ id: number | string; username: string }[]>(
-            `/api/v1/users?username=${enc(username)}&offset=0&limit=10`,
+    // Gợi ý người để nhắn riêng: khớp theo tên hoặc mã/tên đăng nhập (không phân biệt hoa thường, không dấu).
+    // Server đã loại chính người đang đăng nhập và các liên hệ.
+    searchUsers: async (keyword: string): Promise<UserSuggestion[]> => {
+        const users = await apiFetch<{ id: number | string; username: string; name: string }[]>(
+            `/api/v1/users?username=${enc(keyword)}&offset=0&limit=8`,
         );
-        const target = users.find((u) => u.username === username);
-        if (!target) throw new ApiError(404, "Không tìm thấy người dùng này.");
+        return users.map((u) => ({ id: String(u.id), username: u.username, name: u.name }));
+    },
+
+    // Tạo (hoặc mở lại) chat riêng với người đã chọn
+    startDirectChat: async (recipientId: string): Promise<Conversation> => {
         const chat = await apiFetch<BackendChat>(BASE, {
             method: "POST",
-            body: JSON.stringify({ recipient: Number(target.id) }),
+            body: JSON.stringify({ recipient: Number(recipientId) }),
         });
         return toConversation(chat);
+    },
+
+    // Lấy một đoạn chat theo id, dùng cho đoạn chat đang bị ẩn ở server
+    getConversation: async (conversationId: string): Promise<Conversation> => {
+        return toConversation(await apiFetch<BackendChat>(`${BASE}/generic/${enc(conversationId)}`));
     },
 
     reportMessage: (messageId: string, category: string, reason?: string) =>

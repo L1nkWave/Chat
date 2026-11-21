@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { formatChatTime } from "@/lib/chat/time";
+import { buttonStyle, FIELD } from "@/components/ui/styles";
+import { formatChatTime, formatRemovedAt } from "@/lib/chat/time";
 import type { Message } from "@/lib/chat/types";
 import { AttachmentView } from "./AttachmentView";
+import { LinkText } from "./LinkText";
 
 const REPORT_CATEGORIES = [
     { value: "HARASSMENT", label: "Quấy rối, xúc phạm" },
@@ -27,6 +29,11 @@ type MessageListProps = {
 
 // Khoảng cách (px) tính là "đang ở cuối"
 const NEAR_BOTTOM = 120;
+
+// Nút hành động dưới tin nhắn: chữ nhỏ, không viền; xóa hiện đỏ khi rê chuột
+const ACTION_BASE = "inline-flex h-8 items-center rounded-md px-2 text-xs transition-colors hover:bg-tint";
+const ACTION = `${ACTION_BASE} text-muted hover:text-ink`;
+const ACTION_DANGER = `${ACTION_BASE} text-muted hover:text-danger`;
 
 export function MessageList({
                                 messages,
@@ -108,7 +115,7 @@ export function MessageList({
                             type="button"
                             onClick={onLoadOlder}
                             disabled={loadingOlder}
-                            className="h-8 rounded-md border border-line bg-surface px-3 text-xs text-muted transition-colors hover:bg-tint hover:text-ink disabled:opacity-50"
+                            className={buttonStyle("secondary", "sm")}
                         >
                             {loadingOlder ? "Đang tải..." : "Tải tin cũ hơn"}
                         </button>
@@ -124,17 +131,23 @@ export function MessageList({
                     return (
                         <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                             <div
-                                className={`max-w-[min(34rem,80%)] rounded-md px-4 py-2.5 ${
+                                className={`max-w-[min(34rem,80%)] rounded-lg px-4 py-2.5 ${
                                     mine ? "bg-tint text-ink" : "border border-line bg-surface text-ink"
                                 }`}
                             >
                                 {isGroup && !mine ? (
                                     <p className="mb-1 text-xs font-semibold text-primary">{m.senderName}</p>
                                 ) : null}
-                                {m.attachment ? <AttachmentView attachment={m.attachment} mine={mine} /> : null}
+                                {m.attachment && m.removedAt ? (
+                                    <p className="text-[15px] text-muted">
+                                        Tệp đã bị xóa lúc {formatRemovedAt(m.removedAt)}
+                                    </p>
+                                ) : m.attachment ? (
+                                    <AttachmentView attachment={m.attachment} mine={mine} />
+                                ) : null}
                                 {/* Nội dung là văn bản thuần, không dùng dangerouslySetInnerHTML. */}
-                                {m.removedAt ? (
-                                    <p className="text-[15px] italic text-muted">
+                                {m.removedAt && !m.attachment ? (
+                                    <p className="text-[15px] text-muted">
                                         Tin nhắn đã bị xóa lúc {formatChatTime(m.removedAt)}
                                     </p>
                                 ) : null}
@@ -153,25 +166,25 @@ export function MessageList({
                                             value={draft}
                                             onChange={(e) => setDraft(e.target.value)}
                                             maxLength={512}
-                                            className="h-9 min-w-0 flex-1 rounded-md border border-line bg-surface px-2 text-sm text-ink"
+                                            className={`${FIELD} min-w-0 flex-1`}
                                         />
-                                        <button type="submit" className="text-xs text-primary hover:underline">
+                                        <button type="submit" className={buttonStyle("ghost", "sm")}>
                                             Lưu
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => setEditingId(null)}
-                                            className="text-xs text-muted hover:underline"
+                                            className={ACTION}
                                         >
                                             Hủy
                                         </button>
                                     </form>
                                 ) : m.text && !m.removedAt ? (
-                                    <p className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
-                                        {m.text}
-                                    </p>
+                                    <div className="whitespace-pre-wrap break-words text-[15px] leading-relaxed">
+                                        <LinkText text={m.text} />
+                                    </div>
                                 ) : null}
-                                <p className="mt-1 text-right text-[11px] text-muted">
+                                <p className="mt-1 text-right text-xs tabular-nums text-muted">
                                     {m.edited && !m.removedAt
                                         ? `Đã sửa lúc ${formatChatTime(m.editedAt ?? m.time)}`
                                         : formatChatTime(m.time)}
@@ -185,7 +198,7 @@ export function MessageList({
                                                 setReportCategory("");
                                                 setReportReason("");
                                             }}
-                                            className="text-muted transition-colors hover:text-ink"
+                                            className={ACTION}
                                         >
                                             Báo cáo
                                         </button>
@@ -199,7 +212,7 @@ export function MessageList({
                                             onReport(m.id, reportCategory, reportReason.trim() || undefined);
                                             setReportingId(null);
                                         }}
-                                        className="mt-2 space-y-2 rounded-md border border-line bg-surface p-2 text-xs"
+                                        className="mt-2 flex flex-col gap-2 rounded-md border border-line bg-paper p-3 text-xs"
                                     >
                                         <div className="flex flex-wrap gap-1.5">
                                             {REPORT_CATEGORIES.map((c) => (
@@ -207,10 +220,10 @@ export function MessageList({
                                                     key={c.value}
                                                     type="button"
                                                     onClick={() => setReportCategory(c.value)}
-                                                    className={`rounded-full border px-2.5 py-1 transition-colors ${
+                                                    className={`rounded-md border px-2.5 py-1 transition-colors ${
                                                         reportCategory === c.value
-                                                            ? "border-primary bg-primary text-white"
-                                                            : "border-line text-muted hover:text-ink"
+                                                            ? "border-primary bg-primary text-primary-ink"
+                                                            : "border-line bg-surface text-muted hover:text-ink"
                                                     }`}
                                                 >
                                                     {c.label}
@@ -222,20 +235,20 @@ export function MessageList({
                                             onChange={(e) => setReportReason(e.target.value)}
                                             maxLength={300}
                                             placeholder="Mô tả thêm (không bắt buộc)"
-                                            className="h-8 w-full rounded border border-line bg-canvas px-2 text-ink"
+                                            className={FIELD}
                                         />
                                         <div className="flex justify-end gap-3">
                                             <button
                                                 type="button"
                                                 onClick={() => setReportingId(null)}
-                                                className="text-muted hover:underline"
+                                                className={ACTION}
                                             >
                                                 Hủy
                                             </button>
                                             <button
                                                 type="submit"
                                                 disabled={!reportCategory}
-                                                className="text-primary hover:underline disabled:opacity-40"
+                                                className={buttonStyle("ghost", "sm")}
                                             >
                                                 Gửi báo cáo
                                             </button>
@@ -250,7 +263,7 @@ export function MessageList({
                                                 setDraft(m.text);
                                                 setEditingId(m.id);
                                             }}
-                                            className="text-muted transition-colors hover:text-ink"
+                                            className={ACTION}
                                         >
                                             Sửa
                                         </button>
@@ -259,7 +272,7 @@ export function MessageList({
                                             onClick={() => {
                                                 if (window.confirm("Xóa tin nhắn này?")) onRemove(m.id);
                                             }}
-                                            className="text-muted transition-colors hover:text-ink"
+                                            className={ACTION_DANGER}
                                         >
                                             Xóa
                                         </button>

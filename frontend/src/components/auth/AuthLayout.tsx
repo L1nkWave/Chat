@@ -26,12 +26,12 @@ export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProp
             </header>
 
             <main className="flex flex-1 items-start justify-center px-4 pb-16 pt-6 sm:items-center sm:pt-10">
-                <div className="flex w-full max-w-[420px] flex-col gap-7 rounded-lg border border-line bg-surface p-6 shadow-[0_1px_0_rgba(13,37,56,0.04),0_24px_48px_-32px_rgba(13,37,56,0.25)] sm:p-9">
+                <div className="flex w-full max-w-[420px] flex-col gap-7 rounded-lg border border-line bg-surface p-6 sm:p-8">
                     <div className="flex flex-col gap-2">
-                        <h1 className="font-serif text-[28px] font-semibold leading-tight tracking-[-0.01em]">
+                        <h1 className="text-2xl font-semibold tracking-tight text-balance text-ink">
                             {title}
                         </h1>
-                        <p className="text-[15px] leading-relaxed text-muted">{subtitle}</p>
+                        <p className="text-sm leading-relaxed text-muted">{subtitle}</p>
                     </div>
 
                     {children}

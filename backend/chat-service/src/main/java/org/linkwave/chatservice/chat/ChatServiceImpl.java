@@ -59,6 +59,9 @@ public class ChatServiceImpl implements ChatService {
 
     public static final Path CHAT_AVATAR_PATH = Path.of("api", "chats");
     public static final int DEFAULT_BATCH_SIZE = 50;
+    public static final int MAX_PINNED_CHATS = 5;
+    /** Loại hiển thị của đoạn chat riêng (DUO) trong DTO */
+    private static final String PRIVATE_CATEGORY = "PRIVATE";
 
     private final UserServiceClient userServiceClient;
     private final WSServiceClient wsServiceClient;
@@ -93,6 +96,15 @@ public class ChatServiceImpl implements ChatService {
         final UserDto recipient = userServiceClient.getUser(recipientId, initiator.bearer());
         if (recipient.isDeleted()) {
             throw new BadCredentialsException("Invalid recipient id");
+        }
+
+        // Đã có chat riêng: mở lại thay vì báo lỗi. Bỏ mốc ẩn của người đang mở để đoạn chat hiện lại.
+        final Optional<Chat> existingChat = chatRepository.findChatWithPair(initiator.userId(), recipientId);
+        if (existingChat.isPresent()) {
+            final Chat chat = existingChat.get();
+            findChatMember(initiator.userId(), chat).ifPresent(member -> member.setHiddenBefore(null));
+            updateChat(chat);
+            return modelMapper.map(chat, DuoChatDto.class);
         }
 
         final Chat newChat;
@@ -229,7 +241,7 @@ public class ChatServiceImpl implements ChatService {
                     })
                     .toList();
 
-            return GroupChatDetailedDto.builder()
+            final ChatDto result = GroupChatDetailedDto.builder()
                     .id(groupChat.getId())
                     .type(GROUP)
                     .createdAt(groupChat.getCreatedAt())
@@ -240,6 +252,8 @@ public class ChatServiceImpl implements ChatService {
                     .isPrivate(groupChat.isPrivate())
                     .members(mappedMembers)
                     .build();
+            applyCallerState(result, chat, initiator.userId());
+            return result;
         } else {
             final DuoChatDtoBuilder<?, ?> duoChatDtoBuilder = DuoChatDto.builder()
                     .id(chat.getId())
@@ -253,7 +267,9 @@ public class ChatServiceImpl implements ChatService {
                         .isAvatarAvailable(nonNull(userDto.getAvatarPath()))
                         .user(modelMapper.map(userDto, CompanionDto.class));
             }
-            return duoChatDtoBuilder.build();
+            final DuoChatDto duoResult = duoChatDtoBuilder.build();
+            applyCallerState(duoResult, chat, initiator.userId());
+            return duoResult;
         }
     }
 
@@ -360,6 +376,7 @@ public class ChatServiceImpl implements ChatService {
                 : DuoChatDto.class;
 
         final ChatDto chatDto = modelMapper.map(chat, cls);
+        applyCallerState(chatDto, chat, initiator.userId());
 
         if (isGroupChat) {
             chatDto.setAvatarAvailable(isAvatarSet((GroupChat) chat));
@@ -464,7 +481,13 @@ public class ChatServiceImpl implements ChatService {
             throw new BadCredentialsException("Invalid user ID id");
         }
 
+        // Nhóm học vụ tự động có thể chưa có quản trị: người chấp nhận đầu tiên trở thành quản trị
+        final boolean becomesAdmin = groupChat.getAcademicKey() != null
+                && groupChat.getMembers().stream().noneMatch(member -> member.getRole() == ADMIN);
         final ChatMember newMember = groupChat.addMember(inviteeId);
+        if (becomesAdmin) {
+            newMember.setRole(ADMIN);
+        }
         final var message = MemberMessage.builder()
                 .authorId(inviterId)
                 .action(Action.ADD)
@@ -800,6 +823,68 @@ public class ChatServiceImpl implements ChatService {
         updateChat(chat);
     }
 
+
+    @Transactional
+    @Override
+    public void pinChat(Long userId, String chatId) {
+        final Chat chat = findChat(chatId);
+        final ChatMember member = findChatMember(userId, chat).orElseThrow(PrivacyViolationException::new);
+        if (member.isPinned()) {
+            return;
+        }
+        if (chatRepository.countPinnedChats(userId) >= MAX_PINNED_CHATS) {
+            throw new UnprocessableRequestDataException("Chỉ ghim tối đa 5 cuộc trò chuyện");
+        }
+        member.setPinned(true);
+        member.setPinnedAt(Instant.now());
+        updateChat(chat);
+    }
+
+    @Transactional
+    @Override
+    public void unpinChat(Long userId, String chatId) {
+        final Chat chat = findChat(chatId);
+        final ChatMember member = findChatMember(userId, chat).orElseThrow(PrivacyViolationException::new);
+        if (!member.isPinned()) {
+            return;
+        }
+        member.setPinned(false);
+        member.setPinnedAt(null);
+        updateChat(chat);
+    }
+
+    @Override
+    public Optional<GroupChat> findAcademicChat(String academicKey) {
+        return chatRepository.findGroupChatByAcademicKey(academicKey);
+    }
+
+    @Override
+    public GroupChat createAcademicChat(ChatCategory category, String academicKey, String name,
+                                        String description, int membersLimit) {
+        final GroupChat chat = GroupChat.builder()
+                .name(name)
+                .description(description)
+                .isPrivate(true)
+                .category(category)
+                .academicKey(academicKey)
+                .membersLimit(membersLimit)
+                .membersCount(0)
+                .createdAt(Instant.now())
+                .build();
+        chatRepository.save(chat);
+        return chat;
+    }
+
+    /** Gắn loại chat và trạng thái ghim theo người gọi vào DTO */
+    private void applyCallerState(ChatDto dto, Chat chat, Long userId) {
+        dto.setCategory(chat instanceof GroupChat group
+                ? (group.getCategory() == null ? ChatCategory.GROUP : group.getCategory()).name()
+                : PRIVATE_CATEGORY);
+        findChatMember(userId, chat).ifPresent(member -> {
+            dto.setPinned(member.isPinned());
+            dto.setPinnedAt(member.isPinned() ? member.getPinnedAt() : null);
+        });
+    }
 
     @Override
     public Chat createBotChat(Long userId, Long botId) {

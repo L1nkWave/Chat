@@ -1,5 +1,5 @@
 import { BOT_USERNAME, timeValue } from "@/lib/chat/sort";
-import type { Attachment, Conversation, Member, Message } from "./types";
+import type { Attachment, ChatCategory, Conversation, Member, Message } from "./types";
 
 // Kiểu JSON đúng như chat-service trả về
 export type BackendCompanion = {
@@ -22,7 +22,7 @@ export type BackendMessage = {
     size?: number;
     edited?: boolean;
     editedAt?: string;
-    removedAt?: string;
+    removedAt?: string | null;
 };
 
 export type BackendChat = {
@@ -32,6 +32,10 @@ export type BackendChat = {
     lastMessage?: BackendMessage | null;
     user?: BackendCompanion | null;
     name?: string | null;
+    category?: ChatCategory | null;
+    /** Đã ghim theo người đang đăng nhập */
+    pinned?: boolean | null;
+    pinnedAt?: string | null;
 };
 
 export type BackendMember = {
@@ -71,15 +75,20 @@ export function toConversation(chat: BackendChat): Conversation {
     const title = isGroup
         ? chat.name || "Nhóm"
         : chat.user?.name || chat.user?.username || "Người dùng";
+    const isBot = !isGroup && chat.user?.username === BOT_USERNAME;
 
     return {
         id: chat.id,
         title,
         kind: isGroup ? "group" : "direct",
+        category: chat.category ?? (isGroup ? "GROUP" : "PRIVATE"),
         lastMessage: previewOf(chat.lastMessage),
         lastTime: chat.lastMessage?.createdAt ?? chat.createdAt,
         unread: 0,
-        pinned: chat.user?.username === BOT_USERNAME,
+        // Chat bot luôn nằm trong mục ghim, nhưng không đổi được trạng thái ghim
+        pinned: chat.pinned === true || isBot,
+        pinnedAt: chat.pinnedAt ?? null,
+        isBot,
     };
 }
 
@@ -104,7 +113,7 @@ export function toMessage(message: BackendMessage, conversationId: string): Mess
         text: message.removedAt ? "" : message.action === "MESSAGE" ? message.text ?? "" : "",
         edited: message.edited ?? false,
         editedAt: message.editedAt,
-        removedAt: message.removedAt,
+        removedAt: message.removedAt || undefined,
         time: message.createdAt,
         attachment,
     };

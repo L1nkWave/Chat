@@ -7,6 +7,7 @@ import { Notice } from "@/components/ui/Notice";
 import { adminErrorMessage, createRole } from "@/lib/admin/api";
 import { updateRoleDisplayName } from "@/lib/admin/roles-api";
 import { BTN_PRIMARY, CARD, INPUT, LABEL, PERMISSION_OPTIONS } from "./shared";
+import { HELP, SECTION_TITLE } from "@/components/ui/styles";
 
 const CODE_PATTERN = /^[A-Z][A-Z0-9_]{2,31}$/;
 
@@ -78,7 +79,7 @@ export function RoleCreateForm({ onCreated }: RoleCreateFormProps) {
 
     return (
         <form onSubmit={submit} className={CARD} aria-label="Thêm vai trò">
-            <h3 className="text-sm font-semibold">Thêm vai trò mới</h3>
+            <h3 className={SECTION_TITLE}>Thêm vai trò mới</h3>
 
             {notice ? <Notice text={notice.text} tone={notice.tone} onClose={() => setNotice(null)} /> : null}
 
@@ -125,7 +126,7 @@ export function RoleCreateForm({ onCreated }: RoleCreateFormProps) {
                         />
                         <span className="flex min-w-0 flex-col">
                             <span className="font-medium">{item.label}</span>
-                            <span className="text-xs leading-relaxed text-muted">{item.description}</span>
+                            <span className={HELP}>{item.description}</span>
                         </span>
                     </label>
                 ))}

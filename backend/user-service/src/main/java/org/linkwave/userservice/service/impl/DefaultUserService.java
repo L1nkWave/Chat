@@ -23,8 +23,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.file.Path;
+import java.text.Normalizer;
 import java.time.ZonedDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 import static java.lang.String.valueOf;
@@ -90,27 +93,40 @@ public class DefaultUserService implements UserService {
 
     @Transactional(readOnly = true)
     @Override
-    public Pair<Long, List<UserDto>> getUsersByUsernameWithoutContacts(
+    public Pair<Long, List<UserDto>> searchUsers(
             @NonNull DefaultUserDetails userDetails,
-            String username, int offset, int limit
+            String search, int offset, int limit
     ) {
 
-        log.debug("-> getUsersByUsername(): username = {}, offset = {}, limit = {}", username, offset, limit);
+        log.debug("-> searchUsers(): search = {}, offset = {}, limit = {}", search, offset, limit);
 
-        final String usernamePattern = "%" + username + "%";
+        final String needle = foldForSearch(search);
 
-        final List<UserEntity> selectedUsers = userRepository.getUsersByUsernameContains(
-                userDetails.id(), usernamePattern, offset, limit
-        );
-
-        final long totalUsersCount = userRepository.getUsersCountByUsernameContains(userDetails.id(), usernamePattern);
+        final List<UserEntity> matched = userRepository.findAllNotDeleted().stream()
+                .filter(user -> !userDetails.id().equals(user.getId()))
+                .filter(user -> foldForSearch(user.getUsername()).contains(needle)
+                        || foldForSearch(user.getName()).contains(needle))
+                .sorted(Comparator.comparing((UserEntity user) -> foldForSearch(user.getName())))
+                .toList();
 
         return Pair.of(
-                totalUsersCount,
-                selectedUsers.stream()
+                (long) matched.size(),
+                matched.stream()
+                        .skip(offset)
+                        .limit(limit)
                         .map(user -> modelMapper.map(user, UserDto.class))
                         .toList()
         );
+    }
+
+    /** Chuẩn hóa để so khớp không phân biệt hoa thường và không phân biệt dấu tiếng Việt. */
+    static String foldForSearch(String value) {
+        if (value == null) return "";
+        return Normalizer.normalize(value, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .replace('đ', 'd')
+                .replace('Đ', 'D')
+                .toLowerCase(Locale.ROOT);
     }
 
     @Transactional(readOnly = true)

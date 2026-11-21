@@ -36,4 +36,16 @@ public class ChatDto {
     @JsonView(DtoViews.Detailed.class)
     private boolean isAvatarAvailable;
 
+    /** GROUP, CLASS, SUBJECT, FACULTY hoặc PRIVATE (đoạn chat riêng) */
+    @JsonView(DtoViews.Detailed.class)
+    private String category;
+
+    /** Người gọi API đã ghim đoạn chat này chưa */
+    @JsonView(DtoViews.Detailed.class)
+    private boolean pinned;
+
+    /** Thời điểm người gọi ghim, null nếu chưa ghim */
+    @JsonView(DtoViews.Detailed.class)
+    private Instant pinnedAt;
+
 }

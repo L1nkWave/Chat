@@ -4,6 +4,7 @@ import org.linkwave.chatservice.chat.duo.Chat;
 import org.linkwave.chatservice.chat.duo.NewChatRequest;
 import org.linkwave.chatservice.chat.group.*;
 import org.linkwave.chatservice.common.PrivacyViolationException;
+import org.linkwave.chatservice.common.UnprocessableRequestDataException;
 import org.linkwave.chatservice.common.RequestInitiator;
 import org.springframework.data.util.Pair;
 import org.springframework.lang.NonNull;
@@ -222,5 +223,27 @@ public interface ChatService {
 
     /** Tạo chat 1-1 với bot cho người dùng. Không đăng ký realtime, không kiểm tra người gọi. */
     Chat createBotChat(Long userId, Long botId);
+
+    /**
+     * Ghim đoạn chat cho người dùng. Người gọi phải là thành viên; không quá {@link ChatServiceImpl#MAX_PINNED_CHATS} đoạn.
+     *
+     * @throws PrivacyViolationException             nếu không phải thành viên
+     * @throws UnprocessableRequestDataException     nếu đã ghim đủ số đoạn tối đa
+     */
+    void pinChat(Long userId, String chatId);
+
+    /** Bỏ ghim đoạn chat. Không làm gì nếu chưa ghim. */
+    void unpinChat(Long userId, String chatId);
+
+    /** Tìm nhóm học vụ theo khóa đồng bộ, ví dụ "class:K23CNTT1". */
+    Optional<GroupChat> findAcademicChat(String academicKey);
+
+    /**
+     * Tạo nhóm học vụ rỗng (chưa có thành viên, riêng tư).
+     *
+     * @throws org.springframework.dao.DuplicateKeyException nếu khóa đã tồn tại
+     */
+    GroupChat createAcademicChat(ChatCategory category, String academicKey, String name,
+                                 String description, int membersLimit);
 
 }

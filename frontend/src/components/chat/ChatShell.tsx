@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Logo } from "@/components/brand/Logo";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
@@ -11,12 +11,16 @@ import { setAccessToken } from "@/lib/auth/session";
 import { chatApi, errorMessage } from "@/lib/chat/api";
 import { uploadFile, type CreatedFile } from "@/lib/chat/files";
 import { formatChatTime } from "@/lib/chat/time";
-import { pinnedFirst, timeValue } from "@/lib/chat/sort";
-import type { Conversation, Invitation, Member, Message } from "@/lib/chat/types";
+import { sortConversations, timeValue } from "@/lib/chat/sort";
+import { CATEGORY_FILTERS, matchesCategory, type CategoryFilter } from "@/lib/chat/filters";
+import type { Conversation, Invitation, Member, Message, UserSuggestion } from "@/lib/chat/types";
 import { ChatSocket, type ConnectionStatus } from "@/lib/ws/chat-socket";
 import type { ChatEvent } from "@/lib/ws/protocol";
+import { EMPTY, FIELD, badgeStyle, buttonStyle } from "@/components/ui/styles";
 import { Composer } from "./Composer";
-import { CreateGroupForm, InvitationList, MembersPanel } from "./GroupPanels";
+import { ConversationPanel } from "./ConversationPanel";
+import { CreateGroupForm, InvitationList } from "./GroupPanels";
+import { DirectChatSearch } from "./DirectChatSearch";
 import { MessageList } from "./MessageList";
 
 type TokensDto = { accessToken: string; refreshExpiration: number };
@@ -31,6 +35,10 @@ const STATUS_LABEL: Record<ConnectionStatus, string> = {
 
 const PAGE_SIZE = 50;
 
+// Nút lọc dạng chip: trạng thái chọn lấy từ aria-pressed, nên giao diện luôn khớp với trạng thái
+const CHIP =
+    "h-8 rounded-full border border-line px-3 text-xs text-muted transition-colors hover:bg-tint hover:text-ink aria-pressed:border-primary aria-pressed:bg-tint aria-pressed:font-medium aria-pressed:text-primary";
+
 function previewOf(message: Message): string {
     if (message.text) return message.text;
     return message.attachment ? `📎 ${message.attachment.filename}` : "";
@@ -43,6 +51,8 @@ const ICONS = {
     users: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
     plus: "M12 5v14M5 12h14",
     back: "M15 18l-6-6 6-6",
+    pin: "M9 3h6l-1 6 3 3H7l3-3-1-6zM12 15v6",
+    user: "M12 11a4 4 0 100-8 4 4 0 000 8zM4 21c0-4 3.6-7 8-7s8 3 8 7",
 };
 
 function Icon({ d, size = 20 }: { d: string; size?: number }) {
@@ -77,6 +87,12 @@ function Avatar({ title, group, size = "md" }: { title: string; group: boolean; 
     );
 }
 
+function SectionLabel({ children }: { children: ReactNode }) {
+    return (
+        <li className="px-3 pb-1 pt-3 text-xs font-medium text-muted">{children}</li>
+    );
+}
+
 export function ChatShell() {
     const router = useRouter();
     const [ready, setReady] = useState(false);
@@ -84,6 +100,8 @@ export function ChatShell() {
     const [connection, setConnection] = useState<ConnectionStatus>("connecting");
     const [notice, setNotice] = useState<Notice | null>(null);
     const [conversations, setConversations] = useState<Conversation[]>([]);
+    // Chat riêng vừa mở lại từ "Nhắn riêng" khi đang bị ẩn ở server: giữ trong danh sách cho tới khi ẩn lại
+    const reopenedIds = useRef(new Set<string>());
     const [invitations, setInvitations] = useState<Invitation[]>([]);
     const [messages, setMessages] = useState<Record<string, Message[]>>({});
     const [membersState, setMembersState] = useState<{
@@ -91,8 +109,10 @@ export function ChatShell() {
         list: Member[];
     } | null>(null);
     const [membersVersion, setMembersVersion] = useState(0);
-    const [showMembers, setShowMembers] = useState(false);
-    const [showInfo, setShowInfo] = useState(true);
+    // Panel thông tin bên phải (trên điện thoại là ngăn kéo)
+    const [panelOpen, setPanelOpen] = useState(false);
+    const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("ALL");
+    const [pinBusyId, setPinBusyId] = useState<string | null>(null);
     // Còn tin cũ hơn để tải không, theo từng cuộc trò chuyện
     const [hasOlder, setHasOlder] = useState<Record<string, boolean>>({});
     const [loadingOlder, setLoadingOlder] = useState(false);
@@ -101,8 +121,9 @@ export function ChatShell() {
     const [query, setQuery] = useState("");
     const [profile, setProfile] = useState<{ name: string; username: string } | null>(null);
     const [showDirect, setShowDirect] = useState(false);
-    const [directName, setDirectName] = useState("");
     const [directBusy, setDirectBusy] = useState(false);
+    // Tăng khi đoạn chat đang mở có tin file mới hoặc tin bị xóa: tab Ảnh & file tải lại
+    const [mediaVersion, setMediaVersion] = useState(0);
 
     const socketRef = useRef<ChatSocket | null>(null);
     const activeIdRef = useRef<string | null>(null);
@@ -130,7 +151,12 @@ export function ChatShell() {
 
     const loadConversations = useCallback(async () => {
         try {
-            setConversations(await chatApi.listConversations());
+            const list = await chatApi.listConversations();
+            const missing = [...reopenedIds.current].filter((id) => !list.some((c) => c.id === id));
+            const extra = await Promise.all(
+                missing.map((id) => chatApi.getConversation(id).catch(() => null)),
+            );
+            setConversations([...list, ...extra.filter((c): c is Conversation => c !== null)]);
         } catch (err) {
             showNotice(errorMessage(err), "error");
         }
@@ -186,7 +212,10 @@ export function ChatShell() {
         void loadConversations();
         void loadInvitations();
         const id = activeIdRef.current;
-        if (id) void loadMessages(id);
+        if (id) {
+            void loadMessages(id);
+            setMediaVersion((v) => v + 1);
+        }
     }, [loadConversations, loadInvitations, loadMessages]);
 
     // Khôi phục phiên từ refresh cookie. Dùng chung promise làm mới với các request khác,
@@ -222,6 +251,9 @@ export function ChatShell() {
         if (!ready) return;
 
         const receive = (message: Message) => {
+            if (message.attachment && message.conversationId === activeIdRef.current) {
+                setMediaVersion((v) => v + 1);
+            }
             setMessages((prev) => {
                 const list = prev[message.conversationId] ?? [];
                 // Bỏ qua tin trùng, vì tin có thể vừa được tải lại khi kết nối lại.
@@ -266,6 +298,7 @@ export function ChatShell() {
                         ),
                     }));
                 } else if (event.type === "messageRemoved") {
+                    if (event.conversationId === activeIdRef.current) setMediaVersion((v) => v + 1);
                     setMessages((prev) => ({
                         ...prev,
                         [event.conversationId]: (prev[event.conversationId] ?? []).map((m) =>
@@ -293,7 +326,7 @@ export function ChatShell() {
                         return next;
                     });
                     setActiveId((current) => (current === event.conversationId ? null : current));
-                    setShowMembers(false);
+                    setPanelOpen(false);
                     showNotice("Nhóm đã bị xóa.", "info");
                     void loadConversations();
                 } else if (event.type === "membership") {
@@ -305,7 +338,7 @@ export function ChatShell() {
                             return next;
                         });
                         setActiveId((current) => (current === event.conversationId ? null : current));
-                        setShowMembers(false);
+                        setPanelOpen(false);
                         showNotice("Bạn đã bị xóa khỏi nhóm.", "error");
                     }
                     void loadConversations();
@@ -379,12 +412,18 @@ export function ChatShell() {
 
     const visible = useMemo(() => {
         const q = query.trim().toLowerCase();
-        return pinnedFirst(conversations.filter((c) => c.title.toLowerCase().includes(q)));
-    }, [conversations, query]);
+        return sortConversations(
+            conversations.filter((c) => matchesCategory(c, categoryFilter) && c.title.toLowerCase().includes(q)),
+        );
+    }, [conversations, query, categoryFilter]);
+
+    // Mục "Đã ghim" đứng sau bot (sortConversations đã sắp xếp)
+    const hasPinned = visible.some((c) => c.pinned);
+    const firstUnpinned = visible.findIndex((c) => !c.pinned);
 
     function openConversation(id: string) {
         setNotice(null);
-        setShowMembers(false);
+        setPanelOpen(false);
         setShowCreate(false);
         setActiveId(id);
         setConversations((prev) =>
@@ -421,6 +460,7 @@ export function ChatShell() {
         if (!window.confirm("Ẩn đoạn chat này khỏi danh sách của bạn? Tin nhắn vẫn được giữ, đoạn chat sẽ hiện lại khi có tin mới.")) return;
         // Ẩn ở phía mình ngay; phía đối phương không bị ảnh hưởng
         const hiddenId = activeId;
+        reopenedIds.current.delete(hiddenId);
         setConversations((prev) => prev.filter((c) => c.id !== hiddenId));
         setMessages((prev) => {
             const next = { ...prev };
@@ -430,6 +470,20 @@ export function ChatShell() {
         setActiveId(null);
         const sent = socketRef.current?.clearHistory(hiddenId) ?? false;
         if (!sent) showNotice("Chưa kết nối được tới máy chủ. Vui lòng thử lại sau.", "error");
+    }
+
+    // Ghim hoặc bỏ ghim rồi tải lại danh sách. Server giới hạn 5 cuộc ghim; lỗi (422) hiện thông báo từ server.
+    async function togglePin(target: Conversation) {
+        if (target.isBot || pinBusyId) return;
+        setPinBusyId(target.id);
+        try {
+            await chatApi.setPinned(target.id, !target.pinned);
+            await loadConversations();
+        } catch (err) {
+            showNotice(errorMessage(err), "error");
+        } finally {
+            setPinBusyId(null);
+        }
     }
 
     async function reportMessage(messageId: string, category: string, reason?: string) {
@@ -445,52 +499,49 @@ export function ChatShell() {
     }
 
     function handleLeft() {
-        setShowMembers(false);
+        setPanelOpen(false);
         setActiveId(null);
         void loadConversations();
     }
 
-    // Tin nhắn chỉ hiện khi server phát lại. Tệp được tải lên qua REST trước,
-    // rồi báo server qua WebSocket /send_file để phát tới người nhận.
-    async function sendMessage(text: string, file: File | null): Promise<boolean> {
+    // Gửi một tệp thành một tin nhắn: tải lên qua REST rồi báo server qua WebSocket /send_file
+    // để phát tới người nhận. Trả về thông báo lỗi, hoặc null nếu đã gửi.
+    async function sendFile(file: File): Promise<string | null> {
+        if (!activeId) return "Chưa chọn cuộc trò chuyện.";
+        const socket = socketRef.current;
+        if (!socket?.isOpen()) return "Chưa kết nối được tới máy chủ.";
+        let created: CreatedFile;
+        try {
+            created = await uploadFile(activeId, file);
+        } catch (err) {
+            return errorMessage(err);
+        }
+        if (!socket.sendFile(activeId, created)) return "Mất kết nối trước khi gửi.";
+        return null;
+    }
+
+    // Tin chữ chỉ hiện khi server phát lại qua sự kiện MESSAGE
+    async function sendText(text: string): Promise<boolean> {
         if (!activeId) return false;
         const socket = socketRef.current;
         if (!socket?.isOpen()) {
             showNotice("Chưa kết nối được tới máy chủ. Tin nhắn chưa được gửi.", "error");
             return false;
         }
-
-        if (file) {
-            let created: CreatedFile;
-            try {
-                created = await uploadFile(activeId, file);
-            } catch (err) {
-                showNotice(errorMessage(err), "error");
-                return false;
-            }
-            if (!socket.sendFile(activeId, created)) {
-                showNotice("Mất kết nối trước khi gửi. Vui lòng thử lại.", "error");
-                return false;
-            }
-        }
-
-        if (text.trim()) {
-            if (!socket.send(activeId, text)) {
-                showNotice("Mất kết nối trước khi gửi. Vui lòng thử lại.", "error");
-                return false;
-            }
+        if (!socket.send(activeId, text)) {
+            showNotice("Mất kết nối trước khi gửi. Vui lòng thử lại.", "error");
+            return false;
         }
         return true;
     }
 
-    async function startDirect(e: FormEvent<HTMLFormElement>) {
-        e.preventDefault();
-        const username = directName.trim();
-        if (!username) return;
+    // Mở chat riêng với người đã chọn từ gợi ý (hoặc mở lại chat cũ)
+    async function startDirect(user: UserSuggestion) {
+        if (directBusy) return;
         setDirectBusy(true);
         try {
-            const conversation = await chatApi.startDirectChat(username);
-            setDirectName("");
+            const conversation = await chatApi.startDirectChat(user.id);
+            reopenedIds.current.add(conversation.id);
             setShowDirect(false);
             await loadConversations();
             openConversation(conversation.id);
@@ -518,338 +569,356 @@ export function ChatShell() {
     }
 
     return (
-        <div className="flex h-dvh bg-paper text-ink">
-            <nav
-                aria-label="Điều hướng"
-                className="hidden w-16 shrink-0 flex-col items-center justify-between border-r border-line bg-surface py-4 md:flex"
-            >
-                <Logo size={36} />
-                <div className="flex flex-col items-center gap-3">
-                    <span
-                        title="Tin nhắn"
-                        className="grid size-10 place-items-center rounded-md bg-tint text-primary"
+        <div className="flex h-dvh flex-col bg-paper text-ink">
+            <div className="flex min-h-0 flex-1">
+                <nav
+                    aria-label="Điều hướng"
+                    className="hidden w-16 shrink-0 flex-col items-center justify-between border-r border-line bg-surface py-4 md:flex"
+                >
+                    <Logo size={36} />
+                    <div className="flex flex-col items-center gap-3">
+                        <span
+                            title="Tin nhắn"
+                            className="grid size-10 place-items-center rounded-md bg-tint text-primary"
+                        >
+                            <Icon d={ICONS.chat} />
+                        </span>
+                        <ThemeToggle />
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => router.push("/account")}
+                        aria-label="Tài khoản"
+                        title="Tài khoản"
+                        className="grid size-10 place-items-center rounded-md text-muted transition-colors hover:bg-tint hover:text-ink"
                     >
-                        <Icon d={ICONS.chat} />
-                    </span>
-                    <ThemeToggle />
-                </div>
+                        <svg viewBox="0 0 24 24" width={20} height={20} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
+                            <circle cx="12" cy="8" r="4" />
+                            <path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" />
+                        </svg>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleLogout}
+                        aria-label="Đăng xuất"
+                        title="Đăng xuất"
+                        className="grid size-10 place-items-center rounded-md text-muted transition-colors hover:bg-tint hover:text-ink"
+                    >
+                        <Icon d={ICONS.logout} />
+                    </button>
+                </nav>
+
+                <aside
+                    className={`${active ? "hidden md:flex" : "flex"} min-h-0 w-full flex-col border-r border-line bg-surface md:w-[340px]`}
+                >
+                    <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-line px-5">
+                        <div className="min-w-0">
+                            <h1 className="text-lg font-semibold leading-tight">Tin nhắn</h1>
+                            {profile ? (
+                                <p className="truncate text-xs text-muted">
+                                    {profile.name} · @{profile.username}
+                                </p>
+                            ) : null}
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <span
+                                role="status"
+                                className={`flex items-center gap-1.5 text-xs ${
+                                    connection === "open" ? "text-success" : "text-muted"
+                                }`}
+                            >
+                                <span
+                                    aria-hidden="true"
+                                    className={`size-2 rounded-full ${connection === "open" ? "bg-success" : "bg-muted"}`}
+                                />
+                                <span className="sr-only sm:not-sr-only">{STATUS_LABEL[connection]}</span>
+                            </span>
+                        </div>
+                    </header>
+
+                    <div className="px-4 py-3">
+                        <label className="relative block">
+                            <span className="sr-only">Tìm cuộc trò chuyện</span>
+                            <span className="pointer-events-none absolute inset-y-0 left-3 grid place-items-center text-muted">
+                                <Icon d={ICONS.search} size={16} />
+                            </span>
+                            <input
+                                type="search"
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                                placeholder="Tìm kiếm"
+                                className={`${FIELD} pl-9`}
+                            />
+                        </label>
+                    </div>
+
+                    <div role="group" aria-label="Lọc theo loại" className="flex flex-wrap gap-1.5 px-4 pb-3">
+                        {CATEGORY_FILTERS.map((f) => (
+                            <button
+                                key={f.value}
+                                type="button"
+                                aria-pressed={categoryFilter === f.value}
+                                onClick={() => setCategoryFilter(f.value)}
+                                className={CHIP}
+                            >
+                                {f.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="flex gap-2 px-4 pb-3">
+                        <button
+                            type="button"
+                            onClick={() => setShowDirect((v) => !v)}
+                            aria-expanded={showDirect}
+                            className={buttonStyle("secondary", "md", "flex-1 aria-expanded:border-primary aria-expanded:bg-tint aria-expanded:text-primary")}
+                        >
+                            <Icon d={ICONS.plus} size={15} />
+                            Nhắn riêng
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setShowCreate((v) => !v)}
+                            aria-expanded={showCreate}
+                            className={buttonStyle("secondary", "md", "flex-1 aria-expanded:border-primary aria-expanded:bg-tint aria-expanded:text-primary")}
+                        >
+                            <Icon d={ICONS.plus} size={15} />
+                            Nhóm mới
+                        </button>
+                    </div>
+
+                    {showDirect ? <DirectChatSearch busy={directBusy} onPick={(user) => void startDirect(user)} /> : null}
+
+                    {showCreate ? (
+                        <CreateGroupForm
+                            onCreated={handleCreated}
+                            onCancel={() => setShowCreate(false)}
+                            onError={(text) => showNotice(text, "error")}
+                        />
+                    ) : null}
+
+                    {invitations.length > 0 ? (
+                        <InvitationList
+                            invitations={invitations}
+                            onChanged={() => {
+                                void loadInvitations();
+                                void loadConversations();
+                            }}
+                            onError={(text) => showNotice(text, "error")}
+                        />
+                    ) : null}
+
+                    <ul className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
+                        {visible.length === 0 ? (
+                            <li className={EMPTY}>
+                                {query || categoryFilter !== "ALL" ? "Không có cuộc trò chuyện phù hợp." : "Chưa có cuộc trò chuyện nào."}
+                            </li>
+                        ) : null}
+                        {visible.map((c, index) => {
+                            const isActive = c.id === activeId;
+                            return (
+                                <Fragment key={c.id}>
+                                    {hasPinned && index === 0 ? <SectionLabel>Đã ghim</SectionLabel> : null}
+                                    {hasPinned && index === firstUnpinned ? (
+                                        <SectionLabel>Các cuộc trò chuyện khác</SectionLabel>
+                                    ) : null}
+                                    <li className="flex items-center gap-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => openConversation(c.id)}
+                                            aria-current={isActive ? "true" : undefined}
+                                            className={`flex min-w-0 flex-1 items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-paper ${
+                                                isActive ? "bg-tint hover:bg-tint" : ""
+                                            }`}
+                                        >
+                                            <Avatar title={c.title} group={c.kind === "group"} />
+                                            <span className="min-w-0 flex-1">
+                                                <span className="flex items-baseline justify-between gap-2">
+                                                    <span className="flex min-w-0 items-center gap-1.5">
+                                                        <span className={`truncate text-[15px] ${c.unread > 0 ? "font-semibold" : "font-medium"}`}>{c.title}</span>
+                                                        <span className={badgeStyle("outline")}>
+                                                            {c.kind === "group" ? "Nhóm" : "Riêng"}
+                                                        </span>
+                                                    </span>
+                                                    <span className="shrink-0 whitespace-nowrap text-xs tabular-nums text-muted">
+                                                        {formatChatTime(c.lastTime)}
+                                                    </span>
+                                                </span>
+                                                <span className="mt-0.5 flex items-center justify-between gap-2">
+                                                    <span className="truncate text-[15px] text-muted">
+                                                        {c.lastMessage || "Chưa có tin nhắn"}
+                                                    </span>
+                                                    {c.unread > 0 ? (
+                                                        <span className="shrink-0 rounded-full bg-primary px-1.5 text-xs font-semibold leading-5 tabular-nums text-primary-ink">
+                                                            {c.unread}
+                                                        </span>
+                                                    ) : null}
+                                                </span>
+                                            </span>
+                                        </button>
+                                        {c.isBot ? null : (
+                                            <button
+                                                type="button"
+                                                onClick={() => void togglePin(c)}
+                                                disabled={pinBusyId !== null}
+                                                aria-pressed={c.pinned}
+                                                aria-label={c.pinned ? `Bỏ ghim ${c.title}` : `Ghim ${c.title}`}
+                                                title={c.pinned ? "Bỏ ghim" : "Ghim lên đầu"}
+                                                className={`grid size-9 shrink-0 place-items-center rounded-md transition-colors hover:bg-paper disabled:opacity-40 ${
+                                                    c.pinned ? "text-primary" : "text-muted hover:text-ink"
+                                                }`}
+                                            >
+                                                <Icon d={ICONS.pin} size={16} />
+                                            </button>
+                                        )}
+                                    </li>
+                                </Fragment>
+                            );
+                        })}
+                    </ul>
+                </aside>
+
+                <main className={`${active ? "flex" : "hidden md:flex"} min-w-0 flex-1 flex-col bg-paper`}>
+                    {active ? (
+                        <>
+                            <header className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-line bg-surface px-4 sm:px-6">
+                                <div className="flex min-w-0 items-center gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveId(null)}
+                                        aria-label="Quay lại danh sách"
+                                        className="grid size-9 shrink-0 place-items-center rounded-md text-primary transition-colors hover:bg-tint md:hidden"
+                                    >
+                                        <Icon d={ICONS.back} />
+                                    </button>
+                                    <Avatar title={active.title} group={active.kind === "group"} size="sm" />
+                                    <div className="min-w-0">
+                                        <h2 className="truncate text-base font-semibold">{active.title}</h2>
+                                        <p className="truncate text-xs text-muted">
+                                            {active.kind === "group" ? "Nhóm học tập" : "Trò chuyện trực tiếp"}
+                                        </p>
+                                    </div>
+                                </div>
+                                {active.kind === "direct" && !active.isBot ? (
+                                    <button
+                                        type="button"
+                                        onClick={clearActiveHistory}
+                                        className={buttonStyle("secondary", "md", "hidden lg:inline-flex")}
+                                    >
+                                        Ẩn đoạn chat
+                                    </button>
+                                ) : null}
+                                <button
+                                    type="button"
+                                    aria-pressed={panelOpen}
+                                    onClick={() => setPanelOpen((v) => !v)}
+                                    className={buttonStyle("secondary", "md", "aria-pressed:border-primary aria-pressed:bg-tint aria-pressed:text-primary")}
+                                >
+                                    <Icon d={ICONS.users} size={16} />
+                                    Thông tin
+                                </button>
+                            </header>
+
+                            <div className="relative flex min-h-0 flex-1">
+                                <div className="flex min-w-0 flex-1 flex-col">
+                                    <MessageList
+                                        key={active.id}
+                                        messages={displayMessages}
+                                        currentUserId={me}
+                                        isGroup={active.kind === "group"}
+                                        onEdit={editMessage}
+                                        onRemove={removeMessage}
+                                        onReport={reportMessage}
+                                        hasOlder={hasOlder[active.id] ?? false}
+                                        loadingOlder={loadingOlder}
+                                        onLoadOlder={() => void loadOlder()}
+                                    />
+                                    <Composer onSendFile={sendFile} onSendText={sendText} />
+                                </div>
+                                {panelOpen ? (
+                                    <>
+                                        <button
+                                            type="button"
+                                            aria-label="Đóng thông tin"
+                                            onClick={() => setPanelOpen(false)}
+                                            className="absolute inset-0 z-20 bg-ink/30 lg:hidden"
+                                        />
+                                        <aside
+                                            aria-label="Thông tin cuộc trò chuyện"
+                                            className="absolute inset-y-0 right-0 z-30 flex w-[min(92vw,20rem)] flex-col border-l border-line shadow-lg lg:static lg:z-auto lg:w-72 lg:shrink-0 lg:shadow-none"
+                                        >
+                                            <ConversationPanel
+                                                key={active.id}
+                                                conversation={active}
+                                                members={activeMembers}
+                                                currentUserId={me}
+                                                isOwner={isOwner}
+                                                onClose={() => setPanelOpen(false)}
+                                                onLeft={handleLeft}
+                                                onMembersChanged={() => setMembersVersion((v) => v + 1)}
+                                                onNotice={showNotice}
+                                                onDeleteGroup={deleteActiveGroup}
+                                                mediaVersion={mediaVersion}
+                                                onRemoveMessage={removeMessage}
+                                            />
+                                        </aside>
+                                    </>
+                                ) : null}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="m-auto flex max-w-xs flex-col items-center gap-3 px-6 text-center">
+                            <span className="grid size-14 place-items-center rounded-lg bg-tint text-primary">
+                                <Icon d={ICONS.chat} size={26} />
+                            </span>
+                            <p className="text-base font-semibold">Chọn một cuộc trò chuyện</p>
+                            <p className="text-sm text-muted">
+                                Chọn một đoạn chat bên trái, hoặc tạo nhóm mới để bắt đầu.
+                            </p>
+                        </div>
+                    )}
+                </main>
+            </div>
+            <nav
+                aria-label="Điều hướng nhanh"
+                className="flex shrink-0 items-center justify-around border-t border-line bg-surface px-2 py-1.5 md:hidden"
+            >
+                <button
+                    type="button"
+                    onClick={() => {
+                        setPanelOpen(false);
+                        setActiveId(null);
+                    }}
+                    aria-label="Tin nhắn"
+                    className="flex min-w-14 flex-col items-center gap-0.5 rounded-md px-2 py-1 text-xs text-primary transition-colors hover:bg-tint"
+                >
+                    <Icon d={ICONS.chat} size={20} />
+                    Tin nhắn
+                </button>
+                <ThemeToggle />
+                <button
+                    type="button"
+                    onClick={() => router.push("/account")}
+                    aria-label="Tài khoản"
+                    className="flex min-w-14 flex-col items-center gap-0.5 rounded-md px-2 py-1 text-xs text-muted transition-colors hover:bg-tint hover:text-ink"
+                >
+                    <Icon d={ICONS.user} size={20} />
+                    Tài khoản
+                </button>
                 <button
                     type="button"
                     onClick={handleLogout}
                     aria-label="Đăng xuất"
-                    title="Đăng xuất"
-                    className="grid size-10 place-items-center rounded-md text-muted transition-colors hover:bg-tint hover:text-ink"
+                    className="flex min-w-14 flex-col items-center gap-0.5 rounded-md px-2 py-1 text-xs text-muted transition-colors hover:bg-tint hover:text-ink"
                 >
-                    <Icon d={ICONS.logout} />
+                    <Icon d={ICONS.logout} size={20} />
+                    Đăng xuất
                 </button>
             </nav>
-
-            <aside
-                className={`${active ? "hidden md:flex" : "flex"} min-h-0 w-full flex-col border-r border-line bg-surface md:w-[340px]`}
-            >
-                <header className="flex items-start justify-between gap-3 px-5 pb-3 pt-5">
-                    <div className="min-w-0">
-                        <h1 className="font-serif text-2xl font-semibold leading-tight">Tin nhắn</h1>
-                        {profile ? (
-                            <p className="truncate text-xs text-muted">
-                                {profile.name} · @{profile.username}
-                            </p>
-                        ) : null}
-                    </div>
-                    <div className="flex items-center gap-3">
-                        <span
-                            role="status"
-                            className={`flex items-center gap-1.5 text-xs ${
-                                connection === "open" ? "text-success" : "text-muted"
-                            }`}
-                        >
-                            <span
-                                aria-hidden="true"
-                                className={`size-2 rounded-full ${connection === "open" ? "bg-success" : "bg-muted"}`}
-                            />
-                            <span className="sr-only sm:not-sr-only">{STATUS_LABEL[connection]}</span>
-                        </span>
-                        <span className="md:hidden">
-                            <ThemeToggle />
-                        </span>
-                        <button
-                            type="button"
-                            onClick={handleLogout}
-                            className="text-sm text-muted underline-offset-4 hover:text-ink hover:underline md:hidden"
-                        >
-                            Đăng xuất
-                        </button>
-                    </div>
-                </header>
-
-                <div className="px-4 pb-3">
-                    <label className="relative block">
-                        <span className="sr-only">Tìm cuộc trò chuyện</span>
-                        <span className="pointer-events-none absolute inset-y-0 left-3 grid place-items-center text-muted">
-                            <Icon d={ICONS.search} size={16} />
-                        </span>
-                        <input
-                            type="search"
-                            value={query}
-                            onChange={(e) => setQuery(e.target.value)}
-                            placeholder="Tìm kiếm"
-                            className="h-10 w-full rounded-md border border-line bg-paper pl-9 pr-3 text-sm text-ink outline-none transition-colors placeholder:text-muted focus:border-primary"
-                        />
-                    </label>
-                </div>
-
-                <div className="flex gap-2 px-4 pb-3">
-                    <button
-                        type="button"
-                        onClick={() => setShowDirect((v) => !v)}
-                        aria-expanded={showDirect}
-                        className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-md border text-sm transition-colors ${
-                            showDirect ? "border-primary bg-tint text-primary" : "border-line hover:bg-tint"
-                        }`}
-                    >
-                        <Icon d={ICONS.plus} size={15} />
-                        Nhắn riêng
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setShowCreate((v) => !v)}
-                        aria-expanded={showCreate}
-                        className={`flex h-9 flex-1 items-center justify-center gap-1.5 rounded-md border text-sm transition-colors ${
-                            showCreate ? "border-primary bg-tint text-primary" : "border-line hover:bg-tint"
-                        }`}
-                    >
-                        <Icon d={ICONS.plus} size={15} />
-                        Nhóm mới
-                    </button>
-                </div>
-
-                {showDirect ? (
-                    <form onSubmit={startDirect} className="flex gap-2 px-4 pb-3">
-                        <input
-                            value={directName}
-                            onChange={(e) => setDirectName(e.target.value)}
-                            placeholder="Tên đăng nhập người nhận"
-                            aria-label="Tên đăng nhập người nhận"
-                            autoCapitalize="none"
-                            spellCheck={false}
-                            className="h-9 min-w-0 flex-1 rounded-md border border-line bg-paper px-3 text-sm text-ink outline-none placeholder:text-muted focus:border-primary"
-                        />
-                        <button
-                            type="submit"
-                            disabled={directBusy || !directName.trim()}
-                            className="h-9 rounded-md bg-primary px-4 text-sm font-medium text-primary-ink transition-colors hover:bg-primary-hover disabled:opacity-40"
-                        >
-                            Mở
-                        </button>
-                    </form>
-                ) : null}
-
-                {showCreate ? (
-                    <CreateGroupForm
-                        onCreated={handleCreated}
-                        onCancel={() => setShowCreate(false)}
-                        onError={(text) => showNotice(text, "error")}
-                    />
-                ) : null}
-
-                {invitations.length > 0 ? (
-                    <InvitationList
-                        invitations={invitations}
-                        onChanged={() => {
-                            void loadInvitations();
-                            void loadConversations();
-                        }}
-                        onError={(text) => showNotice(text, "error")}
-                    />
-                ) : null}
-
-                <ul className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
-                    {visible.length === 0 ? (
-                        <li className="px-3 py-8 text-center text-sm text-muted">
-                            {query ? "Không có cuộc trò chuyện phù hợp." : "Chưa có cuộc trò chuyện nào."}
-                        </li>
-                    ) : null}
-                    {visible.map((c) => {
-                        const isActive = c.id === activeId;
-                        return (
-                            <li key={c.id}>
-                                <button
-                                    type="button"
-                                    onClick={() => openConversation(c.id)}
-                                    aria-current={isActive ? "true" : undefined}
-                                    className={`flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left transition-colors hover:bg-paper ${
-                                        isActive ? "bg-tint hover:bg-tint" : ""
-                                    }`}
-                                >
-                                    <Avatar title={c.title} group={c.kind === "group"} />
-                                    <span className="min-w-0 flex-1">
-                                        <span className="flex items-baseline justify-between gap-2">
-                                            <span className="flex min-w-0 items-center gap-1.5">
-                                                <span className="truncate font-medium">{c.title}</span>
-                                                <span className="shrink-0 rounded px-1 text-[10px] leading-4 text-muted ring-1 ring-line">
-                                                    {c.kind === "group" ? "Nhóm" : "Riêng"}
-                                                </span>
-                                            </span>
-                                            <span className="shrink-0 whitespace-nowrap text-xs text-muted">
-                                                {formatChatTime(c.lastTime)}
-                                            </span>
-                                        </span>
-                                        <span className="mt-0.5 flex items-center justify-between gap-2">
-                                            <span className="truncate text-sm text-muted">
-                                                {c.lastMessage || "Chưa có tin nhắn"}
-                                            </span>
-                                            {c.unread > 0 ? (
-                                                <span className="shrink-0 rounded-full bg-primary px-2 text-xs font-medium leading-5 text-primary-ink">
-                                                    {c.unread}
-                                                </span>
-                                            ) : null}
-                                        </span>
-                                    </span>
-                                </button>
-                            </li>
-                        );
-                    })}
-                </ul>
-            </aside>
-
-            <main className={`${active ? "flex" : "hidden md:flex"} min-w-0 flex-1 flex-col bg-paper`}>
-                {active ? (
-                    <>
-                        <header className="flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-3 sm:px-6">
-                            <div className="flex min-w-0 items-center gap-3">
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveId(null)}
-                                    aria-label="Quay lại danh sách"
-                                    className="grid size-9 shrink-0 place-items-center rounded-md text-primary transition-colors hover:bg-tint md:hidden"
-                                >
-                                    <Icon d={ICONS.back} />
-                                </button>
-                                <Avatar title={active.title} group={active.kind === "group"} size="sm" />
-                                <div className="min-w-0">
-                                    <h2 className="truncate text-base font-semibold">{active.title}</h2>
-                                    <p className="truncate text-xs text-muted">
-                                        {active.kind === "group" ? "Nhóm học tập" : "Trò chuyện trực tiếp"}
-                                    </p>
-                                </div>
-                            </div>
-                            {active.kind === "direct" && !active.pinned ? (
-                                <button
-                                    type="button"
-                                    onClick={clearActiveHistory}
-                                    className="hidden shrink-0 items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-sm text-muted transition-colors hover:bg-tint hover:text-ink lg:flex"
-                                >
-                                    Ẩn đoạn chat
-                                </button>
-                            ) : null}
-                            {active.kind === "group" ? (
-                                <button
-                                    type="button"
-                                    aria-pressed={showInfo}
-                                    onClick={() => setShowInfo((v) => !v)}
-                                    className={`hidden shrink-0 items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors lg:flex ${
-                                        showInfo ? "border-primary bg-tint text-primary" : "border-line hover:bg-tint"
-                                    }`}
-                                >
-                                    <Icon d={ICONS.users} size={16} />
-                                    {showInfo ? "Ẩn thông tin" : "Thông tin nhóm"}
-                                </button>
-                            ) : null}
-                            {active.kind === "group" ? (
-                                <button
-                                    type="button"
-                                    aria-pressed={showMembers}
-                                    onClick={() => setShowMembers((v) => !v)}
-                                    className={`flex shrink-0 items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors lg:hidden ${
-                                        showMembers ? "border-primary bg-tint text-primary" : "border-line hover:bg-tint"
-                                    }`}
-                                >
-                                    <Icon d={ICONS.users} size={16} />
-                                    Thành viên
-                                </button>
-                            ) : null}
-                        </header>
-
-                        <div className="lg:hidden">
-                            {showMembers && active.kind === "group" ? (
-                                activeMembers ? (
-                                    <MembersPanel
-                                        groupId={active.id}
-                                        members={activeMembers}
-                                        isOwner={isOwner}
-                                        currentUserId={me}
-                                        onLeft={handleLeft}
-                                        onChanged={() => setMembersVersion((v) => v + 1)}
-                                        onNotice={showNotice}
-                                        onDeleteGroup={deleteActiveGroup}
-                                    />
-                                ) : (
-                                    <div className="border-b border-line bg-surface px-4 py-3 text-sm text-muted">
-                                        Đang tải thành viên...
-                                    </div>
-                                )
-                            ) : null}
-                        </div>
-
-                        <div className="flex min-h-0 flex-1">
-                            <div className="flex min-w-0 flex-1 flex-col">
-                                <MessageList
-                                    key={active.id}
-                                    messages={displayMessages}
-                                    currentUserId={me}
-                                    isGroup={active.kind === "group"}
-                                    onEdit={editMessage}
-                                    onRemove={removeMessage}
-                                    onReport={reportMessage}
-                                    hasOlder={hasOlder[active.id] ?? false}
-                                    loadingOlder={loadingOlder}
-                                    onLoadOlder={() => void loadOlder()}
-                                />
-                                <Composer onSend={sendMessage} />
-                            </div>
-                            {active.kind === "group" ? (
-                                <aside
-                                    aria-label="Thông tin nhóm"
-                                    className={`hidden shrink-0 overflow-hidden border-l border-line bg-surface transition-[width] duration-200 lg:flex ${
-                                        showInfo ? "lg:w-72" : "lg:w-0 lg:border-l-0"
-                                    }`}
-                                >
-                                    <div className="flex w-72 min-h-0 flex-1 flex-col overflow-y-auto [&>section]:max-h-none [&>section]:border-b-0">
-                                        {activeMembers ? (
-                                            <MembersPanel
-                                                groupId={active.id}
-                                                members={activeMembers}
-                                                isOwner={isOwner}
-                                                currentUserId={me}
-                                                onLeft={handleLeft}
-                                                onChanged={() => setMembersVersion((v) => v + 1)}
-                                                onNotice={showNotice}
-                                                onDeleteGroup={deleteActiveGroup}
-                                            />
-                                        ) : (
-                                            <div className="px-4 py-3 text-sm text-muted">Đang tải thành viên...</div>
-                                        )}
-                                    </div>
-                                </aside>
-                            ) : null}
-                        </div>
-                    </>
-                ) : (
-                    <div className="m-auto flex max-w-xs flex-col items-center gap-3 px-6 text-center">
-                        <span className="grid size-14 place-items-center rounded-lg bg-tint text-primary">
-                            <Icon d={ICONS.chat} size={26} />
-                        </span>
-                        <p className="font-serif text-lg font-semibold">Chọn một cuộc trò chuyện</p>
-                        <p className="text-sm text-muted">
-                            Chọn một đoạn chat bên trái, hoặc tạo nhóm mới để bắt đầu.
-                        </p>
-                    </div>
-                )}
-            </main>
             {notice ? (
                 <div
                     role="status"
-                    className={`fixed top-4 left-1/2 z-50 md:top-6 flex w-[min(92vw,28rem)] -translate-x-1/2 items-center justify-between gap-3 rounded-md border border-line bg-surface px-4 py-2.5 text-sm shadow-[0_12px_32px_-12px_rgba(13,37,56,0.35)] ${
+                    className={`fixed top-4 left-1/2 z-50 md:top-6 flex w-[min(92vw,28rem)] -translate-x-1/2 items-center justify-between gap-3 rounded-md border border-line bg-surface px-4 py-2.5 text-sm shadow-md ${
                         notice.tone === "error" ? "text-danger" : "text-primary"
                     }`}
                 >

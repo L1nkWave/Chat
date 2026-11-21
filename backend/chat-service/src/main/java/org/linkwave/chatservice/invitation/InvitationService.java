@@ -77,6 +77,25 @@ public class InvitationService {
         return dto;
     }
 
+    /**
+     * Gửi lời mời do đồng bộ học vụ tạo. Người gọi đã kiểm tra quyền và thành viên trước.
+     *
+     * @return false nếu người này đã có lời mời đang chờ (không tạo thêm)
+     */
+    public boolean inviteFromRoster(@NonNull Long inviterId, @NonNull GroupChat chat, @NonNull Long inviteeId) {
+        if (invitationRepository.existsByChatIdAndInviteeIdAndStatus(chat.getId(), inviteeId, PENDING)) {
+            return false;
+        }
+        invitationRepository.save(GroupInvitation.builder()
+                .chatId(chat.getId())
+                .inviterId(inviterId)
+                .inviteeId(inviteeId)
+                .status(PENDING)
+                .createdAt(Instant.now())
+                .build());
+        return true;
+    }
+
     public List<InvitationDto> listPending(@NonNull RequestInitiator initiator) {
         return invitationRepository.findByInviteeIdAndStatus(initiator.userId(), PENDING).stream()
                 .map(invitation -> toDto(

@@ -8,6 +8,7 @@ import lombok.experimental.SuperBuilder;
 import org.linkwave.chatservice.chat.ChatMember;
 import org.linkwave.chatservice.chat.ChatRole;
 import org.linkwave.chatservice.chat.duo.Chat;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.lang.NonNull;
 
@@ -30,6 +31,13 @@ public class GroupChat extends Chat {
 
     @Builder.Default
     private boolean isPrivate = true;
+
+    @Builder.Default
+    private ChatCategory category = ChatCategory.GROUP;
+
+    /** Khóa nhóm học vụ tự động, ví dụ "class:K23CNTT1". Null với nhóm tạo tay. Duy nhất khi có giá trị. */
+    @Indexed(unique = true, sparse = true)
+    private String academicKey;
 
     public ChatMember addMember(@NonNull Long userId) {
         final var newMember = new ChatMember(userId, ChatRole.MEMBER, Instant.now());

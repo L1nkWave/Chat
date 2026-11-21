@@ -17,7 +17,9 @@ import type {
     UserInfo,
 } from "@/lib/admin/api";
 import { formatChatTime } from "@/lib/chat/time";
-import { BTN_GHOST, BTN_PRIMARY, CARD, CATEGORY_LABEL, INPUT, LABEL } from "./shared";
+import { Badge } from "@/components/ui/Badge";
+import { buttonStyle, CARD, EMPTY, FIELD, HELP, LABEL, SECTION_TITLE, SELECT } from "@/components/ui/styles";
+import { CATEGORY_LABEL } from "./shared";
 
 const DECISIONS: { value: ResolveDecision; label: string }[] = [
     { value: "DISMISS", label: "Bỏ qua" },
@@ -35,6 +37,13 @@ const DECISION_LABEL: Record<ResolveDecision, string> = {
     DISMISS: "Bỏ qua",
     WARN: "Cảnh báo",
     HIDE: "Gỡ nội dung",
+};
+
+/* Vai trò nút: Cảnh báo là việc chính, Bỏ qua là phụ, Gỡ nội dung là thao tác xóa */
+const DECISION_STYLE: Record<ResolveDecision, string> = {
+    DISMISS: buttonStyle("secondary", "md"),
+    WARN: buttonStyle("primary", "md"),
+    HIDE: buttonStyle("danger", "md"),
 };
 
 const STATUS_OPTIONS: { value: ReportFilter["status"]; label: string }[] = [
@@ -151,11 +160,15 @@ export function ReportsTab() {
     return (
         <section aria-label="Báo cáo tin nhắn" className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-col">
-                    <h2 className="font-serif text-lg font-semibold">Báo cáo tin nhắn</h2>
-                    <p className="text-xs text-muted">Tự cập nhật mỗi 30 giây. Tìm thấy {total} báo cáo.</p>
+                <div className="flex flex-col gap-1.5">
+                    <h2 className={SECTION_TITLE}>Báo cáo tin nhắn</h2>
+                    <p className={HELP}>Tự cập nhật mỗi 30 giây. Tìm thấy {total} báo cáo.</p>
                 </div>
-                <button type="button" onClick={() => setReloadKey((key) => key + 1)} className={BTN_GHOST}>
+                <button
+                    type="button"
+                    onClick={() => setReloadKey((key) => key + 1)}
+                    className={buttonStyle("secondary", "md")}
+                >
                     Làm mới
                 </button>
             </div>
@@ -168,13 +181,13 @@ export function ReportsTab() {
                 className={CARD}
             >
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1.5">
                         <label htmlFor="rf-status" className={LABEL}>Trạng thái</label>
                         <select
                             id="rf-status"
                             value={draft.status}
                             onChange={(e) => setDraft({ ...draft, status: e.target.value as ReportFilter["status"] })}
-                            className={INPUT}
+                            className={SELECT}
                         >
                             {STATUS_OPTIONS.map((opt) => (
                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -182,13 +195,13 @@ export function ReportsTab() {
                         </select>
                     </div>
 
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1.5">
                         <label htmlFor="rf-category" className={LABEL}>Loại vi phạm</label>
                         <select
                             id="rf-category"
                             value={draft.category}
                             onChange={(e) => setDraft({ ...draft, category: e.target.value as ReportCategory | "" })}
-                            className={INPUT}
+                            className={SELECT}
                         >
                             <option value="">Tất cả</option>
                             {CATEGORY_OPTIONS.map((cat) => (
@@ -197,7 +210,7 @@ export function ReportsTab() {
                         </select>
                     </div>
 
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1.5">
                         <label htmlFor="rf-author" className={LABEL}>Mã tác giả</label>
                         <input
                             id="rf-author"
@@ -207,11 +220,11 @@ export function ReportsTab() {
                             onChange={(e) =>
                                 setDraft({ ...draft, authorId: e.target.value === "" ? null : Number(e.target.value) })
                             }
-                            className={INPUT}
+                            className={FIELD}
                         />
                     </div>
 
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1.5">
                         <label htmlFor="rf-reporter" className={LABEL}>Mã người báo cáo</label>
                         <input
                             id="rf-reporter"
@@ -221,49 +234,49 @@ export function ReportsTab() {
                             onChange={(e) =>
                                 setDraft({ ...draft, reporterId: e.target.value === "" ? null : Number(e.target.value) })
                             }
-                            className={INPUT}
+                            className={FIELD}
                         />
                     </div>
 
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1.5">
                         <label htmlFor="rf-from" className={LABEL}>Từ ngày</label>
                         <input
                             id="rf-from"
                             type="date"
                             value={draft.from}
                             onChange={(e) => setDraft({ ...draft, from: e.target.value })}
-                            className={INPUT}
+                            className={FIELD}
                         />
                     </div>
 
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1.5">
                         <label htmlFor="rf-to" className={LABEL}>Đến ngày</label>
                         <input
                             id="rf-to"
                             type="date"
                             value={draft.to}
                             onChange={(e) => setDraft({ ...draft, to: e.target.value })}
-                            className={INPUT}
+                            className={FIELD}
                         />
                     </div>
 
-                    <div className="flex flex-col gap-1 sm:col-span-2">
+                    <div className="flex flex-col gap-1.5 sm:col-span-2">
                         <label htmlFor="rf-q" className={LABEL}>Tìm trong nội dung tin</label>
                         <input
                             id="rf-q"
                             value={draft.q}
                             maxLength={100}
                             onChange={(e) => setDraft({ ...draft, q: e.target.value })}
-                            className={INPUT}
+                            className={FIELD}
                         />
                     </div>
                 </div>
 
                 <div className="mt-3 flex flex-wrap justify-end gap-2">
-                    <button type="button" onClick={clearFilter} className={BTN_GHOST}>
+                    <button type="button" onClick={clearFilter} className={buttonStyle("ghost", "md")}>
                         Xóa bộ lọc
                     </button>
-                    <button type="submit" className={BTN_PRIMARY}>
+                    <button type="submit" className={buttonStyle("primary", "md")}>
                         Áp dụng
                     </button>
                 </div>
@@ -272,7 +285,7 @@ export function ReportsTab() {
             {notice ? <Notice text={notice.text} tone={notice.tone} onClose={() => setNotice(null)} /> : null}
             {loading ? <p className="text-sm text-muted">Đang tải...</p> : null}
             {!loading && reports.length === 0 ? (
-                <p className="text-sm text-muted">Không có báo cáo nào khớp bộ lọc.</p>
+                <p className={EMPTY}>Không có báo cáo nào khớp bộ lọc.</p>
             ) : null}
 
             <ul className="flex flex-col gap-3">
@@ -280,20 +293,20 @@ export function ReportsTab() {
                     const open = report.status === "OPEN";
                     return (
                         <li key={report.id} className={CARD}>
-                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-                                <span className="font-semibold text-primary">{CATEGORY_LABEL[report.category]}</span>
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted">
+                                <Badge tone="outline">{CATEGORY_LABEL[report.category]}</Badge>
                                 <span>Tác giả: {who(report.authorId)}</span>
                                 <span>Người báo cáo: {who(report.reporterId)}</span>
                                 <span>{formatChatTime(report.reportedAt)}</span>
                                 {open ? null : (
-                                    <span className="font-semibold">
+                                    <Badge tone="success">
                                         Đã xử lý: {report.decision ? DECISION_LABEL[report.decision] : "—"}
                                         {report.resolvedAt ? ` · ${formatChatTime(report.resolvedAt)}` : ""}
-                                    </span>
+                                    </Badge>
                                 )}
                             </div>
 
-                            <blockquote className="whitespace-pre-wrap break-words rounded-md bg-paper p-3 text-sm leading-relaxed">
+                            <blockquote className="whitespace-pre-wrap break-words rounded-md border border-line bg-paper p-3 text-sm leading-relaxed text-ink">
                                 {report.messageText ?? "Tin là tệp hoặc đã bị xóa trước khi báo cáo."}
                             </blockquote>
 
@@ -313,18 +326,20 @@ export function ReportsTab() {
 
                             {open ? (
                                 <>
-                                    <label htmlFor={`note-${report.id}`} className={LABEL}>
-                                        Lời nhắn gửi kèm cảnh báo (không bắt buộc)
-                                    </label>
-                                    <input
-                                        id={`note-${report.id}`}
-                                        value={notes[report.id] ?? ""}
-                                        onChange={(event) =>
-                                            setNotes((prev) => ({ ...prev, [report.id]: event.target.value }))
-                                        }
-                                        maxLength={300}
-                                        className={INPUT}
-                                    />
+                                    <div className="flex flex-col gap-1.5">
+                                        <label htmlFor={`note-${report.id}`} className={LABEL}>
+                                            Lời nhắn gửi kèm cảnh báo (không bắt buộc)
+                                        </label>
+                                        <input
+                                            id={`note-${report.id}`}
+                                            value={notes[report.id] ?? ""}
+                                            onChange={(event) =>
+                                                setNotes((prev) => ({ ...prev, [report.id]: event.target.value }))
+                                            }
+                                            maxLength={300}
+                                            className={FIELD}
+                                        />
+                                    </div>
 
                                     <div className="flex flex-wrap gap-2">
                                         {DECISIONS.map((item) => (
@@ -333,7 +348,7 @@ export function ReportsTab() {
                                                 type="button"
                                                 disabled={busyId === report.id}
                                                 onClick={() => resolve(report, item.value)}
-                                                className={item.value === "HIDE" ? BTN_PRIMARY : BTN_GHOST}
+                                                className={DECISION_STYLE[item.value]}
                                             >
                                                 {item.label}
                                             </button>
@@ -352,7 +367,7 @@ export function ReportsTab() {
                         type="button"
                         disabled={page === 0 || loading}
                         onClick={() => setPage((p) => Math.max(0, p - 1))}
-                        className={BTN_GHOST}
+                        className={buttonStyle("secondary", "md")}
                     >
                         Trang trước
                     </button>
@@ -361,7 +376,7 @@ export function ReportsTab() {
                         type="button"
                         disabled={page + 1 >= totalPages || loading}
                         onClick={() => setPage((p) => p + 1)}
-                        className={BTN_GHOST}
+                        className={buttonStyle("secondary", "md")}
                     >
                         Trang sau
                     </button>

@@ -32,4 +32,38 @@ public interface MessageRepository extends MongoRepository<Message, String>, Que
     @Query(value = "{ 'chat.$id': { $eq: ObjectId(?0) } }", count = true)
     long getChatMessagesCount(String chatId);
 
+    /** Ảnh trong đoạn chat, gồm cả tin đã xóa (có removedAt) */
+    @Aggregation(pipeline = {
+            """
+            {
+                $match: {
+                    'chat.$id': { $eq: ObjectId(?0) },
+                    action: { $eq: 'FILE' },
+                    contentType: { $regex: '^image/' }
+                }
+            }
+            """,
+            "{ $sort: { createdAt: -1 } }",
+            "{ $skip : ?1 }",
+            "{ $limit : ?2 }"
+    })
+    List<Message> getChatImages(String chatId, int offset, int limit);
+
+    /** Tệp không phải ảnh trong đoạn chat, gồm cả tin đã xóa (có removedAt) */
+    @Aggregation(pipeline = {
+            """
+            {
+                $match: {
+                    'chat.$id': { $eq: ObjectId(?0) },
+                    action: { $eq: 'FILE' },
+                    contentType: { $not: { $regex: '^image/' } }
+                }
+            }
+            """,
+            "{ $sort: { createdAt: -1 } }",
+            "{ $skip : ?1 }",
+            "{ $limit : ?2 }"
+    })
+    List<Message> getChatFiles(String chatId, int offset, int limit);
+
 }

@@ -6,6 +6,7 @@ import org.linkwave.chatservice.api.ServiceErrorException;
 import org.linkwave.chatservice.chat.ChatMemberPermissionsDenied;
 import org.linkwave.chatservice.chat.ChatNotFoundException;
 import org.linkwave.chatservice.message.MessageNotFoundException;
+import org.linkwave.chatservice.message.MessageRemovedException;
 import org.linkwave.shared.dto.ApiError;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -84,6 +85,28 @@ public class RestExceptionHandler {
                 .timestamp(Instant.now())
                 .path(request.getRequestURI())
                 .status(FORBIDDEN.value())
+                .build();
+    }
+
+    @ResponseStatus(UNPROCESSABLE_ENTITY)
+    @ExceptionHandler(UnprocessableRequestDataException.class)
+    public ApiError handleUnprocessable(@NonNull RuntimeException e, @NonNull HttpServletRequest request) {
+        return ApiError.builder()
+                .message(e.getMessage())
+                .timestamp(Instant.now())
+                .path(request.getRequestURI())
+                .status(UNPROCESSABLE_ENTITY.value())
+                .build();
+    }
+
+    @ResponseStatus(GONE)
+    @ExceptionHandler(MessageRemovedException.class)
+    public ApiError handleGone(@NonNull RuntimeException e, @NonNull HttpServletRequest request) {
+        return ApiError.builder()
+                .message(e.getMessage())
+                .timestamp(Instant.now())
+                .path(request.getRequestURI())
+                .status(GONE.value())
                 .build();
     }
 

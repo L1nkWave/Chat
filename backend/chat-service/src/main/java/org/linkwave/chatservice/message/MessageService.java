@@ -2,7 +2,10 @@ package org.linkwave.chatservice.message;
 
 import org.linkwave.chatservice.chat.duo.Chat;
 import org.linkwave.chatservice.common.RequestInitiator;
+import org.linkwave.chatservice.common.PrivacyViolationException;
 import org.linkwave.chatservice.message.file.CreatedFileMessage;
+import org.linkwave.chatservice.message.file.MediaItemDto;
+import org.linkwave.chatservice.message.file.MediaKind;
 import org.linkwave.chatservice.message.text.EditTextMessage;
 import org.linkwave.chatservice.message.text.NewTextMessage;
 import org.linkwave.chatservice.message.text.UpdatedTextMessage;
@@ -48,4 +51,11 @@ public interface MessageService {
     void addMessageCursor(@NonNull User user, @NonNull ChatMessageCursor cursor);
 
     void removeMessageCursor(@NonNull User user, String chatId);
+
+    /**
+     * Thư viện ảnh hoặc file của đoạn chat, mới nhất trước. Chỉ thành viên được xem.
+     *
+     * @throws PrivacyViolationException nếu không phải thành viên
+     */
+    List<MediaItemDto> getChatMedia(Long userId, String chatId, MediaKind kind, int offset, int limit);
 }
