@@ -83,18 +83,29 @@ BEGIN
   IF (SELECT count(*) FROM users WHERE username = 'root') <> 1 THEN
     RAISE EXCEPTION 'Phải có đúng 1 tài khoản username = root. Dừng reset.';
   END IF;
+
+  IF (
+      SELECT count(*)
+      FROM users
+      WHERE username = 'sgu_bot'
+  ) <> 1 THEN
+    RAISE EXCEPTION
+      'Phải có đúng 1 tài khoản sgu_bot. Dừng reset.';
+  END IF;
 END $$;
 
 -- B2. Lưu id của root (bảng tạm, tự xóa khi kết thúc giao dịch)
-CREATE TEMP TABLE keep_root ON COMMIT DROP AS
-  SELECT id FROM users WHERE username = 'root';
+CREATE TEMP TABLE keep_system_users ON COMMIT DROP AS
+SELECT id
+FROM users
+WHERE username IN ('root', 'sgu_bot');
 
 -- B3. Xóa theo thứ tự bảng con trước, bảng cha sau
 DELETE FROM contacts;
-DELETE FROM scoped_roles       WHERE user_id NOT IN (SELECT id FROM keep_root);
-DELETE FROM user_roles         WHERE users_id NOT IN (SELECT id FROM keep_root);
-DELETE FROM totp_recovery_codes WHERE user_id NOT IN (SELECT id FROM keep_root);
-DELETE FROM totp_secrets       WHERE user_id NOT IN (SELECT id FROM keep_root);
+DELETE FROM scoped_roles       WHERE user_id NOT IN (SELECT id FROM keep_system_users);
+DELETE FROM user_roles         WHERE users_id NOT IN (SELECT id FROM keep_system_users);
+DELETE FROM totp_recovery_codes WHERE user_id NOT IN (SELECT id FROM keep_system_users);
+DELETE FROM totp_secrets       WHERE user_id NOT IN (SELECT id FROM keep_system_users);
 
 DELETE FROM student_profiles;
 DELETE FROM user_profiles;
@@ -107,14 +118,22 @@ DELETE FROM school_classes;     -- phải xóa trước faculties (khóa ngoại
 DELETE FROM faculties;
 
 DELETE FROM audit_logs;         -- nhật ký kiểm toán: comment dòng này nếu muốn giữ
-DELETE FROM deactivated_tokens;
 
-DELETE FROM users WHERE id NOT IN (SELECT id FROM keep_root);
+DELETE FROM users
+WHERE id NOT IN (
+    SELECT id FROM keep_system_users
+);
 
 -- ---------------------------------------------------------------------
 -- C. ĐẾM DÒNG SAU KHI RESET (vẫn trong giao dịch)
--- Kỳ vọng: users = 1 (root), user_roles = số hàng của root,
---          roles / permissions / role_permissions không đổi so với trước, các bảng còn lại = 0.
+-- Kỳ vọng:
+-- users = 2 (root và sgu_bot)
+-- roles / permissions / role_permissions không đổi
+-- user_roles chỉ còn các bản ghi liên quan đến tài khoản hệ thống
+-- user_profiles và dữ liệu học vụ = 0
+-- contacts = 0
+-- audit_logs = 0
+-- deactivated_tokens được giữ nguyên
 -- ---------------------------------------------------------------------
 SELECT 'users' AS bang, count(*) AS so_dong FROM users
 UNION ALL SELECT 'user_roles', count(*) FROM user_roles
@@ -137,7 +156,10 @@ UNION ALL SELECT 'exam_duties', count(*) FROM exam_duties
 UNION ALL SELECT 'academic_terms', count(*) FROM academic_terms
 UNION ALL SELECT 'subjects', count(*) FROM subjects;
 
-SELECT id, username FROM users;   -- phải chỉ còn một dòng: root
+SELECT id, username
+FROM users
+WHERE username IN ('root', 'sgu_bot')
+ORDER BY username;
 
 -- Bỏ comment COMMIT khi đã kiểm tra số dòng ở mục A và C.
 -- COMMIT;

@@ -20,13 +20,16 @@ Tài khoản do nhà trường cấp. Không có đăng ký công khai.
 | Frontend | Next.js (App Router), React, Tailwind CSS v4 | 3000 |
 | api-gateway | Spring Cloud Gateway | 8080 |
 | auth-service | Spring Boot, Spring Security, Redis (phiên, mã 2FA) | 8081 |
-| user-service | Spring Boot, JPA, PostgreSQL, Apache POI (import Excel) | 8082 |
+| user-service | Spring Boot, JPA, PostgreSQL, Flyway, Apache POI | 8082 |
 | chat-service | Spring Boot, MongoDB, đồng bộ nhóm học vụ | 8083 |
 | ws-server | Spring Boot WebSocket, nhận sự kiện từ chat-service (chỉ chạy một instance) | 9090 |
 | discovery-service | Eureka | 8761 |
 | users-db | PostgreSQL 16 (CSDL `lw-users`) | 15432 |
 | chat-db | MongoDB 7 (replica set `rs0`) | 27017 |
 | redis-sessions | Redis | 16379 |
+
+- User Service chịu trách nhiệm thực thi Flyway migration cho PostgreSQL lw-users.
+- Auth Service sử dụng chung database PostgreSQL nhưng không tự chạy migration.
 
 Frontend chỉ gọi `/api/*` qua api-gateway. Trình duyệt nhận sự kiện realtime qua ws-server bằng ticket lấy từ API.
 
@@ -81,9 +84,13 @@ Không đổi các khóa này khi đã có dữ liệu: đổi `TOTP_KEY_1` sẽ
 
 ```bash
 cd backend
-docker compose up -d --no-deps users-db redis-sessions discovery-service chat-db mongo-init
+docker compose up -d --no-deps users-db redis-sessions discovery-service chat-db
 ```
 
+Sau khi chat-db healthy:
+```bash
+docker compose up -d --no-deps mongo-init
+```
 `--no-deps` bắt buộc ở đây: `chat-db` trong compose phụ thuộc auth-service, nếu không có cờ này compose sẽ kéo cả auth và user lên và chiếm cổng 8081, 8082 trước khi chạy Maven. Service `mongo-init` khởi tạo replica set `rs0` sau khi `chat-db` sẵn sàng. Kiểm tra bằng `docker compose logs mongo-init`.
 
 ### 3. Chạy backend
@@ -96,6 +103,8 @@ Có hai cách.
 cd backend
 docker compose up -d --build
 ```
+
+Flyway tự động chạy khi User Service khởi động. Không cần chạy SQL thủ công.
 
 Compose chỉ chạy **một** ws-server (container `ws-server`, cổng 9090). Không thêm instance thứ hai khi phát triển: mỗi instance giữ kết nối WebSocket trong bộ nhớ riêng, và việc chuyển tin giữa các instance chưa hoạt động đúng, nên tin realtime (tin nhắn, lời mời, tin của bot) sẽ không đến đều.
 
@@ -130,6 +139,8 @@ cd backend/ws-server         && mvn spring-boot:run
 cd backend/api-gateway       && mvn spring-boot:run
 ```
 
+Flyway cũng tự động chạy trong quá trình khởi động User Service.
+
 Kiểm tra: `http://localhost:8761` (Eureka) phải thấy đủ các service đã đăng ký.
 
 ### 4. Chạy frontend
@@ -140,28 +151,39 @@ npm ci
 npm run dev        # http://localhost:3000
 ```
 
-Tài khoản quản trị gốc (root) lấy từ người phụ trách dự án. Đổi mật khẩu ngay sau lần đăng nhập đầu tiên.
+Lập trình viên tự tạo tài khoản root trong môi trường local. Đổi mật khẩu ngay sau lần đăng nhập đầu tiên.
 
-## Khởi tạo dữ liệu nền (chỉ làm khi DB mới)
+## Database Schema Migration (Flyway)
+A. Cách hoạt động
+- Flyway được tích hợp tại User Service.
+- Migration nằm trong backend/user-service/src/main/resources/db/migration/.
+- Migration tự động chạy khi User Service khởi động.
+- Các migration đã thực hiện được lưu trong flyway_schema_history.
+- Auth Service dùng chung PostgreSQL nhưng không thực thi migration riêng.
+- Hibernate ddl-auto: validate để kiểm tra schema.
 
-Thư mục `backend/user-service/src/main/resources/db/` chứa các file SQL bổ sung bảng, vai trò, tài khoản bot và hồ sơ người dùng. Docker không tự chạy các file này, nên phải chạy tay, đúng thứ tự, trên DB `lw-users`.
+B. Danh sách migration
 
-1. Chạy user-service một lần (bằng `docker compose` hoặc `mvn spring-boot:run`) để Hibernate tạo các bảng `users`, `roles`. Đợi service lên rồi dừng lại.
-2. Trong WSL, tại thư mục gốc repo, chạy:
+| Migration | Nội dung |
+|-----------|---|
+| V1        | Tạo users, roles, user_roles, contacts |
+| V2        | Tạo permissions, role_permissions, scoped_roles, audit_logs |
+| V3        | Tạo các bảng học vụ |
+| V4        | Tạo user_profiles và các bảng xác thực |
+| V5        | Seed roles và permissions |
+| V6        | Seed tài khoản sgu_bot |
 
-```bash
-for f in phase2-bot phase3-p1-roles phase4-admin phase5-academic phase5b-academic-fix phase6-subjects phase7-user-profiles phase7b-role-display; do
-  echo "== $f"
-  docker exec -i users-db psql -v ON_ERROR_STOP=1 -U postgres -d lw-users < backend/user-service/src/main/resources/db/$f.sql || break
-done
-```
+C. Quy tắc khi phát triển
+- Không chỉnh sửa migration đã được thực thi.
+- Khi cần thêm bảng, cột hoặc index, tạo migration phiên bản mới.
+- Ví dụ migration tiếp theo là V7__...sql.
+- Không chạy lại migration đã hoàn thành.
+- Không sử dụng Hibernate ddl-auto: update để thay đổi schema.
 
-`ON_ERROR_STOP=1` dừng ngay ở lỗi đầu tiên để không chạy tiếp trên dữ liệu lỗi.
+**Lưu ý:** 
+database cũ được tạo trước Flyway không được tự động coi là database mới. Phải backup, đối chiếu schema và baseline đúng phiên bản trước khi áp dụng.
 
-3. Khởi động lại user-service.
-4. Lấy ID của `sgu_bot` và đặt `BOT_USER_ID` trong `backend/.env`, kiểm tra bảng user trong TablePlus hay phần mềm quản trị database (mặc định là 1). Trong bất cứ trường hợp nào ảnh hưởng đến dữ liệu database hay không xuất hiện đoạn chat với bot. Vui lòng xem bước 3 trong phần "Đặt lại dữ liệu" bên dưới.
-
-### Tạo tài khoản root
+## Tạo tài khoản root
 
 Chạy sau bước 2 (cần vai trò `ROLE_ROOT` có sẵn). Lệnh hỏi mật khẩu tạm và không hiện ký tự khi gõ. Tài khoản được đặt cờ bắt buộc đổi mật khẩu, nên lần đăng nhập đầu sẽ phải đổi.
 
@@ -180,6 +202,8 @@ Sau khi đăng nhập bằng `root`, đổi mật khẩu, rồi vào **Xác th�
 
 ## Nhập dữ liệu đào tạo
 
+Flyway không tự động import dữ liệu từ các file Excel trong test-data/. Quản trị viên cần đăng nhập và thực hiện import thông qua giao diện Học vụ theo đúng thứ tự được hướng dẫn.
+
 Đăng nhập bằng tài khoản admin, vào tab **Học vụ**. Import theo đúng thứ tự, vì mỗi file phụ thuộc file trước:
 
 1. `1-khoa.xlsx`
@@ -192,7 +216,7 @@ Sau khi đăng nhập bằng `root`, đổi mật khẩu, rồi vào **Xác th�
 8. `5-lich-thi.xlsx`
 9. `6-lich-gac-thi.xlsx`
 
-Sau khi import, bấm **Đồng bộ nhóm học vụ**. Nhóm lớp, môn, khoa được tạo từ dữ liệu này. Đồng bộ là thao tác thủ công của admin; chạy lại không tạo nhóm trùng, nhưng lời mời đã từ chối sẽ được gửi lại.
+**Lưu ý:** Sau khi import, bấm **Đồng bộ nhóm học vụ**. Nhóm lớp, môn, khoa được tạo từ dữ liệu này. Đồng bộ là thao tác thủ công của admin; chạy lại không tạo nhóm trùng, nhưng lời mời đã từ chối sẽ được gửi lại.
 
 Các file mẫu nằm trong `test-data/`. Có thể nhập tay cho từng bản ghi ở mọi tab import.
 
@@ -221,31 +245,13 @@ Chạy trong TablePlus, kết nối `localhost`, cổng `15432`, user `postgres`
 3. Xem kết quả phần C: `users = 1`, các bảng dữ liệu bằng 0, còn `roles`, `permissions`, `role_permissions` giữ nguyên.
 4. Đúng thì chạy `COMMIT;`, sai thì chạy `ROLLBACK;`. Trong TablePlus, nếu có nút Commit thì bấm nút đó.
 
-Script giữ lại tài khoản `root`, bảng `roles`, `permissions`, `role_permissions`. Script xóa cả tài khoản bot `sgu_bot` (nằm trong `users`).
+Script giữ lại hai tài khoản hệ thống root và sgu_bot, cùng toàn bộ roles, permissions và role_permissions. Các tài khoản người dùng khác, dữ liệu học vụ, hồ sơ cá nhân, danh bạ và dữ liệu audit sẽ được xóa.
 
-### Bước 3: Tạo lại bot sau khi reset
+Bảng flyway_schema_history và các migration đã thực thi được giữ nguyên. Bảng deactivated_tokens cũng được giữ lại để không làm mất trạng thái thu hồi access token.
 
-Sau khi `COMMIT` ở bước 2, bot phải được tạo lại và chat-service phải biết ID mới của bot. Nếu bỏ qua, chat của bot sẽ không hiện, dù tài khoản đã tồn tại.
+Sau khi reset, database vẫn giữ nguyên schema và có thể tiếp tục hoạt động mà không cần chạy lại migration.
 
-1. Chạy lại `phase2-bot.sql` trên DB `lw-users`:
-   ```bash
-   docker exec -i users-db psql -v ON_ERROR_STOP=1 -U postgres -d lw-users < backend/user-service/src/main/resources/db/phase2-bot.sql
-   ```
-2. Lấy ID của bot:
-   ```bash
-   docker exec -i users-db psql -U postgres -d lw-users -c "select id, username from users where username = 'sgu_bot';"
-   ```
-3. Mở `backend/.env`, thêm hoặc sửa dòng `BOT_USER_ID=<id vừa lấy>`.
-4. Tạo lại container chat-service để đọc giá trị mới. `restart` không đủ, vì `env_file` chỉ được đọc khi tạo container:
-   ```bash
-   cd backend
-   docker compose up -d --no-deps --force-recreate chat-service
-   ```
-5. Refresh trang và kiểm tra chat của bot.
-
-ID thay đổi mỗi lần tạo lại `sgu_bot`, nên phải làm lại bước 2 đến 4 mỗi lần reset.
-
-Sao lưu DB trước khi chạy cả ba bước.
+**Lưu ý:** Sao lưu DB trước khi chạy cả ba bước.
 
 ## Bảo mật và giới hạn đã biết
 
