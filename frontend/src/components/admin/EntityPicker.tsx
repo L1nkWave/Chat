@@ -76,46 +76,53 @@ export function EntityPicker({ id, label, placeholder, search, value, onChange }
             <label htmlFor={id} className={LABEL}>
                 {label}
             </label>
-            <input
-                id={id}
-                value={text}
-                placeholder={placeholder}
-                autoComplete="off"
-                onFocus={() => setOpen(true)}
-                onBlur={() => window.setTimeout(() => setOpen(false), 150)}
-                onChange={(event) => {
-                    setText(event.target.value);
-                    setOpen(true);
-                }}
-                className={INPUT}
-            />
-            {open ? (
-                <ul role="listbox" aria-label={label} className="flex flex-col divide-y divide-line overflow-hidden rounded-md border border-line bg-surface">
-                    {loading ? <li className="px-3 py-2 text-sm text-muted">Đang tìm...</li> : null}
-                    {!loading && options.length === 0 ? (
-                        <li className="px-3 py-2 text-sm text-muted">Không có kết quả.</li>
-                    ) : null}
-                    {!loading
-                        ? options.map((item) => (
-                            <li key={item.id}>
-                                <button
-                                    type="button"
-                                    onMouseDown={(event) => event.preventDefault()}
-                                    onClick={() => {
-                                        onChange(item);
-                                        setText("");
-                                        setOpen(false);
-                                    }}
-                                    className="flex w-full flex-col items-start px-3 py-2 text-left text-sm transition-colors hover:bg-tint"
-                                >
-                                    <span>{item.label}</span>
-                                    {item.hint ? <span className={HELP}>{item.hint}</span> : null}
-                                </button>
-                            </li>
-                        ))
-                        : null}
-                </ul>
-            ) : null}
+            {/* Danh sách gợi ý nổi lên (absolute) nên không đẩy các ô phía dưới */}
+            <div className="relative">
+                <input
+                    id={id}
+                    value={text}
+                    placeholder={placeholder}
+                    autoComplete="off"
+                    onFocus={() => setOpen(true)}
+                    onBlur={() => window.setTimeout(() => setOpen(false), 150)}
+                    onChange={(event) => {
+                        setText(event.target.value);
+                        setOpen(true);
+                    }}
+                    className={INPUT}
+                />
+                {open ? (
+                    <ul
+                        role="listbox"
+                        aria-label={label}
+                        className="absolute inset-x-0 top-full z-30 mt-1 flex max-h-64 flex-col divide-y divide-line overflow-y-auto rounded-md border border-line bg-surface"
+                    >
+                        {loading ? <li className="px-3 py-2 text-sm text-muted">Đang tìm...</li> : null}
+                        {!loading && options.length === 0 ? (
+                            <li className="px-3 py-2 text-sm text-muted">Không có kết quả.</li>
+                        ) : null}
+                        {!loading
+                            ? options.map((item) => (
+                                <li key={item.id}>
+                                    <button
+                                        type="button"
+                                        onMouseDown={(event) => event.preventDefault()}
+                                        onClick={() => {
+                                            onChange(item);
+                                            setText("");
+                                            setOpen(false);
+                                        }}
+                                        className="flex w-full flex-col items-start px-3 py-2 text-left text-sm transition-colors hover:bg-tint"
+                                    >
+                                        <span>{item.label}</span>
+                                        {item.hint ? <span className={HELP}>{item.hint}</span> : null}
+                                    </button>
+                                </li>
+                            ))
+                            : null}
+                    </ul>
+                ) : null}
+            </div>
         </div>
     );
 }

@@ -26,9 +26,17 @@ export function listRoleOverview(): Promise<RoleOverview[]> {
     return apiFetch<RoleOverview[]>("/api/v1/admin/roles/overview");
 }
 
-// Chỉ ROOT. Trả về cả người được gán toàn trường và người có phạm vi.
-export function listRoleMembers(roleName: string): Promise<RoleMember[]> {
-    return apiFetch<RoleMember[]>(`/api/v1/admin/roles/${encodeURIComponent(roleName)}/members`);
+export type RoleMemberPage = {
+    total: number;
+    items: RoleMember[];
+};
+
+// Chỉ ROOT. Trả về cả người được gán toàn trường và người có phạm vi, theo trang.
+export function listRoleMembers(roleName: string, page: number, size: number): Promise<RoleMemberPage> {
+    const query = new URLSearchParams({ page: String(page), size: String(size) });
+    return apiFetch<RoleMemberPage>(
+        `/api/v1/admin/roles/${encodeURIComponent(roleName)}/members?${query.toString()}`,
+    );
 }
 
 // Chỉ ROOT. Thay toàn bộ bộ quyền của vai trò. Không sửa được ROLE_ROOT.

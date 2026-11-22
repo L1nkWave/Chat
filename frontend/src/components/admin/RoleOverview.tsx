@@ -10,12 +10,14 @@ import {
     updateRoleDisplayName,
     updateRolePermissions,
 } from "@/lib/admin/roles-api";
-import type { RoleMember, RoleOverview as RoleItem } from "@/lib/admin/roles-api";
+import type { RoleMemberPage, RoleOverview as RoleItem } from "@/lib/admin/roles-api";
 import { ROLE_LABEL, SCOPE_LABEL } from "./labels";
 import { BTN_GHOST, BTN_PRIMARY, CARD, INPUT, LABEL, PERMISSION_OPTIONS, permissionLabel } from "./shared";
 import { HELP, SECTION_TITLE } from "@/components/ui/styles";
 
-function describeMember(member: RoleMember): string {
+const MEMBER_PAGE_SIZE = 20;
+
+function describeMember(member: RoleMemberPage["items"][number]): string {
     if (member.source === "GLOBAL") return "Gán toàn trường";
     const scope = member.scopeType ? SCOPE_LABEL[member.scopeType] : "Phạm vi";
     return member.scopeId ? `${scope} #${member.scopeId}` : scope;
@@ -37,7 +39,8 @@ export function RoleOverview({ refreshKey }: RoleOverviewProps) {
     const [loading, setLoading] = useState(true);
     const [notice, setNotice] = useState<{ text: string; tone: "info" | "error" } | null>(null);
     const [openName, setOpenName] = useState<string | null>(null);
-    const [members, setMembers] = useState<Record<string, RoleMember[]>>({});
+    const [members, setMembers] = useState<Record<string, RoleMemberPage>>({});
+    const [memberPage, setMemberPage] = useState<Record<string, number>>({});
     const [reloadKey, setReloadKey] = useState(0);
     const [busy, setBusy] = useState(false);
 
@@ -70,19 +73,23 @@ export function RoleOverview({ refreshKey }: RoleOverviewProps) {
         setReloadKey((key) => key + 1);
     }
 
+    async function loadMembers(name: string, page: number) {
+        try {
+            const result = await listRoleMembers(name, page, MEMBER_PAGE_SIZE);
+            setMembers((prev) => ({ ...prev, [name]: result }));
+            setMemberPage((prev) => ({ ...prev, [name]: page }));
+        } catch (err) {
+            setNotice({ text: adminErrorMessage(err), tone: "error" });
+        }
+    }
+
     async function toggleMembers(name: string) {
         if (openName === name) {
             setOpenName(null);
             return;
         }
         setOpenName(name);
-        if (members[name]) return;
-        try {
-            const list = await listRoleMembers(name);
-            setMembers((prev) => ({ ...prev, [name]: list }));
-        } catch (err) {
-            setNotice({ text: adminErrorMessage(err), tone: "error" });
-        }
+        if (!members[name]) await loadMembers(name, 0);
     }
 
     function startRename(role: RoleItem) {
@@ -166,6 +173,9 @@ export function RoleOverview({ refreshKey }: RoleOverviewProps) {
                 {roles.map((role) => {
                     const open = openName === role.name;
                     const list = members[role.name];
+                    const currentPage = memberPage[role.name] ?? 0;
+                    const memberTotal = list?.total ?? 0;
+                    const memberPages = Math.max(1, Math.ceil(memberTotal / MEMBER_PAGE_SIZE));
                     const renaming = renamingName === role.name;
                     const editing = editingName === role.name;
                     return (
@@ -264,21 +274,47 @@ export function RoleOverview({ refreshKey }: RoleOverviewProps) {
                                 <div className="flex flex-col gap-2 border-t border-line pt-3">
                                     {!list ? (
                                         <p className="text-sm text-muted">Đang tải danh sách...</p>
-                                    ) : list.length === 0 ? (
+                                    ) : list.total === 0 ? (
                                         <p className="text-sm text-muted">Chưa có ai có vai trò này.</p>
                                     ) : (
-                                        list.map((member) => (
-                                            <div
-                                                key={`${member.source}-${member.grantId ?? member.userId}`}
-                                                className="flex flex-wrap items-center justify-between gap-2 text-sm"
-                                            >
-                                                <span>
-                                                    {member.name}{" "}
-                                                    <span className="text-muted">(@{member.username})</span>
-                                                </span>
-                                                <span className={HELP}>{describeMember(member)}</span>
-                                            </div>
-                                        ))
+                                        <>
+                                            <p className={HELP}>{list.total} người có vai trò này</p>
+                                            {list.items.map((member) => (
+                                                <div
+                                                    key={`${member.source}-${member.grantId ?? member.userId}`}
+                                                    className="flex flex-wrap items-center justify-between gap-2 text-sm"
+                                                >
+                                                    <span>
+                                                        {member.name}{" "}
+                                                        <span className="text-muted">(@{member.username})</span>
+                                                    </span>
+                                                    <span className={HELP}>{describeMember(member)}</span>
+                                                </div>
+                                            ))}
+                                            {list.total > MEMBER_PAGE_SIZE ? (
+                                                <div className="flex items-center justify-between gap-3 pt-1">
+                                                    <button
+                                                        type="button"
+                                                        disabled={currentPage === 0}
+                                                        onClick={() => loadMembers(role.name, currentPage - 1)}
+                                                        className={BTN_GHOST}
+                                                    >
+                                                        Trang trước
+                                                    </button>
+                                                    <span className={HELP}>
+                                                        Trang {currentPage + 1} / {memberPages}
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        disabled={currentPage + 1 >= memberPages}
+                                                        onClick={() => loadMembers(role.name, currentPage + 1)}
+                                                        className={BTN_GHOST}
+                                                    >
+                                                        Trang sau
+                                                    </button>
+                                                </div>
+                                            ) : null}
+                                        </>
                                     )}
                                 </div>
                             ) : null}

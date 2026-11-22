@@ -118,8 +118,8 @@ export function AuditTab() {
         <section aria-label="Nhật ký hệ thống" className="flex flex-col gap-4">
             <div className="flex flex-col gap-3">
                 <h2 className={SECTION_TITLE}>Nhật ký hệ thống</h2>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-                    <div className="flex flex-col gap-1.5 lg:col-span-2">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="flex flex-col gap-1.5">
                         <label htmlFor="audit-action" className={LABEL}>
                             Hành động
                         </label>
@@ -136,7 +136,7 @@ export function AuditTab() {
                             ))}
                         </select>
                     </div>
-                    <div className="flex flex-col gap-1.5 lg:col-span-2">
+                    <div className="flex flex-col gap-1.5">
                         <EntityPicker
                             id="audit-actor"
                             label="Người thực hiện (tìm theo tên)"

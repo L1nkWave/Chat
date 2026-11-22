@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -74,24 +75,30 @@ public class RoleOverviewController {
                 .toList();
     }
 
+    /** Một trang thành viên: total là tổng số người có vai trò, items là các người thuộc trang này */
+    public record MemberPage(long total, List<MemberView> items) {
+    }
+
     @GetMapping("/{name}/members")
     @Transactional(readOnly = true)
-    public List<MemberView> members(@PathVariable String name) {
+    public MemberPage members(@PathVariable String name,
+                              @RequestParam(defaultValue = "0") int page,
+                              @RequestParam(defaultValue = "20") int size) {
         requireRoot();
 
         final RoleEntity role = roleRepository.findByName(name)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy vai trò " + name));
 
-        final List<MemberView> members = new ArrayList<>();
+        final List<MemberView> all = new ArrayList<>();
         role.getUsers().stream()
                 .filter(user -> !user.isDeleted())
                 .sorted(Comparator.comparing(UserEntity::getName))
-                .forEach(user -> members.add(new MemberView(
+                .forEach(user -> all.add(new MemberView(
                         user.getId(), user.getUsername(), user.getName(), "GLOBAL", null, null, null)));
 
         for (ScopedRoleEntity grant : scopedRoleRepository.findAllActive()) {
             if (grant.getRole().getName().equals(name)) {
-                members.add(new MemberView(
+                all.add(new MemberView(
                         grant.getUser().getId(),
                         grant.getUser().getUsername(),
                         grant.getUser().getName(),
@@ -101,7 +108,11 @@ public class RoleOverviewController {
                         grant.getId()));
             }
         }
-        return members;
+
+        final int pageSize = Math.clamp(size, 1, 100);
+        final int from = Math.min(Math.max(page, 0) * pageSize, all.size());
+        final int to = Math.min(from + pageSize, all.size());
+        return new MemberPage(all.size(), all.subList(from, to));
     }
 
     private void requireRoot() {
