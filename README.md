@@ -52,7 +52,11 @@ scripts/reset/    Script xóa dữ liệu (chỉ chạy khi cần, xem bên dư�
 - JDK 21 và Maven 3.9+ (để build và chạy từng service)
 - Node.js 20+ và npm (frontend)
 - Docker và Docker Compose (chạy cơ sở dữ liệu và, tùy chọn, toàn bộ stack)
-- `openssl` để sinh khóa
+- `openssl` để sinh khóa. Trên Windows có thể dùng openssl đi kèm Git for Windows (`<thư mục cài Git>\usr\bin\openssl.exe`). Nếu `openssl version` không chạy được trong PowerShell, thêm thư mục đó vào PATH cho phiên hiện tại trước khi chạy script:
+  ```powershell
+  $env:Path += ";<thư mục cài Git>\usr\bin"
+  ```
+  Lệnh này chỉ có tác dụng trong cửa sổ PowerShell hiện tại. Cách khác là chạy `openssl` trong WSL (`sudo apt install -y openssl`).
 
 ## Cài đặt
 
@@ -155,7 +159,7 @@ done
 `ON_ERROR_STOP=1` dừng ngay ở lỗi đầu tiên để không chạy tiếp trên dữ liệu lỗi.
 
 3. Khởi động lại user-service.
-4. Lấy ID của `sgu_bot` và đặt `BOT_USER_ID` trong `backend/.env` (cách làm xem mục "Đặt lại dữ liệu", bước 3). Chat-service đã chạy từ mục "Chạy backend" với `BOT_USER_ID` mặc định `0`, nên phải tạo lại container chat-service sau bước này. Nếu chưa đặt, bot sẽ không hoạt động.
+4. Lấy ID của `sgu_bot` và đặt `BOT_USER_ID` trong `backend/.env`, kiểm tra bảng user trong TablePlus hay phần mềm quản trị database (mặc định là 1). Trong bất cứ trường hợp nào ảnh hưởng đến dữ liệu database hay không xuất hiện đoạn chat với bot. Vui lòng xem bước 3 trong phần "Đặt lại dữ liệu" bên dưới.
 
 ### Tạo tài khoản root
 
@@ -171,6 +175,8 @@ unset ROOT_PW
 Lệnh có thể chạy lại để đặt lại mật khẩu root; mỗi lần chạy sẽ ghi đè mật khẩu cũ.
 
 Sau khi đăng nhập bằng `root`, đổi mật khẩu, rồi vào **Xác thực hai lớp** để bật 2FA cho tài khoản này.
+
+`dataset.sql` ở thư mục `resources` không nằm trong danh sách này và không chạy trên DB thật, vì nó chứa tài khoản mẫu.
 
 ## Nhập dữ liệu đào tạo
 
